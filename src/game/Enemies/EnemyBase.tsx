@@ -33,7 +33,7 @@ export interface EnemyBaseProps {
 }
 
 export function useEnemyFSM({
-  initialPosition,
+  initialPosition: _initialPosition,
   patrolPoints = [],
   detectionRadius,
   attackRange,
@@ -68,7 +68,7 @@ export function useEnemyFSM({
   };
 
   // State transition logic
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (!enemyRef.current) return;
 
     const distanceToPlayer = getDistanceToPlayer();

@@ -16,8 +16,7 @@
 //    - Should log state transitions appropriately
 
 import { useEffect, useRef } from 'react';
-import { useEnemyFSM, EnemyState } from './EnemyBase';
-import * as THREE from 'three';
+import { useEnemyFSM, type EnemyState } from './EnemyBase';
 
 interface EnemyCrawlerProps {
   initialPosition: [number, number, number];
@@ -41,7 +40,7 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
   const moveSpeed = 5; // Fast movement speed
   const patrolSpeed = 3; // Slightly slower patrol speed
 
-  const handleStateChange = (newState: EnemyState, oldState: EnemyState) => {
+  const handleStateChange = (newState: EnemyState, _oldState: EnemyState) => {
     // Log state transitions
     console.log(`Crawler: state -> ${newState}`);
     
