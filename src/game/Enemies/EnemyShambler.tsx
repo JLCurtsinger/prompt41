@@ -16,6 +16,8 @@
 // 5. Attack:
 //    - When player is within attack range (2.5m), should log: "Shambler: state -> attack"
 //    - After ~0.5s wind-up delay, should log: "Shambler: HEAVY ATTACK"
+//    - Should apply 15 damage to player with 1.2s cooldown between attacks
+//    - Console should show: "Damage: -15 from Shambler -> current HP: XX"
 // 6. Return to Patrol:
 //    - When player leaves detection radius, should return to patrol
 //    - Should log state transitions appropriately
@@ -23,6 +25,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useEnemyFSM, type EnemyState } from './EnemyBase';
+import { applyDamageToPlayer } from './enemyDamage';
 import * as THREE from 'three';
 
 interface EnemyShamblerProps {
@@ -35,6 +38,7 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   const prevStateRef = useRef<EnemyState | null>(null);
   const attackWindUpTimer = useRef<number>(0);
   const hasLoggedAttack = useRef<boolean>(false);
+  const attackCooldownRef = useRef<number>(0);
   const lastJerkyUpdate = useRef<number>(0);
   const jerkyDirection = useRef(new THREE.Vector3(0, 0, 0));
 
@@ -52,6 +56,8 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   const moveSpeed = 1.8; // Slow movement speed
   const patrolSpeed = 1.5; // Even slower patrol speed
   const ATTACK_WIND_UP_TIME = 0.5; // seconds before attack logs
+  const ATTACK_COOLDOWN = 1.2; // seconds between attacks
+  const ATTACK_DAMAGE = 15; // Heavy damage
   const JERKY_UPDATE_INTERVAL = 0.15; // seconds between jerky direction changes
 
   const handleStateChange = (newState: EnemyState, _oldState: EnemyState) => {
@@ -124,14 +130,30 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       }
     }
 
-    // Handle attack wind-up delay
+    // Handle attack wind-up delay and damage
     if (currentState === 'attack') {
       attackWindUpTimer.current += delta;
+      
+      // Update attack cooldown
+      if (attackCooldownRef.current > 0) {
+        attackCooldownRef.current -= delta;
+      }
       
       if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME && !hasLoggedAttack.current) {
         console.log('Shambler: HEAVY ATTACK');
         hasLoggedAttack.current = true;
+        
+        // Apply damage if cooldown is ready
+        if (attackCooldownRef.current <= 0) {
+          applyDamageToPlayer(ATTACK_DAMAGE, 'Shambler');
+          attackCooldownRef.current = ATTACK_COOLDOWN;
+        }
       }
+    }
+
+    // Reset cooldown when leaving attack state
+    if (prevStateRef.current === 'attack' && currentState !== 'attack') {
+      attackCooldownRef.current = 0;
     }
   });
 

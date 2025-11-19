@@ -11,12 +11,16 @@
 // 4. Attack:
 //    - When player is within attack range, should log: "Crawler: state -> attack"
 //    - Should log: "Crawler: ATTACK" when in attack state
+//    - Should apply 5 damage to player with 0.8s cooldown between attacks
+//    - Console should show: "Damage: -5 from Crawler -> current HP: XX"
 // 5. Return to Patrol:
 //    - When player leaves detection radius, should return to patrol
 //    - Should log state transitions appropriately
 
 import { useEffect, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { useEnemyFSM, type EnemyState } from './EnemyBase';
+import { applyDamageToPlayer } from './enemyDamage';
 
 interface EnemyCrawlerProps {
   initialPosition: [number, number, number];
@@ -25,6 +29,9 @@ interface EnemyCrawlerProps {
 
 export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerProps) {
   const prevStateRef = useRef<EnemyState | null>(null);
+  const attackCooldownRef = useRef<number>(0);
+  const ATTACK_COOLDOWN = 0.8; // seconds
+  const ATTACK_DAMAGE = 5;
 
   // Zone 2 (Processing Yard) patrol points - hardcoded positions
   // These form a small patrol loop in the processing yard area
@@ -34,7 +41,7 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
     [0, 0, -6],   // Near terminal area
   ];
 
-  // Crawler-specific stats: fast, low health (but health not implemented yet)
+  // Crawler-specific stats: fast, low health
   const detectionRadius = 8; // meters
   const attackRange = 2; // meters
   const moveSpeed = 5; // Fast movement speed
@@ -74,6 +81,25 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
       enemyRef.current.position.set(...initialPosition);
     }
   }, [initialPosition, enemyRef]);
+
+  // Handle attack damage with cooldown
+  useFrame((_state, delta) => {
+    // Update cooldown timer
+    if (attackCooldownRef.current > 0) {
+      attackCooldownRef.current -= delta;
+    }
+
+    // Apply damage when in attack state and cooldown is ready
+    if (currentState === 'attack' && attackCooldownRef.current <= 0) {
+      applyDamageToPlayer(ATTACK_DAMAGE, 'Crawler');
+      attackCooldownRef.current = ATTACK_COOLDOWN;
+    }
+
+    // Reset cooldown when leaving attack state
+    if (prevStateRef.current === 'attack' && currentState !== 'attack') {
+      attackCooldownRef.current = 0;
+    }
+  });
 
   return (
     <group ref={enemyRef} position={initialPosition}>

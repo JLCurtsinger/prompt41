@@ -15,10 +15,14 @@
 //    - Player should fall back down due to gravity
 //    - Player should land smoothly at y = 0 and be able to jump again
 //    - Test grounding: jump, wait to land, jump again - should work each time
+// 4. Death & Respawn:
+//    - When health reaches 0, player controls should freeze (no movement, jump, or camera rotation)
+//    - Press R key to respawn: health restored, position reset to spawn point, controls re-enabled
 
 import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState } from '../state/gameState';
+import { PLAYER_SPAWN_POSITION } from './LevelLayout';
 import * as THREE from 'three';
 
 interface PlayerProps {
@@ -33,7 +37,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const verticalVelocity = useRef(0);
   
   const { camera } = useThree();
-  const { isSwinging, setIsSwinging } = useGameState();
+  const { isSwinging, setIsSwinging, isDead, resetPlayer } = useGameState();
   
   // Movement constants
   const WALK_SPEED = 3;
@@ -61,6 +65,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     d: false,
     shift: false,
     space: false,
+    r: false,
   });
   
   // Track previous states for console logging
@@ -90,6 +95,9 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
           keys.current.space = true;
         }
       }
+      if (key === 'r') {
+        keys.current.r = true;
+      }
     };
     
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -108,6 +116,9 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       if (key === ' ') {
         keys.current.space = false;
         prevSpaceState.current = false;
+      }
+      if (key === 'r') {
+        keys.current.r = false;
       }
     };
     
@@ -162,6 +173,23 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   
   useFrame((state, delta) => {
     if (!playerRef.current) return;
+    
+    // Handle respawn (R key) - only works when dead
+    if (isDead && keys.current.r) {
+      resetPlayer();
+      // Reset player position to spawn
+      playerRef.current.position.set(...PLAYER_SPAWN_POSITION);
+      // Reset camera to default position
+      camera.position.set(0, 2, 5);
+      camera.rotation.set(0, 0, 0);
+      keys.current.r = false; // Prevent repeat triggers
+      return;
+    }
+    
+    // Freeze all controls when dead
+    if (isDead) {
+      return;
+    }
     
     const player = playerRef.current;
     
