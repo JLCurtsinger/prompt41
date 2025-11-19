@@ -19,6 +19,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState } from '../../state/gameState';
+import { AudioManager } from '../audio/AudioManager';
 import * as THREE from 'three';
 
 interface EnergyCellProps {
@@ -80,6 +81,7 @@ export function EnergyCell({ position }: EnergyCellProps) {
       setIsCollected(true);
       addEnergyCell(1);
       playHostLine('pickup:energyCell');
+      AudioManager.playSFX('pickupEnergyCell');
     }
   });
   

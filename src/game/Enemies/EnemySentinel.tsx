@@ -27,6 +27,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEnemyFSM, type EnemyState } from './EnemyBase';
 import { applyDamageToPlayer } from './enemyDamage';
 import { useGameState } from '../../state/gameState';
+import { AudioManager } from '../audio/AudioManager';
 import * as THREE from 'three';
 
 interface EnemySentinelProps {
@@ -107,6 +108,7 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
     // Check if Sentinel is defeated
     if (healthRef.current <= 0) {
       setSentinelDefeated(true);
+      AudioManager.playSFX('enemyDeath');
       // Hide or disable Sentinel (could add death animation here)
       enemyRef.current.visible = false;
       return;
@@ -176,6 +178,7 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
           if (healthRef.current <= 0) {
             console.log('Sentinel: DEFEATED');
             setSentinelDefeated(true);
+            AudioManager.playSFX('enemyDeath');
           }
         }
       }

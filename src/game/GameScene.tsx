@@ -25,6 +25,7 @@ import { EnemySentinel } from './Enemies/EnemySentinel';
 import { ScreenFade } from './Effects/ScreenFade';
 import { LootCrate } from './Interactables/LootCrate';
 import { EnergyCell } from './Pickups/EnergyCell';
+import { ZoneAudioController } from './audio/ZoneAudioController';
 import { useGameState } from '../state/gameState';
 import * as THREE from 'three';
 
@@ -78,6 +79,7 @@ export function GameScene() {
   
   return (
     <>
+      <ZoneAudioController />
       <ScreenFade />
       <Canvas
       style={{ width: '100vw', height: '100vh' }}

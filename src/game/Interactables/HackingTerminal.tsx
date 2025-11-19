@@ -15,6 +15,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState, getTerminalState } from '../../state/gameState';
+import { AudioManager } from '../audio/AudioManager';
 import * as THREE from 'three';
 import directivesData from '../../assets/data/directives.json';
 
@@ -105,6 +106,7 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
           setShowOverlay(true);
           setPaused(true);
           playHostLine('hacking:start');
+          AudioManager.playSFX('hackingStart');
           // Exit pointer lock if active
           if (document.pointerLockElement) {
             document.exitPointerLock();
@@ -129,12 +131,16 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
     if (id === 'terminal-zone2-main') {
       setDoorState('zone1-zone2-main', 'open');
       playHostLine('hacking:success');
+      AudioManager.playSFX('hackingSuccess');
     } else if (id === 'terminal-zone4-final') {
       playHostLine('hacking:finalSuccess');
       playHostLine('shutdown:start');
       setIsShuttingDown(true);
+      AudioManager.playSFX('hackingSuccess');
+      AudioManager.playSFX('shutdownStart');
     } else {
       playHostLine('hacking:success');
+      AudioManager.playSFX('hackingSuccess');
     }
     
     setShowOverlay(false);

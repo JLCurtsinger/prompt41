@@ -6,6 +6,7 @@ import { HostLog } from './game/ui/HostLog'
 import { ZoneLabel } from './game/ui/ZoneLabel'
 import { ScreenGlitch } from './game/Effects/ScreenGlitch'
 import { ScanlineOverlay } from './game/Effects/ScanlineOverlay'
+import { AudioSettings } from './game/ui/AudioSettings'
 import './App.css'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
       <ScreenGlitch />
       <HostLog />
       <ZoneLabel />
+      <AudioSettings />
       <DeathOverlay />
     </div>
   )

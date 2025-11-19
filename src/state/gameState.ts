@@ -72,9 +72,27 @@
 // 4. Zone Label Display:
 //    - When currentZone changes, ZoneLabel should fade in, display, then fade out
 //    - Verify timing: fade in ~0.3s, visible ~2.5s, fade out ~0.7s
+//
+// TEST PLAN (Audio State)
+// 1. Initial State:
+//    - audioVolume should be 0.7 on game start
+//    - audioMuted should be false on game start
+// 2. Volume Control:
+//    - Call setAudioVolume(0.5) -> audioVolume should become 0.5
+//    - Call setAudioVolume(1.5) -> audioVolume should clamp to 1.0
+//    - Call setAudioVolume(-0.5) -> audioVolume should clamp to 0.0
+//    - Verify AudioManager receives volume updates
+// 3. Mute Toggle:
+//    - Call toggleAudioMuted() -> audioMuted should become true
+//    - Call toggleAudioMuted() again -> audioMuted should become false
+//    - Verify AudioManager receives mute updates
+// 4. Reset Player:
+//    - Set audioVolume to 0.3 and audioMuted to true
+//    - Call resetPlayer() -> audioVolume and audioMuted should remain unchanged (user preferences)
 
 import { create } from 'zustand';
 import hostLinesData from '../assets/data/hostLines.json';
+import { AudioManager } from '../game/audio/AudioManager';
 
 interface HostMessage {
   id: string;
@@ -112,6 +130,10 @@ interface GameState {
   // Zone tracking
   currentZone: 'zone1' | 'zone2' | 'zone3' | 'zone4';
   
+  // Audio state
+  audioVolume: number;
+  audioMuted: boolean;
+  
   // Actions
   setPlayerHealth: (health: number) => void;
   setIsSwinging: (swinging: boolean) => void;
@@ -142,6 +164,10 @@ interface GameState {
   
   // Zone actions
   setCurrentZone: (zone: 'zone1' | 'zone2' | 'zone3' | 'zone4') => void;
+  
+  // Audio actions
+  setAudioVolume: (volume: number) => void;
+  toggleAudioMuted: () => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -193,6 +219,10 @@ export const useGameState = create<GameState>((set, get) => ({
   // Zone initial state
   currentZone: 'zone1',
   
+  // Audio initial state
+  audioVolume: 0.7,
+  audioMuted: false,
+  
   // Actions
   setPlayerHealth: (health) => set({ playerHealth: health }),
   setIsSwinging: (swinging) => set({ isSwinging: swinging }),
@@ -212,6 +242,9 @@ export const useGameState = create<GameState>((set, get) => ({
       isDead: newHealth === 0
     });
     console.log(`Damage: -${amount} from ${source} -> current HP: ${newHealth}`);
+    
+    // Play hit player SFX
+    AudioManager.playSFX('hitPlayer');
     
     // Trigger low health line if crossing threshold
     if (!wasLowHealth && isLowHealth && !get().lowHealthTriggered) {
@@ -373,6 +406,21 @@ export const useGameState = create<GameState>((set, get) => ({
   setCurrentZone: (zone) => {
     set({ currentZone: zone });
     console.log(`Zone changed to: ${zone}`);
+  },
+  
+  // Audio actions
+  setAudioVolume: (volume) => {
+    const clampedVolume = Math.max(0, Math.min(1, volume));
+    set({ audioVolume: clampedVolume });
+    console.log(`Audio volume set to: ${clampedVolume}`);
+  },
+  
+  toggleAudioMuted: () => {
+    set((state) => {
+      const newMuted = !state.audioMuted;
+      console.log(`Audio muted: ${newMuted}`);
+      return { audioMuted: newMuted };
+    });
   },
 }));
 
