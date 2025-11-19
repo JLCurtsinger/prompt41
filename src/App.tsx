@@ -3,6 +3,7 @@ import { HUD } from './game/ui/HUD'
 import { ScreenHitEffect } from './game/Effects/ScreenHitEffect'
 import { DeathOverlay } from './game/ui/DeathOverlay'
 import { HostLog } from './game/ui/HostLog'
+import { ZoneLabel } from './game/ui/ZoneLabel'
 import { ScreenGlitch } from './game/Effects/ScreenGlitch'
 import { ScanlineOverlay } from './game/Effects/ScanlineOverlay'
 import './App.css'
@@ -16,6 +17,7 @@ function App() {
       <ScanlineOverlay />
       <ScreenGlitch />
       <HostLog />
+      <ZoneLabel />
       <DeathOverlay />
     </div>
   )

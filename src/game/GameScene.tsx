@@ -32,6 +32,12 @@ import * as THREE from 'three';
 const LOOT_CRATE_ZONE2_POSITION: [number, number, number] = [2, 0, -3]; // Zone 2 (Processing Yard)
 const ENERGY_CELL_ZONE3_POSITION: [number, number, number] = [15, 0.5, -2]; // Zone 3 (Conduit Hall)
 
+// Zone transition marker positions (tied to trigger positions for easy GLB migration)
+// These are temporary guidance markers that will move with the future GLB environment
+const ZONE_TRANSITION_1_TO_2: [number, number, number] = [-5, -0.05, 0]; // Between Zone 1 and Zone 2
+const ZONE_TRANSITION_2_TO_3: [number, number, number] = [10, -0.05, 0]; // Between Zone 2 and Zone 3
+const ZONE_TRANSITION_3_TO_4: [number, number, number] = [32, -0.05, 0]; // Between Zone 3 and Zone 4
+
 // Component to track player position and provide it to enemies
 function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [number, number, number]) => void }) {
   const { scene } = useThree();
@@ -68,6 +74,7 @@ export function GameScene() {
   const [zone4Entered, setZone4Entered] = useState(false);
   
   const playHostLine = useGameState((state) => state.playHostLine);
+  const setCurrentZone = useGameState((state) => state.setCurrentZone);
   
   return (
     <>
@@ -179,6 +186,7 @@ export function GameScene() {
             console.log('Entered Zone 1 perimeter trigger');
             if (!zone1Entered) {
               setZone1Entered(true);
+              setCurrentZone('zone1');
               playHostLine('zoneEntry', { zoneId: 'zone1' });
             }
           }}
@@ -192,6 +200,7 @@ export function GameScene() {
           onEnter={() => {
             if (!zone2Entered) {
               setZone2Entered(true);
+              setCurrentZone('zone2');
               playHostLine('zoneEntry', { zoneId: 'zone2' });
             }
           }}
@@ -205,6 +214,7 @@ export function GameScene() {
           onEnter={() => {
             if (!zone3Entered) {
               setZone3Entered(true);
+              setCurrentZone('zone3');
               playHostLine('zoneEntry', { zoneId: 'zone3' });
             }
           }}
@@ -218,6 +228,7 @@ export function GameScene() {
           onEnter={() => {
             if (!zone4Entered) {
               setZone4Entered(true);
+              setCurrentZone('zone4');
               playHostLine('zoneEntry', { zoneId: 'zone4' });
             }
           }}
@@ -265,6 +276,56 @@ export function GameScene() {
         
         {/* Standalone Energy Cell in Zone 3 (Conduit Hall) */}
         <EnergyCell position={ENERGY_CELL_ZONE3_POSITION} />
+        
+        {/* Zone transition markers - subtle floor strips for guidance */}
+        {/* These markers are temporary and will be replaced/moved with the future GLB environment */}
+        {/* Zone 1 → Zone 2 transition marker (dim teal) */}
+        <mesh
+          position={ZONE_TRANSITION_1_TO_2}
+          rotation={[-Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[6, 0.1]} />
+          <meshStandardMaterial
+            color="#00ffff"
+            emissive="#00ffff"
+            emissiveIntensity={0.15}
+            transparent
+            opacity={0.4}
+          />
+        </mesh>
+        
+        {/* Zone 2 → Zone 3 transition marker (dim amber) */}
+        <mesh
+          position={ZONE_TRANSITION_2_TO_3}
+          rotation={[-Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[6, 0.1]} />
+          <meshStandardMaterial
+            color="#ffaa00"
+            emissive="#ffaa00"
+            emissiveIntensity={0.15}
+            transparent
+            opacity={0.4}
+          />
+        </mesh>
+        
+        {/* Zone 3 → Zone 4 transition marker (dim red) */}
+        <mesh
+          position={ZONE_TRANSITION_3_TO_4}
+          rotation={[-Math.PI / 2, 0, 0]}
+          receiveShadow
+        >
+          <planeGeometry args={[6, 0.1]} />
+          <meshStandardMaterial
+            color="#ff4400"
+            emissive="#ff4400"
+            emissiveIntensity={0.15}
+            transparent
+            opacity={0.4}
+          />
+        </mesh>
         
         {/* Simple ground plane for reference (can be removed once level geometry is complete) */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>

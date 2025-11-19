@@ -58,6 +58,20 @@
 // 5. Reset Player:
 //    - Call resetPlayer() -> energyCellCount should be reset to 0
 //    - Verify inventory resets on death/respawn
+//
+// TEST PLAN (Zone Tracking)
+// 1. Initial State:
+//    - currentZone should be 'zone1' on game start
+// 2. Zone Transitions:
+//    - Enter Zone 2 trigger -> currentZone should become 'zone2'
+//    - Enter Zone 3 trigger -> currentZone should become 'zone3'
+//    - Enter Zone 4 trigger -> currentZone should become 'zone4'
+// 3. Reset Player:
+//    - Call resetPlayer() -> currentZone should reset to 'zone1'
+//    - Verify zone label shows Zone 1 after respawn
+// 4. Zone Label Display:
+//    - When currentZone changes, ZoneLabel should fade in, display, then fade out
+//    - Verify timing: fade in ~0.3s, visible ~2.5s, fade out ~0.7s
 
 import { create } from 'zustand';
 import hostLinesData from '../assets/data/hostLines.json';
@@ -95,6 +109,9 @@ interface GameState {
   // Inventory state
   energyCellCount: number;
   
+  // Zone tracking
+  currentZone: 'zone1' | 'zone2' | 'zone3' | 'zone4';
+  
   // Actions
   setPlayerHealth: (health: number) => void;
   setIsSwinging: (swinging: boolean) => void;
@@ -122,6 +139,9 @@ interface GameState {
   addEnergyCell: (count?: number) => void;
   consumeEnergyCell: (count?: number) => void;
   resetInventory: () => void;
+  
+  // Zone actions
+  setCurrentZone: (zone: 'zone1' | 'zone2' | 'zone3' | 'zone4') => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -169,6 +189,9 @@ export const useGameState = create<GameState>((set, get) => ({
   
   // Inventory initial state
   energyCellCount: 0,
+  
+  // Zone initial state
+  currentZone: 'zone1',
   
   // Actions
   setPlayerHealth: (health) => set({ playerHealth: health }),
@@ -230,7 +253,9 @@ export const useGameState = create<GameState>((set, get) => ({
       lastHostEvent: null,
       lowHealthTriggered: false,
       // Reset inventory
-      energyCellCount: 0
+      energyCellCount: 0,
+      // Reset zone
+      currentZone: 'zone1'
     });
     // Clear cooldowns
     hostLineCooldowns.clear();
@@ -342,6 +367,12 @@ export const useGameState = create<GameState>((set, get) => ({
   resetInventory: () => {
     set({ energyCellCount: 0 });
     console.log('Inventory reset');
+  },
+  
+  // Zone actions
+  setCurrentZone: (zone) => {
+    set({ currentZone: zone });
+    console.log(`Zone changed to: ${zone}`);
   },
 }));
 
