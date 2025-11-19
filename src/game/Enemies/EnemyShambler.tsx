@@ -177,7 +177,7 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
         <meshStandardMaterial 
           color="#1a1a1a" 
           emissive="#ff4400" 
-          emissiveIntensity={0.7}
+          emissiveIntensity={1.2}
         />
       </mesh>
       

@@ -89,13 +89,13 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
         />
       </mesh>
       
-      {/* Core/head - small sphere at front */}
+      {/* Core/head - small sphere at front - emissive red/orange core */}
       <mesh position={[0, 0.4, 0.5]} castShadow>
         <sphereGeometry args={[0.25, 8, 8]} />
         <meshStandardMaterial 
           color="#1a1a1a" 
-          emissive="#ff0000" 
-          emissiveIntensity={0.6}
+          emissive="#ff4400" 
+          emissiveIntensity={1.2}
         />
       </mesh>
       

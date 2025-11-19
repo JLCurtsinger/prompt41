@@ -375,12 +375,16 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   return (
     <group ref={playerRef} position={initialPosition}>
       {/* TODO: Replace this placeholder capsule with the actual player GLB model (mainChar.png) */}
-      <mesh position={[0, 1, 0]}>
+      <mesh position={[0, 1, 0]} castShadow>
         <capsuleGeometry args={[0.4, 1.2, 4, 8]} />
-        <meshStandardMaterial color="#4a9eff" emissive="#1a3a66" emissiveIntensity={0.3} />
+        <meshStandardMaterial 
+          color="#6ab8ff" 
+          emissive="#2a5a99" 
+          emissiveIntensity={0.4}
+        />
       </mesh>
       {/* Simple visor glow effect placeholder */}
-      <mesh position={[0, 1.8, 0.2]}>
+      <mesh position={[0, 1.8, 0.2]} castShadow>
         <planeGeometry args={[0.3, 0.2]} />
         <meshStandardMaterial color="#00ffff" emissive="#00ffff" emissiveIntensity={1} />
       </mesh>
