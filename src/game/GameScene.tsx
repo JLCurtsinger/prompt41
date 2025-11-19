@@ -17,6 +17,8 @@ import { PerspectiveCamera } from '@react-three/drei';
 import { Player } from './Player';
 import { LevelLayout, PLAYER_SPAWN_POSITION } from './LevelLayout';
 import { TriggerVolume } from './Interactables/TriggerVolume';
+import { HackingTerminal } from './Interactables/HackingTerminal';
+import { Door } from './Interactables/Door';
 import { EnemyCrawler } from './Enemies/EnemyCrawler';
 import { EnemyShambler } from './Enemies/EnemyShambler';
 import * as THREE from 'three';
@@ -178,6 +180,12 @@ export function GameScene() {
           }}
           name="Zone4_CoreChamberIntro"
         />
+        
+        {/* Hacking Terminal in Zone 2 */}
+        <HackingTerminal id="terminal-zone2-main" position={[0, 0, -5]} />
+        
+        {/* Door between Zone 1 and Zone 2 */}
+        <Door id="zone1-zone2-main" position={[-7, 0, 0]} />
         
         {/* Simple ground plane for reference (can be removed once level geometry is complete) */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>

@@ -1,0 +1,8 @@
+{
+  "terminal-zone2-main": {
+    "title": "ARCHIVE-9 // ACCESS NODE",
+    "options": ["Disable local sentries", "Override access gate", "Convert watcher node"],
+    "successMessage": "DIRECTIVE ACCEPTED. ACCESS GATE UNLOCKED."
+  }
+}
+
