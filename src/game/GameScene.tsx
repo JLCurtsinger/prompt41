@@ -1,11 +1,41 @@
-import { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Suspense, useState } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import { Player } from './Player';
 import { LevelLayout, PLAYER_SPAWN_POSITION } from './LevelLayout';
 import { TriggerVolume } from './Interactables/TriggerVolume';
+import { EnemyCrawler } from './Enemies/EnemyCrawler';
+import * as THREE from 'three';
+
+// Component to track player position and provide it to enemies
+function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [number, number, number]) => void }) {
+  const { scene } = useThree();
+  
+  useFrame(() => {
+    // Find player in scene by searching for the Player group (same pattern as TriggerVolume)
+    scene.traverse((object) => {
+      if (object instanceof THREE.Group) {
+        // Check if this group contains a capsule geometry (player placeholder)
+        let hasCapsule = false;
+        object.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.geometry instanceof THREE.CapsuleGeometry) {
+            hasCapsule = true;
+          }
+        });
+        if (hasCapsule) {
+          const pos = object.position;
+          onPositionUpdate([pos.x, pos.y, pos.z]);
+        }
+      }
+    });
+  });
+  
+  return null;
+}
 
 export function GameScene() {
+  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
+  
   return (
     <Canvas
       style={{ width: '100vw', height: '100vh' }}
@@ -27,6 +57,15 @@ export function GameScene() {
         {/* Player component - camera rig is handled inside Player */}
         {/* Player spawns at Zone 1 position defined in LevelLayout */}
         <Player initialPosition={PLAYER_SPAWN_POSITION} />
+        
+        {/* Track player position for enemies */}
+        <PlayerPositionTracker onPositionUpdate={setPlayerPosition} />
+        
+        {/* Enemy: Crawler Zombot in Zone 2 (Processing Yard) */}
+        <EnemyCrawler 
+          initialPosition={[0, 0, 0]} 
+          playerPosition={playerPosition}
+        />
         
         {/* Trigger volumes for zone detection and scripted events */}
         {/* Zone 1 perimeter trigger - fires when player enters the breach area */}
