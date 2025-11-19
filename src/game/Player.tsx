@@ -3,7 +3,11 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState } from '../state/gameState';
 import * as THREE from 'three';
 
-export function Player() {
+interface PlayerProps {
+  initialPosition?: [number, number, number];
+}
+
+export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const playerRef = useRef<THREE.Group>(null);
   const velocity = useRef(new THREE.Vector3());
   const direction = useRef(new THREE.Vector3());
@@ -286,8 +290,15 @@ export function Player() {
     camera.lookAt(lookAtTarget);
   });
   
+  // Set initial position on mount
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.position.set(...initialPosition);
+    }
+  }, [initialPosition]);
+  
   return (
-    <group ref={playerRef} position={[0, 0, 0]}>
+    <group ref={playerRef} position={initialPosition}>
       {/* TODO: Replace this placeholder capsule with the actual player GLB model (mainChar.png) */}
       <mesh position={[0, 1, 0]}>
         <capsuleGeometry args={[0.4, 1.2, 4, 8]} />
