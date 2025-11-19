@@ -9,12 +9,12 @@
 //    - Hold Shift while moving - should see "Sprint: ON" in console and movement speed should double
 //    - Release Shift - should see "Sprint: OFF" and return to walk speed
 //    - Sprint should only work while moving (no sprint while idle)
-// 3. Dodge:
-//    - Press Space while moving - should see "Dodge: START" with direction, player dashes forward in movement direction
-//    - After dodge ends, should see "Dodge: END"
-//    - Press Space again immediately - should see "Dodge: ON COOLDOWN" and nothing happens
-//    - Wait 1.5 seconds, press Space - should work again
-//    - Press Space while idle - should dodge forward relative to camera
+// 3. Jump:
+//    - Press Space while grounded (y = 0) - should see "Jump: START" in console, player jumps upward
+//    - Press Space while in air - should see "Jump: BLOCKED (not grounded)" and nothing happens
+//    - Player should fall back down due to gravity
+//    - Player should land smoothly at y = 0 and be able to jump again
+//    - Test grounding: jump, wait to land, jump again - should work each time
 
 import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -29,8 +29,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const playerRef = useRef<THREE.Group>(null);
   const velocity = useRef(new THREE.Vector3());
   const direction = useRef(new THREE.Vector3());
-  const isOnGround = useRef(true);
-  const dodgeCooldown = useRef(0);
+  const isGrounded = useRef(true);
+  const verticalVelocity = useRef(0);
   
   const { camera } = useThree();
   const { isSwinging, setIsSwinging } = useGameState();
@@ -38,12 +38,14 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   // Movement constants
   const WALK_SPEED = 3;
   const SPRINT_SPEED = 6;
-  const DODGE_SPEED = 12;
-  const DODGE_DURATION = 0.3;
-  const DODGE_COOLDOWN = 1.5;
   const ACCELERATION = 15;
   const DECELERATION = 20;
   const ROTATION_SPEED = 8;
+  
+  // Jump constants
+  const JUMP_VELOCITY = 5; // m/s upward
+  const GRAVITY = -9.8; // m/s² (negative = downward)
+  const GROUND_Y = 0; // Ground level
   
   // Camera constants
   const CAMERA_DISTANCE = 3; // Distance behind player
@@ -61,15 +63,9 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     space: false,
   });
   
-  const dodgeState = useRef({
-    isDodging: false,
-    dodgeDirection: new THREE.Vector3(),
-    dodgeTimer: 0,
-  });
-  
   // Track previous states for console logging
   const prevSprintState = useRef(false);
-  const prevDodgeState = useRef(false);
+  const prevSpaceState = useRef(false);
   
   // Mouse look state
   const mouseDelta = useRef({ x: 0, y: 0 });
@@ -111,12 +107,12 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       }
       if (key === ' ') {
         keys.current.space = false;
-        prevDodgeState.current = false;
+        prevSpaceState.current = false;
       }
     };
     
     const handleMouseDown = (e: MouseEvent) => {
-      if (e.button === 0 && !isSwinging && !dodgeState.current.isDodging) {
+      if (e.button === 0 && !isSwinging) {
         setIsSwinging(true);
         setTimeout(() => setIsSwinging(false), 300);
       }
@@ -169,9 +165,46 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     
     const player = playerRef.current;
     
-    // Update dodge cooldown
-    if (dodgeCooldown.current > 0) {
-      dodgeCooldown.current -= delta;
+    // Check if player is grounded (at or near ground level)
+    const currentY = player.position.y;
+    isGrounded.current = currentY <= GROUND_Y + 0.01; // Small threshold for floating point precision
+    
+    // Handle jump input (check on key press, not hold)
+    const spaceJustPressed = keys.current.space && !prevSpaceState.current;
+    
+    if (spaceJustPressed) {
+      if (isGrounded.current) {
+        // Start jump
+        verticalVelocity.current = JUMP_VELOCITY;
+        isGrounded.current = false;
+        console.log('Jump: START');
+        prevSpaceState.current = true; // Mark as processed
+      } else {
+        // Blocked - not grounded
+        console.log('Jump: BLOCKED (not grounded)');
+        prevSpaceState.current = true; // Mark as processed to prevent spam
+      }
+    }
+    
+    // Reset space key tracking when space is released
+    if (!keys.current.space) {
+      prevSpaceState.current = false;
+    }
+    
+    // Apply gravity to vertical velocity
+    verticalVelocity.current += GRAVITY * delta;
+    
+    // Update vertical position
+    const newY = currentY + verticalVelocity.current * delta;
+    
+    // Clamp to ground and handle landing
+    if (newY <= GROUND_Y) {
+      player.position.y = GROUND_Y;
+      verticalVelocity.current = 0;
+      isGrounded.current = true;
+    } else {
+      player.position.y = newY;
+      isGrounded.current = false;
     }
     
     // Calculate camera forward and right vectors for movement
@@ -183,90 +216,38 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     const cameraRight = new THREE.Vector3();
     cameraRight.crossVectors(cameraForward, new THREE.Vector3(0, 1, 0)).normalize();
     
-    // Handle dodge input (check on key press, not hold)
-    const spaceJustPressed = keys.current.space && !prevDodgeState.current;
-    
-    if (spaceJustPressed) {
-      if (dodgeCooldown.current <= 0 && !dodgeState.current.isDodging) {
-        // Start dodge
-        dodgeState.current.isDodging = true;
-        dodgeState.current.dodgeTimer = DODGE_DURATION;
-        dodgeCooldown.current = DODGE_COOLDOWN;
-        
-        // Calculate dodge direction: use current movement direction, or camera forward if idle
-        if (velocity.current.length() > 0.1) {
-          // Dodge in current movement direction
-          dodgeState.current.dodgeDirection.copy(velocity.current).normalize();
-        } else {
-          // Dodge forward relative to camera
-          dodgeState.current.dodgeDirection.copy(cameraForward);
-        }
-        
-        console.log('Dodge: START', {
-          direction: dodgeState.current.dodgeDirection.toArray(),
-          wasMoving: velocity.current.length() > 0.1
-        });
-        prevDodgeState.current = true; // Mark as processed
-      } else if (dodgeCooldown.current > 0) {
-        // On cooldown
-        console.log('Dodge: ON COOLDOWN', { remaining: dodgeCooldown.current.toFixed(2) });
-        prevDodgeState.current = true; // Mark as processed to prevent spam
-      }
-    }
-    
-    // Reset dodge key tracking when space is released
-    if (!keys.current.space) {
-      prevDodgeState.current = false;
-    }
-    
-    // Update dodge state
-    if (dodgeState.current.isDodging) {
-      dodgeState.current.dodgeTimer -= delta;
-      if (dodgeState.current.dodgeTimer <= 0) {
-        dodgeState.current.isDodging = false;
-        console.log('Dodge: END');
-      }
-    }
-    
     // Calculate movement direction in camera space
     direction.current.set(0, 0, 0);
     
-    if (!dodgeState.current.isDodging) {
-      // Build movement vector relative to camera
-      if (keys.current.w) {
-        // W = forward (in camera's forward direction)
-        direction.current.add(cameraForward);
-      }
-      if (keys.current.s) {
-        // S = backward (opposite of camera's forward direction)
-        direction.current.sub(cameraForward);
-      }
-      if (keys.current.a) {
-        // A = left (opposite of camera's right direction)
-        direction.current.sub(cameraRight);
-      }
-      if (keys.current.d) {
-        // D = right (in camera's right direction)
-        direction.current.add(cameraRight);
-      }
-      
-      // Normalize diagonal movement
-      if (direction.current.length() > 0.1) {
-        direction.current.normalize();
-      }
-    } else {
-      // During dodge, use stored dodge direction (already normalized)
-      direction.current.copy(dodgeState.current.dodgeDirection);
+    // Build movement vector relative to camera
+    if (keys.current.w) {
+      // W = forward (in camera's forward direction)
+      direction.current.add(cameraForward);
+    }
+    if (keys.current.s) {
+      // S = backward (opposite of camera's forward direction)
+      direction.current.sub(cameraForward);
+    }
+    if (keys.current.a) {
+      // A = left (opposite of camera's right direction)
+      direction.current.sub(cameraRight);
+    }
+    if (keys.current.d) {
+      // D = right (in camera's right direction)
+      direction.current.add(cameraRight);
+    }
+    
+    // Normalize diagonal movement
+    if (direction.current.length() > 0.1) {
+      direction.current.normalize();
     }
     
     // Determine target speed
     let targetSpeed = 0;
     const isMoving = direction.current.length() > 0.1;
-    const isSprinting = keys.current.shift && isMoving && !dodgeState.current.isDodging;
+    const isSprinting = keys.current.shift && isMoving;
     
-    if (dodgeState.current.isDodging) {
-      targetSpeed = DODGE_SPEED;
-    } else if (isMoving) {
+    if (isMoving) {
       targetSpeed = isSprinting ? SPRINT_SPEED : WALK_SPEED;
     }
     
@@ -300,12 +281,14 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       velocity.current.set(0, 0, 0);
     }
     
-    // Update position
-    const deltaMovement = velocity.current.clone().multiplyScalar(delta);
-    player.position.add(deltaMovement);
+    // Update horizontal position (Y is handled separately by jump/gravity)
+    const horizontalVelocity = new THREE.Vector3(velocity.current.x, 0, velocity.current.z);
+    const deltaMovement = horizontalVelocity.clone().multiplyScalar(delta);
+    player.position.x += deltaMovement.x;
+    player.position.z += deltaMovement.z;
     
-    // Rotate player to face movement direction (but not during dodge - dodge maintains direction)
-    if (!dodgeState.current.isDodging && velocity.current.length() > 0.1) {
+    // Rotate player to face movement direction
+    if (velocity.current.length() > 0.1) {
       const targetRotation = Math.atan2(velocity.current.x, velocity.current.z);
       const currentRotation = Math.atan2(
         2 * player.quaternion.x * player.quaternion.w - 2 * player.quaternion.y * player.quaternion.z,
@@ -381,6 +364,11 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   useEffect(() => {
     if (playerRef.current) {
       playerRef.current.position.set(...initialPosition);
+      // Ensure player starts grounded if Y is at or near ground level
+      if (initialPosition[1] <= GROUND_Y + 0.01) {
+        isGrounded.current = true;
+        verticalVelocity.current = 0;
+      }
     }
   }, [initialPosition]);
   
