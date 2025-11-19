@@ -9,8 +9,8 @@
 //    - Door should smoothly animate to open state
 //    - Door should visually indicate locked/unlocked state
 
-import { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useRef, useState } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState, getDoorState } from '../../state/gameState';
 import * as THREE from 'three';
 
@@ -21,15 +21,22 @@ interface DoorProps {
 
 export function Door({ id, position }: DoorProps) {
   const doorRef = useRef<THREE.Group>(null);
+  const { scene } = useThree();
   const doorState = useGameState((state) => getDoorState(state, id));
+  const showInteractionPrompt = useGameState((state) => state.showInteractionPrompt);
+  const clearInteractionPrompt = useGameState((state) => state.clearInteractionPrompt);
+  const interactionPrompt = useGameState((state) => state.interactionPrompt);
+  const [isInRange, setIsInRange] = useState(false);
   
   const isOpen = doorState === 'open';
   const targetY = isOpen ? position[1] + 4 : position[1];
+  const INTERACTION_RANGE = 2.5;
   
-  // Smooth animation when door opens/closes
+  // Check if player is in range and update prompt
   useFrame((_, delta) => {
     if (!doorRef.current) return;
     
+    // Animate door position
     const currentY = doorRef.current.position.y;
     const diff = targetY - currentY;
     
@@ -38,6 +45,60 @@ export function Door({ id, position }: DoorProps) {
       doorRef.current.position.y += diff * delta * 2; // Speed of animation
     } else {
       doorRef.current.position.y = targetY;
+    }
+    
+    // Check player distance for interaction prompt
+    let playerPosition: THREE.Vector3 | null = null;
+    
+    scene.traverse((object) => {
+      if (object instanceof THREE.Group) {
+        let hasCapsule = false;
+        object.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.geometry instanceof THREE.CapsuleGeometry) {
+            hasCapsule = true;
+          }
+        });
+        if (hasCapsule) {
+          playerPosition = object.position.clone();
+        }
+      }
+    });
+    
+    if (!playerPosition) {
+      setIsInRange(false);
+      return;
+    }
+    
+    const playerPos = playerPosition as THREE.Vector3;
+    const doorPos = new THREE.Vector3(...position);
+    const distance = playerPos.distanceTo(doorPos);
+    const wasInRange = isInRange;
+    const nowInRange = distance <= INTERACTION_RANGE;
+    setIsInRange(nowInRange);
+    
+    // Update interaction prompt based on range and state
+    // Priority: Terminal > Door > Crate
+    const hasHigherPriorityPrompt = interactionPrompt.sourceId && 
+      interactionPrompt.sourceId.startsWith('terminal-');
+    
+    if (nowInRange && !wasInRange && !isOpen && !hasHigherPriorityPrompt) {
+      // Just entered range and door is closed
+      // Check if door can be opened (hacked terminal or energy cell requirement)
+      // For now, show generic prompt - door opens via terminal hack, not direct interaction
+      showInteractionPrompt({
+        message: 'Door locked (requires hack)',
+        actionKey: null,
+        sourceId: `door-${id}`,
+      });
+    } else if (!nowInRange && wasInRange) {
+      // Just left range
+      clearInteractionPrompt(`door-${id}`);
+    } else if (nowInRange && isOpen && interactionPrompt.sourceId === `door-${id}`) {
+      // In range but door is open - clear prompt
+      clearInteractionPrompt(`door-${id}`);
+    } else if (nowInRange && !isOpen && hasHigherPriorityPrompt && interactionPrompt.sourceId === `door-${id}`) {
+      // Higher priority prompt appeared - clear door prompt
+      clearInteractionPrompt(`door-${id}`);
     }
   });
   

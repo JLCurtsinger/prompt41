@@ -21,6 +21,7 @@
 
 import { useRef, useEffect, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
+import { useGameState } from '../../state/gameState';
 import * as THREE from 'three';
 import { EnergyCell } from '../Pickups/EnergyCell';
 
@@ -38,6 +39,10 @@ export function LootCrate({ id, position }: LootCrateProps) {
   const [lidRotation, setLidRotation] = useState(0);
   const [showEmptyMessage, setShowEmptyMessage] = useState(false);
   const [spawnEnergyCell, setSpawnEnergyCell] = useState(false);
+  
+  const showInteractionPrompt = useGameState((state) => state.showInteractionPrompt);
+  const clearInteractionPrompt = useGameState((state) => state.clearInteractionPrompt);
+  const interactionPrompt = useGameState((state) => state.interactionPrompt);
   
   const INTERACTION_RANGE = 2.5;
   const LID_OPEN_ANGLE = Math.PI / 3; // 60 degrees
@@ -71,7 +76,32 @@ export function LootCrate({ id, position }: LootCrateProps) {
     const playerPos = playerPosition as THREE.Vector3;
     const cratePos = new THREE.Vector3(...position);
     const distance = playerPos.distanceTo(cratePos);
-    setIsInRange(distance <= INTERACTION_RANGE);
+    const wasInRange = isInRange;
+    const nowInRange = distance <= INTERACTION_RANGE;
+    setIsInRange(nowInRange);
+    
+    // Update interaction prompt based on range and state
+    // Priority: Terminal > Door > Crate, so only show if no higher priority prompt exists
+    const hasHigherPriorityPrompt = interactionPrompt.sourceId && 
+      (interactionPrompt.sourceId.startsWith('terminal-') || interactionPrompt.sourceId.startsWith('door-'));
+    
+    if (nowInRange && !wasInRange && !isOpened && !hasHigherPriorityPrompt) {
+      // Just entered range and crate is not opened
+      showInteractionPrompt({
+        message: 'Open crate',
+        actionKey: 'E',
+        sourceId: `crate-${id}`,
+      });
+    } else if (!nowInRange && wasInRange) {
+      // Just left range
+      clearInteractionPrompt(`crate-${id}`);
+    } else if (nowInRange && isOpened && interactionPrompt.sourceId === `crate-${id}`) {
+      // In range but crate is opened - clear prompt
+      clearInteractionPrompt(`crate-${id}`);
+    } else if (nowInRange && !isOpened && hasHigherPriorityPrompt && interactionPrompt.sourceId === `crate-${id}`) {
+      // Higher priority prompt appeared - clear crate prompt
+      clearInteractionPrompt(`crate-${id}`);
+    }
   });
   
   // Animate lid opening
@@ -103,9 +133,19 @@ export function LootCrate({ id, position }: LootCrateProps) {
   // Handle E key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'e' && isInRange) {
+      if (e.key.toLowerCase() === 'e' && isInRange && interactionPrompt.sourceId === `crate-${id}`) {
         if (!isOpened) {
           setIsOpened(true);
+          clearInteractionPrompt(`crate-${id}`);
+          // Show brief "Crate empty" message using the same overlay
+          showInteractionPrompt({
+            message: 'Crate empty',
+            actionKey: null,
+            sourceId: `crate-${id}-empty`,
+          });
+          setTimeout(() => {
+            clearInteractionPrompt(`crate-${id}-empty`);
+          }, 1500);
         } else {
           // Show empty message
           setShowEmptyMessage(true);
@@ -116,7 +156,7 @@ export function LootCrate({ id, position }: LootCrateProps) {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isInRange, isOpened]);
+  }, [isInRange, isOpened, id, interactionPrompt.sourceId, showInteractionPrompt, clearInteractionPrompt]);
   
   // Update lid rotation in 3D
   useFrame(() => {
@@ -161,29 +201,7 @@ export function LootCrate({ id, position }: LootCrateProps) {
         <EnergyCell position={[position[0], position[1] + 1.2, position[2]]} />
       )}
       
-      {/* "Press E to open crate" prompt */}
-      {isInRange && !isOpened && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: '#ffffff',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            fontFamily: 'monospace',
-            fontSize: '18px',
-            zIndex: 100,
-            pointerEvents: 'none',
-          }}
-        >
-          Press E to open crate
-        </div>
-      )}
-      
-      {/* "Crate is empty" message */}
+      {/* "Crate is empty" message (fallback for edge cases) */}
       {showEmptyMessage && (
         <div
           style={{

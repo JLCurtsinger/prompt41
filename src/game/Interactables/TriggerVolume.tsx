@@ -4,6 +4,8 @@
 // - Detects when player exits volume (fires onExit if provided)
 // - Does not spam onEnter if player stays inside
 // - Works correctly with multiple trigger volumes in scene
+// - Blue area crash fix: onEnter callback should be safely called even if it throws
+// - Step on blue floor areas -> should not crash, should handle missing/invalid callbacks gracefully
 
 import { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -63,10 +65,28 @@ export function TriggerVolume({
     
     if (isInside && !hasEntered.current) {
       hasEntered.current = true;
-      onEnter();
+      // Defensive check: safely call onEnter, catch any errors to prevent crashes
+      try {
+        if (onEnter && typeof onEnter === 'function') {
+          onEnter();
+        } else {
+          console.warn(`TriggerVolume ${name}: onEnter callback is missing or invalid`);
+        }
+      } catch (error) {
+        console.error(`TriggerVolume ${name}: Error in onEnter callback:`, error);
+        // Don't re-throw - allow game to continue
+      }
     } else if (!isInside && hasEntered.current && onExit) {
       hasEntered.current = false;
-      onExit();
+      // Defensive check: safely call onExit
+      try {
+        if (typeof onExit === 'function') {
+          onExit();
+        }
+      } catch (error) {
+        console.error(`TriggerVolume ${name}: Error in onExit callback:`, error);
+        // Don't re-throw - allow game to continue
+      }
     }
   });
   

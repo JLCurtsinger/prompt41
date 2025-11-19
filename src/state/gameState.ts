@@ -89,6 +89,23 @@
 // 4. Reset Player:
 //    - Set audioVolume to 0.3 and audioMuted to true
 //    - Call resetPlayer() -> audioVolume and audioMuted should remain unchanged (user preferences)
+//
+// TEST PLAN (Interaction Prompt State)
+// 1. Initial State:
+//    - interactionPrompt.message should be null on game start
+//    - interactionPrompt.actionKey should be null
+//    - interactionPrompt.sourceId should be null
+// 2. Show Prompt:
+//    - Call showInteractionPrompt({ message: '[ E ] Hack terminal', sourceId: 'terminal-1' })
+//    - interactionPrompt.message should become '[ E ] Hack terminal'
+//    - interactionPrompt.actionKey should default to 'E'
+//    - interactionPrompt.sourceId should become 'terminal-1'
+// 3. Clear Prompt:
+//    - Call clearInteractionPrompt() -> all prompt fields should become null
+//    - Call clearInteractionPrompt('terminal-1') with matching sourceId -> prompt should clear
+//    - Call clearInteractionPrompt('terminal-2') with non-matching sourceId -> prompt should NOT clear
+// 4. Reset Player:
+//    - Set a prompt, then call resetPlayer() -> prompt should be cleared
 
 import { create } from 'zustand';
 import hostLinesData from '../assets/data/hostLines.json';
@@ -134,6 +151,13 @@ interface GameState {
   audioVolume: number;
   audioMuted: boolean;
   
+  // Interaction prompt state
+  interactionPrompt: {
+    message: string | null;
+    actionKey?: string | null;
+    sourceId?: string | null;
+  };
+  
   // Actions
   setPlayerHealth: (health: number) => void;
   setIsSwinging: (swinging: boolean) => void;
@@ -168,6 +192,10 @@ interface GameState {
   // Audio actions
   setAudioVolume: (volume: number) => void;
   toggleAudioMuted: () => void;
+  
+  // Interaction prompt actions
+  showInteractionPrompt: (payload: { message: string; actionKey?: string; sourceId?: string }) => void;
+  clearInteractionPrompt: (sourceId?: string) => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -222,6 +250,13 @@ export const useGameState = create<GameState>((set, get) => ({
   // Audio initial state
   audioVolume: 0.7,
   audioMuted: false,
+  
+  // Interaction prompt initial state
+  interactionPrompt: {
+    message: null,
+    actionKey: null,
+    sourceId: null,
+  },
   
   // Actions
   setPlayerHealth: (health) => set({ playerHealth: health }),
@@ -288,7 +323,13 @@ export const useGameState = create<GameState>((set, get) => ({
       // Reset inventory
       energyCellCount: 0,
       // Reset zone
-      currentZone: 'zone1'
+      currentZone: 'zone1',
+      // Clear interaction prompt
+      interactionPrompt: {
+        message: null,
+        actionKey: null,
+        sourceId: null,
+      }
     });
     // Clear cooldowns
     hostLineCooldowns.clear();
@@ -328,6 +369,12 @@ export const useGameState = create<GameState>((set, get) => ({
   
   // Host message actions
   playHostLine: (eventKey, options) => {
+    // Defensive check: if eventKey is missing or invalid, return early
+    if (!eventKey || typeof eventKey !== 'string') {
+      console.warn('playHostLine: Invalid eventKey provided');
+      return;
+    }
+    
     const now = Date.now();
     
     // Check cooldown
@@ -342,24 +389,61 @@ export const useGameState = create<GameState>((set, get) => ({
     // Parse eventKey (e.g., "zoneEntry:zone1" or "hacking:start")
     const [category, subKey] = eventKey.split(':');
     
-    // Get lines from hostLines.json
-    const hostLines = hostLinesData as Record<string, any>;
-    let lines: string[] = [];
-    
-    if (category === 'zoneEntry' && options?.zoneId) {
-      lines = hostLines.zoneEntry?.[options.zoneId] || [];
-    } else if (hostLines[category] && subKey) {
-      lines = hostLines[category][subKey] || [];
+    // Defensive check: ensure category exists
+    if (!category) {
+      console.warn(`playHostLine: Invalid eventKey format: ${eventKey}`);
+      return;
     }
     
-    // If no lines found, return early
-    if (lines.length === 0) {
+    // Get lines from hostLines.json with defensive checks
+    const hostLines = hostLinesData as Record<string, any>;
+    if (!hostLines || typeof hostLines !== 'object') {
+      console.warn('playHostLine: hostLines data is invalid');
+      return;
+    }
+    
+    let lines: string[] = [];
+    
+    try {
+      if (category === 'zoneEntry' && options?.zoneId) {
+        // Defensive check: ensure zoneEntry exists and zoneId is valid
+        if (hostLines.zoneEntry && typeof hostLines.zoneEntry === 'object') {
+          const zoneId = options.zoneId;
+          if (zoneId && typeof zoneId === 'string' && hostLines.zoneEntry[zoneId]) {
+            lines = Array.isArray(hostLines.zoneEntry[zoneId]) 
+              ? hostLines.zoneEntry[zoneId] 
+              : [];
+          }
+        }
+      } else if (hostLines[category] && subKey) {
+        // Defensive check: ensure category and subKey exist
+        const categoryData = hostLines[category];
+        if (categoryData && typeof categoryData === 'object' && categoryData[subKey]) {
+          lines = Array.isArray(categoryData[subKey]) 
+            ? categoryData[subKey] 
+            : [];
+        }
+      }
+    } catch (error) {
+      console.warn(`playHostLine: Error accessing hostLines data for ${eventKey}:`, error);
+      return;
+    }
+    
+    // If no lines found, return early (don't crash)
+    if (!lines || lines.length === 0) {
       console.warn(`No host lines found for eventKey: ${eventKey}`);
       return;
     }
     
-    // Pick a random line
-    const randomLine = lines[Math.floor(Math.random() * lines.length)];
+    // Pick a random line with defensive check
+    const randomIndex = Math.floor(Math.random() * lines.length);
+    const randomLine = lines[randomIndex];
+    
+    // Defensive check: ensure randomLine is valid
+    if (!randomLine || typeof randomLine !== 'string') {
+      console.warn(`playHostLine: Invalid line data for ${eventKey}`);
+      return;
+    }
     
     // Create message
     const message: HostMessage = {
@@ -420,6 +504,33 @@ export const useGameState = create<GameState>((set, get) => ({
       const newMuted = !state.audioMuted;
       console.log(`Audio muted: ${newMuted}`);
       return { audioMuted: newMuted };
+    });
+  },
+  
+  // Interaction prompt actions
+  showInteractionPrompt: (payload) => {
+    set({
+      interactionPrompt: {
+        message: payload.message,
+        actionKey: payload.actionKey || 'E',
+        sourceId: payload.sourceId || null,
+      },
+    });
+  },
+  
+  clearInteractionPrompt: (sourceId) => {
+    set((state) => {
+      // If sourceId is provided, only clear if it matches
+      if (sourceId && state.interactionPrompt.sourceId !== sourceId) {
+        return state; // Don't clear if source doesn't match
+      }
+      return {
+        interactionPrompt: {
+          message: null,
+          actionKey: null,
+          sourceId: null,
+        },
+      };
     });
   },
 }));

@@ -45,6 +45,8 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
   const sentinelDefeated = useGameState((state) => state.sentinelDefeated);
   const setIsShuttingDown = useGameState((state) => state.setIsShuttingDown);
   const playHostLine = useGameState((state) => state.playHostLine);
+  const showInteractionPrompt = useGameState((state) => state.showInteractionPrompt);
+  const clearInteractionPrompt = useGameState((state) => state.clearInteractionPrompt);
   const [showLockedMessage, setShowLockedMessage] = useState(false);
   
   const INTERACTION_RANGE = 2.5;
@@ -54,6 +56,10 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
   const title = directive?.title || 'DIRECTIVE INTERFACE';
   const options = directive?.options || ['Disable', 'Override', 'Convert'];
   const successMessage = directive?.successMessage || 'DIRECTIVE ACCEPTED.';
+  
+  // Check if this is the final terminal and if Sentinel must be defeated
+  const isFinalTerminal = id === 'terminal-zone4-final';
+  const isLockedBySentinel = isFinalTerminal && !sentinelDefeated && terminalState === 'locked';
   
   // Check if player is in range
   useFrame(() => {
@@ -84,12 +90,36 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
     const playerPos = playerPosition as THREE.Vector3;
     const terminalPos = new THREE.Vector3(...position);
     const distance = playerPos.distanceTo(terminalPos);
-    setIsInRange(distance <= INTERACTION_RANGE);
+    const wasInRange = isInRange;
+    const nowInRange = distance <= INTERACTION_RANGE;
+    setIsInRange(nowInRange);
+    
+    // Update interaction prompt based on range and state
+    if (nowInRange && !wasInRange) {
+      // Just entered range
+      if (terminalState === 'locked') {
+        if (isLockedBySentinel) {
+          // Don't show prompt if locked by Sentinel
+          clearInteractionPrompt(id);
+        } else {
+          showInteractionPrompt({
+            message: 'Hack terminal',
+            actionKey: 'E',
+            sourceId: id,
+          });
+        }
+      } else {
+        // Already hacked - no prompt
+        clearInteractionPrompt(id);
+      }
+    } else if (!nowInRange && wasInRange) {
+      // Just left range
+      clearInteractionPrompt(id);
+    } else if (nowInRange && terminalState === 'hacked') {
+      // In range but already hacked - clear prompt
+      clearInteractionPrompt(id);
+    }
   });
-  
-  // Check if this is the final terminal and if Sentinel must be defeated
-  const isFinalTerminal = id === 'terminal-zone4-final';
-  const isLockedBySentinel = isFinalTerminal && !sentinelDefeated && terminalState === 'locked';
   
   // Handle E key press
   useEffect(() => {
@@ -105,6 +135,7 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
           
           setShowOverlay(true);
           setPaused(true);
+          clearInteractionPrompt(id); // Clear prompt when overlay opens
           playHostLine('hacking:start');
           AudioManager.playSFX('hackingStart');
           // Exit pointer lock if active
@@ -120,7 +151,7 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isInRange, terminalState, showOverlay, isLockedBySentinel]);
+  }, [isInRange, terminalState, showOverlay, isLockedBySentinel, id, showInteractionPrompt, clearInteractionPrompt, sentinelDefeated]);
   
   // Handle overlay button clicks
   const handleDirectiveSelect = (_optionIndex: number) => {
@@ -254,27 +285,6 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
         </div>
       )}
       
-      {/* "Press E to hack" prompt */}
-      {isInRange && terminalState === 'locked' && !showOverlay && !isLockedBySentinel && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: '#ffffff',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            fontFamily: 'monospace',
-            fontSize: '18px',
-            zIndex: 100,
-            pointerEvents: 'none',
-          }}
-        >
-          Press E to hack
-        </div>
-      )}
       
       {/* "ACCESS LOCKED – THREAT ACTIVE" message */}
       {showLockedMessage && (

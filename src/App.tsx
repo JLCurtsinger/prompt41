@@ -7,6 +7,7 @@ import { ZoneLabel } from './game/ui/ZoneLabel'
 import { ScreenGlitch } from './game/Effects/ScreenGlitch'
 import { ScanlineOverlay } from './game/Effects/ScanlineOverlay'
 import { AudioSettings } from './game/ui/AudioSettings'
+import { InteractionPromptOverlay } from './game/ui/InteractionPromptOverlay'
 import './App.css'
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
       <ScreenGlitch />
       <HostLog />
       <ZoneLabel />
+      <InteractionPromptOverlay />
       <AudioSettings />
       <DeathOverlay />
     </div>
