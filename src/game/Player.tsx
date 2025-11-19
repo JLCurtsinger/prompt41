@@ -1,3 +1,21 @@
+// TEST PLAN (Player Movement)
+// 1. W/S/A/D Directions:
+//    - W should move forward relative to camera (player moves in direction camera is facing)
+//    - S should move backward relative to camera
+//    - A should strafe left relative to camera
+//    - D should strafe right relative to camera
+//    - Test by rotating camera with mouse, then pressing W - should always move forward relative to view
+// 2. Sprint:
+//    - Hold Shift while moving - should see "Sprint: ON" in console and movement speed should double
+//    - Release Shift - should see "Sprint: OFF" and return to walk speed
+//    - Sprint should only work while moving (no sprint while idle)
+// 3. Dodge:
+//    - Press Space while moving - should see "Dodge: START" with direction, player dashes forward in movement direction
+//    - After dodge ends, should see "Dodge: END"
+//    - Press Space again immediately - should see "Dodge: ON COOLDOWN" and nothing happens
+//    - Wait 1.5 seconds, press Space - should work again
+//    - Press Space while idle - should dodge forward relative to camera
+
 import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState } from '../state/gameState';
@@ -49,6 +67,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     dodgeTimer: 0,
   });
   
+  // Track previous states for console logging
+  const prevSprintState = useRef(false);
+  const prevDodgeState = useRef(false);
+  
   // Mouse look state
   const mouseDelta = useRef({ x: 0, y: 0 });
   const cameraRotation = useRef({ horizontal: 0, vertical: 0 });
@@ -62,10 +84,15 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       if (key === 'a') keys.current.a = true;
       if (key === 's') keys.current.s = true;
       if (key === 'd') keys.current.d = true;
-      if (key === 'shift') keys.current.shift = true;
+      if (key === 'shift') {
+        keys.current.shift = true;
+      }
       if (key === ' ') {
         e.preventDefault();
-        keys.current.space = true;
+        if (!keys.current.space) {
+          // Only set to true if not already true (prevents repeat triggers)
+          keys.current.space = true;
+        }
       }
     };
     
@@ -75,8 +102,17 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       if (key === 'a') keys.current.a = false;
       if (key === 's') keys.current.s = false;
       if (key === 'd') keys.current.d = false;
-      if (key === 'shift') keys.current.shift = false;
-      if (key === ' ') keys.current.space = false;
+      if (key === 'shift') {
+        keys.current.shift = false;
+        // Reset sprint state tracking when shift is released
+        if (prevSprintState.current) {
+          prevSprintState.current = false;
+        }
+      }
+      if (key === ' ') {
+        keys.current.space = false;
+        prevDodgeState.current = false;
+      }
     };
     
     const handleMouseDown = (e: MouseEvent) => {
@@ -138,18 +174,49 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       dodgeCooldown.current -= delta;
     }
     
-    // Handle dodge input
-    if (keys.current.space && dodgeCooldown.current <= 0 && !dodgeState.current.isDodging) {
-      dodgeState.current.isDodging = true;
-      dodgeState.current.dodgeTimer = DODGE_DURATION;
-      dodgeCooldown.current = DODGE_COOLDOWN;
-      
-      // Calculate dodge direction from current movement or forward
-      if (direction.current.length() > 0.1) {
-        dodgeState.current.dodgeDirection.copy(direction.current).normalize();
-      } else {
-        dodgeState.current.dodgeDirection.set(0, 0, -1).applyQuaternion(player.quaternion);
+    // Calculate camera forward and right vectors for movement
+    const cameraForward = new THREE.Vector3();
+    camera.getWorldDirection(cameraForward);
+    cameraForward.y = 0; // Keep movement on horizontal plane
+    cameraForward.normalize();
+    
+    const cameraRight = new THREE.Vector3();
+    cameraRight.crossVectors(cameraForward, new THREE.Vector3(0, 1, 0)).normalize();
+    
+    // Handle dodge input (check on key press, not hold)
+    const spaceJustPressed = keys.current.space && !prevDodgeState.current;
+    
+    if (spaceJustPressed) {
+      if (dodgeCooldown.current <= 0 && !dodgeState.current.isDodging) {
+        // Start dodge
+        dodgeState.current.isDodging = true;
+        dodgeState.current.dodgeTimer = DODGE_DURATION;
+        dodgeCooldown.current = DODGE_COOLDOWN;
+        
+        // Calculate dodge direction: use current movement direction, or camera forward if idle
+        if (velocity.current.length() > 0.1) {
+          // Dodge in current movement direction
+          dodgeState.current.dodgeDirection.copy(velocity.current).normalize();
+        } else {
+          // Dodge forward relative to camera
+          dodgeState.current.dodgeDirection.copy(cameraForward);
+        }
+        
+        console.log('Dodge: START', {
+          direction: dodgeState.current.dodgeDirection.toArray(),
+          wasMoving: velocity.current.length() > 0.1
+        });
+        prevDodgeState.current = true; // Mark as processed
+      } else if (dodgeCooldown.current > 0) {
+        // On cooldown
+        console.log('Dodge: ON COOLDOWN', { remaining: dodgeCooldown.current.toFixed(2) });
+        prevDodgeState.current = true; // Mark as processed to prevent spam
       }
+    }
+    
+    // Reset dodge key tracking when space is released
+    if (!keys.current.space) {
+      prevDodgeState.current = false;
     }
     
     // Update dodge state
@@ -157,6 +224,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       dodgeState.current.dodgeTimer -= delta;
       if (dodgeState.current.dodgeTimer <= 0) {
         dodgeState.current.isDodging = false;
+        console.log('Dodge: END');
       }
     }
     
@@ -164,46 +232,65 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     direction.current.set(0, 0, 0);
     
     if (!dodgeState.current.isDodging) {
-      if (keys.current.w) direction.current.z -= 1;
-      if (keys.current.s) direction.current.z += 1;
-      if (keys.current.a) direction.current.x -= 1;
-      if (keys.current.d) direction.current.x += 1;
-      
-      // Normalize diagonal movement
-      if (direction.current.length() > 0) {
-        direction.current.normalize();
+      // Build movement vector relative to camera
+      if (keys.current.w) {
+        // W = forward (in camera's forward direction)
+        direction.current.add(cameraForward);
+      }
+      if (keys.current.s) {
+        // S = backward (opposite of camera's forward direction)
+        direction.current.sub(cameraForward);
+      }
+      if (keys.current.a) {
+        // A = left (opposite of camera's right direction)
+        direction.current.sub(cameraRight);
+      }
+      if (keys.current.d) {
+        // D = right (in camera's right direction)
+        direction.current.add(cameraRight);
       }
       
-      // Transform direction to world space based on camera horizontal rotation
-      const horizontalAngle = cameraRotation.current.horizontal;
-      const forwardX = Math.sin(horizontalAngle);
-      const forwardZ = Math.cos(horizontalAngle);
-      const rightX = Math.cos(horizontalAngle);
-      const rightZ = -Math.sin(horizontalAngle);
-      
-      const worldDirection = new THREE.Vector3();
-      worldDirection.x = forwardX * -direction.current.z + rightX * direction.current.x;
-      worldDirection.z = forwardZ * -direction.current.z + rightZ * direction.current.x;
-      worldDirection.normalize();
-      
-      direction.current.copy(worldDirection);
+      // Normalize diagonal movement
+      if (direction.current.length() > 0.1) {
+        direction.current.normalize();
+      }
     } else {
-      // During dodge, use stored dodge direction
+      // During dodge, use stored dodge direction (already normalized)
       direction.current.copy(dodgeState.current.dodgeDirection);
     }
     
     // Determine target speed
     let targetSpeed = 0;
+    const isMoving = direction.current.length() > 0.1;
+    const isSprinting = keys.current.shift && isMoving && !dodgeState.current.isDodging;
+    
     if (dodgeState.current.isDodging) {
       targetSpeed = DODGE_SPEED;
-    } else if (direction.current.length() > 0.1) {
-      targetSpeed = keys.current.shift ? SPRINT_SPEED : WALK_SPEED;
+    } else if (isMoving) {
+      targetSpeed = isSprinting ? SPRINT_SPEED : WALK_SPEED;
+    }
+    
+    // Log sprint state changes (only when actually moving)
+    if (isMoving) {
+      if (isSprinting !== prevSprintState.current) {
+        if (isSprinting) {
+          console.log('Sprint: ON');
+        } else {
+          console.log('Sprint: OFF');
+        }
+        prevSprintState.current = isSprinting;
+      }
+    } else {
+      // Reset sprint state when not moving
+      if (prevSprintState.current) {
+        prevSprintState.current = false;
+      }
     }
     
     // Apply acceleration/deceleration
-    const currentSpeed = velocity.current.length();
     if (targetSpeed > 0) {
-      velocity.current.lerp(direction.current.multiplyScalar(targetSpeed), ACCELERATION * delta);
+      const targetVelocity = direction.current.clone().multiplyScalar(targetSpeed);
+      velocity.current.lerp(targetVelocity, ACCELERATION * delta);
     } else {
       velocity.current.lerp(new THREE.Vector3(0, 0, 0), DECELERATION * delta);
     }
@@ -217,8 +304,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     const deltaMovement = velocity.current.clone().multiplyScalar(delta);
     player.position.add(deltaMovement);
     
-    // Rotate player to face movement direction
-    if (velocity.current.length() > 0.1) {
+    // Rotate player to face movement direction (but not during dodge - dodge maintains direction)
+    if (!dodgeState.current.isDodging && velocity.current.length() > 0.1) {
       const targetRotation = Math.atan2(velocity.current.x, velocity.current.z);
       const currentRotation = Math.atan2(
         2 * player.quaternion.x * player.quaternion.w - 2 * player.quaternion.y * player.quaternion.z,
