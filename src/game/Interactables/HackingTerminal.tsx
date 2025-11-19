@@ -14,6 +14,7 @@
 
 import { useRef, useEffect, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import { useGameState, getTerminalState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
 import * as THREE from 'three';
@@ -328,153 +329,162 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
         </mesh>
       </group>
       
-      {/* UI Overlay for hacking mini-game */}
+      {/* UI Overlay for hacking mini-game - wrapped in Html for R3F compatibility */}
       {showOverlay && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            color: '#00ff00',
-            fontFamily: 'monospace',
-            fontSize: '24px',
-          }}
-        >
-          <div style={{ marginBottom: '40px', fontSize: '32px', fontWeight: 'bold' }}>
-            {typeof title === 'string' ? title : 'DIRECTIVE INTERFACE'}
+        <Html fullscreen>
+          <div
+            className="hacking-overlay-root"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              color: '#00ff00',
+              fontFamily: 'monospace',
+              fontSize: '24px',
+            }}
+          >
+            <div style={{ marginBottom: '40px', fontSize: '32px', fontWeight: 'bold' }}>
+              {typeof title === 'string' ? title : 'DIRECTIVE INTERFACE'}
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '400px' }}>
+              {Array.isArray(options) && options.length > 0 ? (
+                options.map((option, index) => {
+                  // Ensure option is a valid string
+                  const optionText = (typeof option === 'string' && option.trim()) 
+                    ? option.trim() 
+                    : `Option ${index + 1}`;
+                  
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handleDirectiveSelect(index)}
+                      style={{
+                        padding: '15px 30px',
+                        backgroundColor: '#001100',
+                        color: '#00ff00',
+                        border: '2px solid #00ff00',
+                        fontFamily: 'monospace',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#003300';
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#001100';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      {optionText}
+                    </button>
+                  );
+                })
+              ) : (
+                // Fallback if options array is invalid
+                <div style={{ color: '#ffaa00', fontSize: '16px', textAlign: 'center' }}>
+                  No directive options available. Using fallback.
+                </div>
+              )}
+            </div>
+            
+            <div style={{ marginTop: '40px', fontSize: '14px', opacity: 0.7 }}>
+              Press ESC to cancel
+            </div>
           </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '400px' }}>
-            {Array.isArray(options) && options.length > 0 ? (
-              options.map((option, index) => {
-                // Ensure option is a valid string
-                const optionText = (typeof option === 'string' && option.trim()) 
-                  ? option.trim() 
-                  : `Option ${index + 1}`;
-                
-                return (
-                  <button
-                    key={index}
-                    onClick={() => handleDirectiveSelect(index)}
-                    style={{
-                      padding: '15px 30px',
-                      backgroundColor: '#001100',
-                      color: '#00ff00',
-                      border: '2px solid #00ff00',
-                      fontFamily: 'monospace',
-                      fontSize: '18px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#003300';
-                      e.currentTarget.style.transform = 'scale(1.05)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#001100';
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }}
-                  >
-                    {optionText}
-                  </button>
-                );
-              })
-            ) : (
-              // Fallback if options array is invalid
-              <div style={{ color: '#ffaa00', fontSize: '16px', textAlign: 'center' }}>
-                No directive options available. Using fallback.
-              </div>
-            )}
-          </div>
-          
-          <div style={{ marginTop: '40px', fontSize: '14px', opacity: 0.7 }}>
-            Press ESC to cancel
-          </div>
-        </div>
+        </Html>
       )}
       
       
-      {/* "ACCESS LOCKED – THREAT ACTIVE" message */}
+      {/* "ACCESS LOCKED – THREAT ACTIVE" message - wrapped in Html for R3F compatibility */}
       {showLockedMessage && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            color: '#ff0000',
-            padding: '15px 30px',
-            borderRadius: '5px',
-            fontFamily: 'monospace',
-            fontSize: '20px',
-            zIndex: 100,
-            pointerEvents: 'none',
-            border: '2px solid #ff0000',
-          }}
-        >
-          ACCESS LOCKED – THREAT ACTIVE
-        </div>
+        <Html>
+          <div
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              color: '#ff0000',
+              padding: '15px 30px',
+              borderRadius: '5px',
+              fontFamily: 'monospace',
+              fontSize: '20px',
+              zIndex: 100,
+              pointerEvents: 'none',
+              border: '2px solid #ff0000',
+            }}
+          >
+            ACCESS LOCKED – THREAT ACTIVE
+          </div>
+        </Html>
       )}
       
-      {/* "Terminal already hacked" message */}
+      {/* "Terminal already hacked" message - wrapped in Html for R3F compatibility */}
       {showAlreadyHacked && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: '#00ff00',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            fontFamily: 'monospace',
-            fontSize: '18px',
-            zIndex: 100,
-            pointerEvents: 'none',
-          }}
-        >
-          Terminal already hacked
-        </div>
+        <Html>
+          <div
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              color: '#00ff00',
+              padding: '10px 20px',
+              borderRadius: '5px',
+              fontFamily: 'monospace',
+              fontSize: '18px',
+              zIndex: 100,
+              pointerEvents: 'none',
+            }}
+          >
+            Terminal already hacked
+          </div>
+        </Html>
       )}
       
-      {/* Success message overlay (brief) */}
+      {/* Success message overlay (brief) - wrapped in Html for R3F compatibility */}
       {showSuccessMessage && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            color: '#00ff00',
-            padding: '20px 40px',
-            borderRadius: '5px',
-            fontFamily: 'monospace',
-            fontSize: '20px',
-            zIndex: 100,
-            pointerEvents: 'none',
-            animation: 'fadeOut 2s ease-out forwards',
-          }}
-        >
-          {typeof successMessage === 'string' ? successMessage : 'DIRECTIVE ACCEPTED.'}
-          <style>{`
-            @keyframes fadeOut {
-              0% { opacity: 1; }
-              70% { opacity: 1; }
-              100% { opacity: 0; }
-            }
-          `}</style>
-        </div>
+        <Html>
+          <div
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              color: '#00ff00',
+              padding: '20px 40px',
+              borderRadius: '5px',
+              fontFamily: 'monospace',
+              fontSize: '20px',
+              zIndex: 100,
+              pointerEvents: 'none',
+              animation: 'fadeOut 2s ease-out forwards',
+            }}
+          >
+            {typeof successMessage === 'string' ? successMessage : 'DIRECTIVE ACCEPTED.'}
+            <style>{`
+              @keyframes fadeOut {
+                0% { opacity: 1; }
+                70% { opacity: 1; }
+                100% { opacity: 0; }
+              }
+            `}</style>
+          </div>
+        </Html>
       )}
     </>
   );
