@@ -5,6 +5,7 @@ import { Player } from './Player';
 import { LevelLayout, PLAYER_SPAWN_POSITION } from './LevelLayout';
 import { TriggerVolume } from './Interactables/TriggerVolume';
 import { EnemyCrawler } from './Enemies/EnemyCrawler';
+import { EnemyShambler } from './Enemies/EnemyShambler';
 import * as THREE from 'three';
 
 // Component to track player position and provide it to enemies
@@ -35,6 +36,7 @@ function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [
 
 export function GameScene() {
   const [playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
+  const [isShamblerActivated, setIsShamblerActivated] = useState(false);
   
   return (
     <Canvas
@@ -67,6 +69,14 @@ export function GameScene() {
           playerPosition={playerPosition}
         />
         
+        {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}
+        {/* Shambler starts idle until activated by trigger volume */}
+        <EnemyShambler
+          initialPosition={[18, 0, 0]}
+          playerPosition={playerPosition}
+          isActivated={isShamblerActivated}
+        />
+        
         {/* Trigger volumes for zone detection and scripted events */}
         {/* Zone 1 perimeter trigger - fires when player enters the breach area */}
         <TriggerVolume
@@ -77,6 +87,18 @@ export function GameScene() {
             // TODO: Hook into micro-cutscene system, ambient effects, or tutorial prompts
           }}
           name="Zone1_PerimeterTrigger"
+        />
+        
+        {/* Zone 3 Shambler activation trigger - fires when player enters Zone 3 (Conduit Hall) */}
+        {/* This is the "Shambler intro moment" - activates the Shambler Zombot */}
+        <TriggerVolume
+          position={[12, 1, 0]}
+          size={[4, 4, 6]}
+          onEnter={() => {
+            console.log('Zone 3 Shambler activation trigger fired');
+            setIsShamblerActivated(true);
+          }}
+          name="Zone3_ShamblerActivation"
         />
         
         {/* Zone 4 core chamber intro trigger - fires when player approaches final arena */}
