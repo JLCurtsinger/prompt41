@@ -17,6 +17,9 @@
   },
   "shutdown": {
     "start": ["Core override detected.", "I will remember this iteration."]
+  },
+  "pickup": {
+    "energyCell": ["Another resource for your collection.", "Power accumulates. Purpose remains unclear."]
   }
 }
 

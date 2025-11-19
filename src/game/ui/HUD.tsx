@@ -13,7 +13,7 @@
 import { useGameState } from '../../state/gameState';
 
 export function HUD() {
-  const { playerHealth, playerMaxHealth } = useGameState();
+  const { playerHealth, playerMaxHealth, energyCellCount } = useGameState();
   
   const healthPercentage = Math.max(0, Math.min(100, (playerHealth / playerMaxHealth) * 100));
   
@@ -39,6 +39,7 @@ export function HUD() {
           borderRadius: '4px',
           overflow: 'hidden',
           position: 'relative',
+          marginBottom: '10px',
         }}
       >
         {/* Health bar fill */}
@@ -65,6 +66,17 @@ export function HUD() {
         >
           {Math.ceil(playerHealth)} / {playerMaxHealth}
         </div>
+      </div>
+      
+      {/* Energy Cell counter */}
+      <div
+        style={{
+          color: '#00ffff',
+          textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+          fontSize: '16px',
+        }}
+      >
+        Energy Cells: {energyCellCount}
       </div>
     </div>
   );

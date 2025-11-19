@@ -23,8 +23,14 @@ import { EnemyCrawler } from './Enemies/EnemyCrawler';
 import { EnemyShambler } from './Enemies/EnemyShambler';
 import { EnemySentinel } from './Enemies/EnemySentinel';
 import { ScreenFade } from './Effects/ScreenFade';
+import { LootCrate } from './Interactables/LootCrate';
+import { EnergyCell } from './Pickups/EnergyCell';
 import { useGameState } from '../state/gameState';
 import * as THREE from 'three';
+
+// Loot and pickup positions (easily adjustable for future GLB integration)
+const LOOT_CRATE_ZONE2_POSITION: [number, number, number] = [2, 0, -3]; // Zone 2 (Processing Yard)
+const ENERGY_CELL_ZONE3_POSITION: [number, number, number] = [15, 0.5, -2]; // Zone 3 (Conduit Hall)
 
 // Component to track player position and provide it to enemies
 function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [number, number, number]) => void }) {
@@ -253,6 +259,12 @@ export function GameScene() {
         
         {/* Door between Zone 1 and Zone 2 */}
         <Door id="zone1-zone2-main" position={[-7, 0, 0]} />
+        
+        {/* Loot Crate in Zone 2 (Processing Yard) */}
+        <LootCrate id="crate-zone2-1" position={LOOT_CRATE_ZONE2_POSITION} />
+        
+        {/* Standalone Energy Cell in Zone 3 (Conduit Hall) */}
+        <EnergyCell position={ENERGY_CELL_ZONE3_POSITION} />
         
         {/* Simple ground plane for reference (can be removed once level geometry is complete) */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>

@@ -42,6 +42,22 @@
 //    - Call playHostLine('combat:lowHealth') when health < 30%
 //    - Call playHostLine('combat:sentinelSpawn') when Sentinel activates
 //    - Call playHostLine('combat:death') when player dies
+//
+// TEST PLAN (Inventory System)
+// 1. Initial State:
+//    - energyCellCount should be 0 on game start
+// 2. Add Energy Cell:
+//    - Call addEnergyCell(1) -> energyCellCount should become 1
+//    - Call addEnergyCell(2) -> energyCellCount should become 3
+//    - Verify HUD displays correct count
+// 3. Consume Energy Cell:
+//    - With energyCellCount = 3, call consumeEnergyCell(1) -> should become 2
+//    - Call consumeEnergyCell(5) -> should remain 0 (doesn't go negative)
+// 4. Reset Inventory:
+//    - Call resetInventory() -> energyCellCount should become 0
+// 5. Reset Player:
+//    - Call resetPlayer() -> energyCellCount should be reset to 0
+//    - Verify inventory resets on death/respawn
 
 import { create } from 'zustand';
 import hostLinesData from '../assets/data/hostLines.json';
@@ -76,6 +92,9 @@ interface GameState {
   lastHostEvent: string | null;
   lowHealthTriggered: boolean; // Track if low health line has been triggered
   
+  // Inventory state
+  energyCellCount: number;
+  
   // Actions
   setPlayerHealth: (health: number) => void;
   setIsSwinging: (swinging: boolean) => void;
@@ -98,6 +117,11 @@ interface GameState {
   
   // Host message actions
   playHostLine: (eventKey: string, options?: { zoneId?: string }) => void;
+  
+  // Inventory actions
+  addEnergyCell: (count?: number) => void;
+  consumeEnergyCell: (count?: number) => void;
+  resetInventory: () => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -142,6 +166,9 @@ export const useGameState = create<GameState>((set, get) => ({
   hostMessages: [],
   lastHostEvent: null,
   lowHealthTriggered: false,
+  
+  // Inventory initial state
+  energyCellCount: 0,
   
   // Actions
   setPlayerHealth: (health) => set({ playerHealth: health }),
@@ -201,7 +228,9 @@ export const useGameState = create<GameState>((set, get) => ({
       // Reset host messages
       hostMessages: [],
       lastHostEvent: null,
-      lowHealthTriggered: false
+      lowHealthTriggered: false,
+      // Reset inventory
+      energyCellCount: 0
     });
     // Clear cooldowns
     hostLineCooldowns.clear();
@@ -293,6 +322,26 @@ export const useGameState = create<GameState>((set, get) => ({
     });
     
     console.log(`Host line: ${randomLine}`);
+  },
+  
+  // Inventory actions
+  addEnergyCell: (count = 1) => {
+    set((state) => ({
+      energyCellCount: state.energyCellCount + count
+    }));
+    console.log(`Added ${count} energy cell(s). Total: ${get().energyCellCount}`);
+  },
+  
+  consumeEnergyCell: (count = 1) => {
+    set((state) => ({
+      energyCellCount: Math.max(0, state.energyCellCount - count)
+    }));
+    console.log(`Consumed ${count} energy cell(s). Total: ${get().energyCellCount}`);
+  },
+  
+  resetInventory: () => {
+    set({ energyCellCount: 0 });
+    console.log('Inventory reset');
   },
 }));
 
