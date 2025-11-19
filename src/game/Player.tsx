@@ -18,6 +18,15 @@
 // 4. Death & Respawn:
 //    - When health reaches 0, player controls should freeze (no movement, jump, or camera rotation)
 //    - Press R key to respawn: health restored, position reset to spawn point, controls re-enabled
+// 5. Arrow Keys Camera Control:
+//    - Arrow keys rotate camera: Left/Right pan horizontally, Up/Down tilt vertically
+//    - Left arrow should rotate camera left (decrease horizontal angle)
+//    - Right arrow should rotate camera right (increase horizontal angle)
+//    - Up arrow should tilt camera up (increase vertical angle)
+//    - Down arrow should tilt camera down (decrease vertical angle)
+//    - Arrow keys should NOT move the player character
+//    - Mouse look should still work alongside arrow keys
+//    - Vertical rotation should be clamped to prevent camera flipping
 
 import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
@@ -66,17 +75,27 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     shift: false,
     space: false,
     r: false,
+    arrowUp: false,
+    arrowDown: false,
+    arrowLeft: false,
+    arrowRight: false,
   });
   
   // Track previous states for console logging
   const prevSprintState = useRef(false);
   const prevSpaceState = useRef(false);
+  const prevArrowLeftState = useRef(false);
+  const prevArrowRightState = useRef(false);
+  const prevArrowUpState = useRef(false);
+  const prevArrowDownState = useRef(false);
   
   // Mouse look state
   const mouseDelta = useRef({ x: 0, y: 0 });
   const cameraRotation = useRef({ horizontal: 0, vertical: 0 });
   const MOUSE_SENSITIVITY = 0.002;
   const VERTICAL_LIMIT = Math.PI / 3; // 60 degrees up/down
+  const HORIZONTAL_ARROW_SPEED = 1.5; // radians per second
+  const VERTICAL_ARROW_SPEED = 1.5; // radians per second
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -97,6 +116,19 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       }
       if (key === 'r') {
         keys.current.r = true;
+      }
+      // Arrow keys (use exact key names, not lowercase)
+      if (e.key === 'ArrowUp') {
+        keys.current.arrowUp = true;
+      }
+      if (e.key === 'ArrowDown') {
+        keys.current.arrowDown = true;
+      }
+      if (e.key === 'ArrowLeft') {
+        keys.current.arrowLeft = true;
+      }
+      if (e.key === 'ArrowRight') {
+        keys.current.arrowRight = true;
       }
     };
     
@@ -119,6 +151,19 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       }
       if (key === 'r') {
         keys.current.r = false;
+      }
+      // Arrow keys (use exact key names, not lowercase)
+      if (e.key === 'ArrowUp') {
+        keys.current.arrowUp = false;
+      }
+      if (e.key === 'ArrowDown') {
+        keys.current.arrowDown = false;
+      }
+      if (e.key === 'ArrowLeft') {
+        keys.current.arrowLeft = false;
+      }
+      if (e.key === 'ArrowRight') {
+        keys.current.arrowRight = false;
       }
     };
     
@@ -337,6 +382,63 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       cameraRotation.current.vertical = Math.max(-VERTICAL_LIMIT, Math.min(VERTICAL_LIMIT, cameraRotation.current.vertical));
       mouseDelta.current.x = 0;
       mouseDelta.current.y = 0;
+    }
+    
+    // Update camera rotation from arrow keys
+    // Horizontal rotation (Left/Right arrows)
+    if (keys.current.arrowLeft) {
+      cameraRotation.current.horizontal -= HORIZONTAL_ARROW_SPEED * delta;
+      if (!prevArrowLeftState.current) {
+        console.log('Camera: arrow horizontal start LEFT');
+        prevArrowLeftState.current = true;
+      }
+    } else {
+      if (prevArrowLeftState.current) {
+        console.log('Camera: arrow horizontal stop');
+        prevArrowLeftState.current = false;
+      }
+    }
+    
+    if (keys.current.arrowRight) {
+      cameraRotation.current.horizontal += HORIZONTAL_ARROW_SPEED * delta;
+      if (!prevArrowRightState.current) {
+        console.log('Camera: arrow horizontal start RIGHT');
+        prevArrowRightState.current = true;
+      }
+    } else {
+      if (prevArrowRightState.current) {
+        console.log('Camera: arrow horizontal stop');
+        prevArrowRightState.current = false;
+      }
+    }
+    
+    // Vertical rotation (Up/Down arrows)
+    if (keys.current.arrowUp) {
+      cameraRotation.current.vertical += VERTICAL_ARROW_SPEED * delta;
+      cameraRotation.current.vertical = Math.max(-VERTICAL_LIMIT, Math.min(VERTICAL_LIMIT, cameraRotation.current.vertical));
+      if (!prevArrowUpState.current) {
+        console.log('Camera: arrow vertical start UP');
+        prevArrowUpState.current = true;
+      }
+    } else {
+      if (prevArrowUpState.current) {
+        console.log('Camera: arrow vertical stop');
+        prevArrowUpState.current = false;
+      }
+    }
+    
+    if (keys.current.arrowDown) {
+      cameraRotation.current.vertical -= VERTICAL_ARROW_SPEED * delta;
+      cameraRotation.current.vertical = Math.max(-VERTICAL_LIMIT, Math.min(VERTICAL_LIMIT, cameraRotation.current.vertical));
+      if (!prevArrowDownState.current) {
+        console.log('Camera: arrow vertical start DOWN');
+        prevArrowDownState.current = true;
+      }
+    } else {
+      if (prevArrowDownState.current) {
+        console.log('Camera: arrow vertical stop');
+        prevArrowDownState.current = false;
+      }
     }
     
     // Calculate camera position based on rotation around player
