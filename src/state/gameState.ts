@@ -1,17 +1,25 @@
-// TEST PLAN (Door + Terminal State)
+// TEST PLAN (Door + Terminal State + Sentinel + Shutdown)
 // 1. Initial State:
 //    - doorStates['zone1-zone2-main'] should be 'closed'
 //    - terminalStates['terminal-zone2-main'] should be 'locked'
+//    - terminalStates['terminal-zone4-final'] should be 'locked'
+//    - sentinelDefeated should be false
+//    - isShuttingDown should be false
 // 2. Terminal State Change:
 //    - Call setTerminalState('terminal-zone2-main', 'hacked')
 //    - Verify getTerminalState('terminal-zone2-main') returns 'hacked'
 // 3. Door State Change:
 //    - Call setDoorState('zone1-zone2-main', 'open')
 //    - Verify getDoorState('zone1-zone2-main') returns 'open'
-// 4. Hacking Success Flow:
-//    - Terminal should call setTerminalState('terminal-zone2-main', 'hacked')
-//    - Terminal should then call setDoorState('zone1-zone2-main', 'open')
-//    - Door component should react to state change and open visually
+// 4. Sentinel Defeat:
+//    - When Sentinel health reaches 0, sentinelDefeated should become true
+//    - Terminal zone4-final should become usable
+// 5. Shutdown:
+//    - When final terminal is hacked, isShuttingDown should become true
+//    - ScreenFade should fade in over 4 seconds
+// 6. Full Reset:
+//    - Press R during shutdown -> resetPlayer() should reset everything
+//    - All states should return to initial values
 
 import { create } from 'zustand';
 
@@ -30,6 +38,10 @@ interface GameState {
   // Game pause state (for hacking overlay, etc.)
   isPaused: boolean;
   
+  // Sentinel and shutdown state
+  sentinelDefeated: boolean;
+  isShuttingDown: boolean;
+  
   // Actions
   setPlayerHealth: (health: number) => void;
   setIsSwinging: (swinging: boolean) => void;
@@ -45,6 +57,10 @@ interface GameState {
   
   // Pause actions
   setPaused: (paused: boolean) => void;
+  
+  // Sentinel and shutdown actions
+  setSentinelDefeated: (defeated: boolean) => void;
+  setIsShuttingDown: (shuttingDown: boolean) => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -69,11 +85,16 @@ export const useGameState = create<GameState>((set, get) => ({
     'zone1-zone2-main': 'closed'
   },
   terminalStates: {
-    'terminal-zone2-main': 'locked'
+    'terminal-zone2-main': 'locked',
+    'terminal-zone4-final': 'locked'
   },
   
   // Pause state
   isPaused: false,
+  
+  // Sentinel and shutdown state
+  sentinelDefeated: false,
+  isShuttingDown: false,
   
   // Actions
   setPlayerHealth: (health) => set({ playerHealth: health }),
@@ -101,7 +122,19 @@ export const useGameState = create<GameState>((set, get) => ({
       playerHealth: get().playerMaxHealth,
       isDead: false,
       recentlyHit: false,
-      isSwinging: false
+      isSwinging: false,
+      // Reset door and terminal states
+      doorStates: {
+        'zone1-zone2-main': 'closed'
+      },
+      terminalStates: {
+        'terminal-zone2-main': 'locked',
+        'terminal-zone4-final': 'locked'
+      },
+      // Reset Sentinel and shutdown
+      sentinelDefeated: false,
+      isShuttingDown: false,
+      isPaused: false
     });
   },
   
@@ -125,5 +158,16 @@ export const useGameState = create<GameState>((set, get) => ({
   
   // Pause actions
   setPaused: (paused) => set({ isPaused: paused }),
+  
+  // Sentinel and shutdown actions
+  setSentinelDefeated: (defeated) => {
+    set({ sentinelDefeated: defeated });
+    console.log(`Sentinel defeated: ${defeated}`);
+  },
+  
+  setIsShuttingDown: (shuttingDown) => {
+    set({ isShuttingDown: shuttingDown });
+    console.log(`System shutdown: ${shuttingDown}`);
+  },
 }));
 

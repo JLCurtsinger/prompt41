@@ -21,6 +21,8 @@ import { HackingTerminal } from './Interactables/HackingTerminal';
 import { Door } from './Interactables/Door';
 import { EnemyCrawler } from './Enemies/EnemyCrawler';
 import { EnemyShambler } from './Enemies/EnemyShambler';
+import { EnemySentinel } from './Enemies/EnemySentinel';
+import { ScreenFade } from './Effects/ScreenFade';
 import * as THREE from 'three';
 
 // Component to track player position and provide it to enemies
@@ -52,9 +54,12 @@ function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [
 export function GameScene() {
   const [playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
   const [isShamblerActivated, setIsShamblerActivated] = useState(false);
+  const [isSentinelActivated, setIsSentinelActivated] = useState(false);
   
   return (
-    <Canvas
+    <>
+      <ScreenFade />
+      <Canvas
       style={{ width: '100vw', height: '100vh' }}
       gl={{ antialias: true, alpha: false }}
       dpr={[1, 2]}
@@ -144,6 +149,14 @@ export function GameScene() {
           isActivated={isShamblerActivated}
         />
         
+        {/* Enemy: Sentinel Miniboss in Zone 4 (Core Chamber) */}
+        {/* Sentinel starts idle until activated by trigger volume */}
+        <EnemySentinel
+          initialPosition={[40, 0, 0]}
+          playerPosition={playerPosition}
+          isActivated={isSentinelActivated}
+        />
+        
         {/* Trigger volumes for zone detection and scripted events */}
         {/* Zone 1 perimeter trigger - fires when player enters the breach area */}
         <TriggerVolume
@@ -168,21 +181,26 @@ export function GameScene() {
           name="Zone3_ShamblerActivation"
         />
         
-        {/* Zone 4 core chamber intro trigger - fires when player approaches final arena */}
+        {/* Zone 4 Sentinel activation trigger - fires when player enters Zone 4 (Core Chamber) */}
+        {/* This is the "Sentinel intro moment" - activates the Sentinel Miniboss */}
         <TriggerVolume
           position={[35, 1, 0]}
           size={[6, 4, 6]}
           onEnter={() => {
-            console.log('Core chamber intro trigger fired');
+            console.log('Sentinel activation triggered');
+            setIsSentinelActivated(true);
             // TODO: Hook into Sentinel Zombot boot-up micro-cutscene
             // TODO: Trigger THE HOST voice line
             // TODO: Adjust lighting for dramatic reveal
           }}
-          name="Zone4_CoreChamberIntro"
+          name="Zone4_SentinelActivation"
         />
         
         {/* Hacking Terminal in Zone 2 */}
         <HackingTerminal id="terminal-zone2-main" position={[0, 0, -5]} />
+        
+        {/* Final Hacking Terminal in Zone 4 (Core Chamber) */}
+        <HackingTerminal id="terminal-zone4-final" position={[40, 0, -3]} />
         
         {/* Door between Zone 1 and Zone 2 */}
         <Door id="zone1-zone2-main" position={[-7, 0, 0]} />
@@ -201,6 +219,7 @@ export function GameScene() {
         <gridHelper args={[100, 50, '#333', '#222']} />
       </Suspense>
     </Canvas>
+    </>
   );
 }
 

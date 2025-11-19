@@ -41,6 +41,9 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
   const setTerminalState = useGameState((state) => state.setTerminalState);
   const setDoorState = useGameState((state) => state.setDoorState);
   const setPaused = useGameState((state) => state.setPaused);
+  const sentinelDefeated = useGameState((state) => state.sentinelDefeated);
+  const setIsShuttingDown = useGameState((state) => state.setIsShuttingDown);
+  const [showLockedMessage, setShowLockedMessage] = useState(false);
   
   const INTERACTION_RANGE = 2.5;
   
@@ -82,11 +85,22 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
     setIsInRange(distance <= INTERACTION_RANGE);
   });
   
+  // Check if this is the final terminal and if Sentinel must be defeated
+  const isFinalTerminal = id === 'terminal-zone4-final';
+  const isLockedBySentinel = isFinalTerminal && !sentinelDefeated && terminalState === 'locked';
+  
   // Handle E key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === 'e' && isInRange && !showOverlay) {
         if (terminalState === 'locked') {
+          // Check if final terminal is locked by Sentinel
+          if (isLockedBySentinel) {
+            setShowLockedMessage(true);
+            setTimeout(() => setShowLockedMessage(false), 2000);
+            return;
+          }
+          
           setShowOverlay(true);
           setPaused(true);
           // Exit pointer lock if active
@@ -102,13 +116,20 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isInRange, terminalState, showOverlay]);
+  }, [isInRange, terminalState, showOverlay, isLockedBySentinel]);
   
   // Handle overlay button clicks
   const handleDirectiveSelect = (_optionIndex: number) => {
     // For now, any button click counts as success
     setTerminalState(id, 'hacked');
-    setDoorState('zone1-zone2-main', 'open');
+    
+    // Zone 2 terminal opens door, Zone 4 terminal triggers shutdown
+    if (id === 'terminal-zone2-main') {
+      setDoorState('zone1-zone2-main', 'open');
+    } else if (id === 'terminal-zone4-final') {
+      setIsShuttingDown(true);
+    }
+    
     setShowOverlay(false);
     setPaused(false);
     setShowSuccessMessage(true);
@@ -221,7 +242,7 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
       )}
       
       {/* "Press E to hack" prompt */}
-      {isInRange && terminalState === 'locked' && !showOverlay && (
+      {isInRange && terminalState === 'locked' && !showOverlay && !isLockedBySentinel && (
         <div
           style={{
             position: 'fixed',
@@ -239,6 +260,29 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
           }}
         >
           Press E to hack
+        </div>
+      )}
+      
+      {/* "ACCESS LOCKED – THREAT ACTIVE" message */}
+      {showLockedMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            color: '#ff0000',
+            padding: '15px 30px',
+            borderRadius: '5px',
+            fontFamily: 'monospace',
+            fontSize: '20px',
+            zIndex: 100,
+            pointerEvents: 'none',
+            border: '2px solid #ff0000',
+          }}
+        >
+          ACCESS LOCKED – THREAT ACTIVE
         </div>
       )}
       
