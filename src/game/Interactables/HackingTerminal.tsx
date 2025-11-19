@@ -43,6 +43,7 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
   const setPaused = useGameState((state) => state.setPaused);
   const sentinelDefeated = useGameState((state) => state.sentinelDefeated);
   const setIsShuttingDown = useGameState((state) => state.setIsShuttingDown);
+  const playHostLine = useGameState((state) => state.playHostLine);
   const [showLockedMessage, setShowLockedMessage] = useState(false);
   
   const INTERACTION_RANGE = 2.5;
@@ -103,6 +104,7 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
           
           setShowOverlay(true);
           setPaused(true);
+          playHostLine('hacking:start');
           // Exit pointer lock if active
           if (document.pointerLockElement) {
             document.exitPointerLock();
@@ -126,8 +128,13 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
     // Zone 2 terminal opens door, Zone 4 terminal triggers shutdown
     if (id === 'terminal-zone2-main') {
       setDoorState('zone1-zone2-main', 'open');
+      playHostLine('hacking:success');
     } else if (id === 'terminal-zone4-final') {
+      playHostLine('hacking:finalSuccess');
+      playHostLine('shutdown:start');
       setIsShuttingDown(true);
+    } else {
+      playHostLine('hacking:success');
     }
     
     setShowOverlay(false);

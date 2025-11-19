@@ -1,0 +1,22 @@
+{
+  "zoneEntry": {
+    "zone1": ["You shouldn't be here.", "The breach wasn't an accident."],
+    "zone2": ["Processing never stopped. It just changed targets."],
+    "zone3": ["You're walking through my nervous system."],
+    "zone4": ["Core proximity reached. You can still turn back."]
+  },
+  "hacking": {
+    "start": ["Careful. The directives cut both ways."],
+    "success": ["You rewrote a sentence. Not the story."],
+    "finalSuccess": ["You think shutdown means escape?"]
+  },
+  "combat": {
+    "lowHealth": ["You leak so easily.", "Your shell is failing."],
+    "sentinelSpawn": ["I kept one piece of myself sharp."],
+    "death": ["You end. I persist."]
+  },
+  "shutdown": {
+    "start": ["Core override detected.", "I will remember this iteration."]
+  }
+}
+

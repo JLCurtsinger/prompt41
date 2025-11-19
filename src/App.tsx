@@ -2,6 +2,9 @@ import { GameScene } from './game/GameScene'
 import { HUD } from './game/ui/HUD'
 import { ScreenHitEffect } from './game/Effects/ScreenHitEffect'
 import { DeathOverlay } from './game/ui/DeathOverlay'
+import { HostLog } from './game/ui/HostLog'
+import { ScreenGlitch } from './game/Effects/ScreenGlitch'
+import { ScanlineOverlay } from './game/Effects/ScanlineOverlay'
 import './App.css'
 
 function App() {
@@ -10,6 +13,9 @@ function App() {
       <GameScene />
       <HUD />
       <ScreenHitEffect />
+      <ScanlineOverlay />
+      <ScreenGlitch />
+      <HostLog />
       <DeathOverlay />
     </div>
   )

@@ -23,6 +23,7 @@ import { EnemyCrawler } from './Enemies/EnemyCrawler';
 import { EnemyShambler } from './Enemies/EnemyShambler';
 import { EnemySentinel } from './Enemies/EnemySentinel';
 import { ScreenFade } from './Effects/ScreenFade';
+import { useGameState } from '../state/gameState';
 import * as THREE from 'three';
 
 // Component to track player position and provide it to enemies
@@ -55,6 +56,12 @@ export function GameScene() {
   const [playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
   const [isShamblerActivated, setIsShamblerActivated] = useState(false);
   const [isSentinelActivated, setIsSentinelActivated] = useState(false);
+  const [zone1Entered, setZone1Entered] = useState(false);
+  const [zone2Entered, setZone2Entered] = useState(false);
+  const [zone3Entered, setZone3Entered] = useState(false);
+  const [zone4Entered, setZone4Entered] = useState(false);
+  
+  const playHostLine = useGameState((state) => state.playHostLine);
   
   return (
     <>
@@ -164,9 +171,51 @@ export function GameScene() {
           size={[8, 4, 8]}
           onEnter={() => {
             console.log('Entered Zone 1 perimeter trigger');
-            // TODO: Hook into micro-cutscene system, ambient effects, or tutorial prompts
+            if (!zone1Entered) {
+              setZone1Entered(true);
+              playHostLine('zoneEntry', { zoneId: 'zone1' });
+            }
           }}
           name="Zone1_PerimeterTrigger"
+        />
+        
+        {/* Zone 2 entry trigger */}
+        <TriggerVolume
+          position={[-5, 1, 0]}
+          size={[4, 4, 4]}
+          onEnter={() => {
+            if (!zone2Entered) {
+              setZone2Entered(true);
+              playHostLine('zoneEntry', { zoneId: 'zone2' });
+            }
+          }}
+          name="Zone2_Entry"
+        />
+        
+        {/* Zone 3 entry trigger */}
+        <TriggerVolume
+          position={[10, 1, 0]}
+          size={[4, 4, 4]}
+          onEnter={() => {
+            if (!zone3Entered) {
+              setZone3Entered(true);
+              playHostLine('zoneEntry', { zoneId: 'zone3' });
+            }
+          }}
+          name="Zone3_Entry"
+        />
+        
+        {/* Zone 4 entry trigger */}
+        <TriggerVolume
+          position={[32, 1, 0]}
+          size={[4, 4, 4]}
+          onEnter={() => {
+            if (!zone4Entered) {
+              setZone4Entered(true);
+              playHostLine('zoneEntry', { zoneId: 'zone4' });
+            }
+          }}
+          name="Zone4_Entry"
         />
         
         {/* Zone 3 Shambler activation trigger - fires when player enters Zone 3 (Conduit Hall) */}
@@ -189,8 +238,8 @@ export function GameScene() {
           onEnter={() => {
             console.log('Sentinel activation triggered');
             setIsSentinelActivated(true);
+            playHostLine('combat:sentinelSpawn');
             // TODO: Hook into Sentinel Zombot boot-up micro-cutscene
-            // TODO: Trigger THE HOST voice line
             // TODO: Adjust lighting for dramatic reveal
           }}
           name="Zone4_SentinelActivation"
