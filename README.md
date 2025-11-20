@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./prompt41-logo.png" alt="Prompt 41 Logo" width="400">
+  <img src="./logo.png" alt="Prompt 41 Logo" width="400">
 </p>
 
 Prompt 41
