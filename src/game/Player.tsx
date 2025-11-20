@@ -41,6 +41,7 @@ interface PlayerProps {
 
 export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const playerRef = useRef<THREE.Group>(null);
+  const batonRef = useRef<THREE.Group>(null);
   const velocity = useRef(new THREE.Vector3());
   const direction = useRef(new THREE.Vector3());
   const isGrounded = useRef(true);
@@ -48,6 +49,12 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   
   const { camera } = useThree();
   const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding } = useGameState();
+  
+  // Baton swing animation state
+  const swingTimer = useRef(0);
+  const isSwingingAnim = useRef(false);
+  const SWING_DURATION = 0.25; // seconds
+  const SWING_ARC = Math.PI / 3; // 60 degrees
   
   // Movement constants
   const WALK_SPEED = 3;
@@ -290,6 +297,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       lastAttackTime.current = currentTime;
       setIsSwinging(true);
       setTimeout(() => setIsSwinging(false), 300);
+      
+      // Always start swing animation, regardless of whether enemies are hit
+      isSwingingAnim.current = true;
+      swingTimer.current = 0;
       
       console.log('[Combat] Baton swing started');
       
@@ -560,6 +571,30 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     lookAtTarget.y += 1.5; // Look at player's head height
     
     camera.lookAt(lookAtTarget);
+    
+    // Update baton swing animation
+    if (isSwingingAnim.current && batonRef.current) {
+      swingTimer.current += delta;
+      const t = Math.min(swingTimer.current / SWING_DURATION, 1);
+      
+      // Simple ease-out curve
+      const eased = 1 - (1 - t) * (1 - t);
+      
+      // Start angle and end angle (local rotation around Y axis)
+      const startAngle = -SWING_ARC / 2;
+      const endAngle = SWING_ARC / 2;
+      
+      const angle = startAngle + (endAngle - startAngle) * eased;
+      
+      batonRef.current.rotation.y = angle;
+      
+      if (t >= 1) {
+        // Reset
+        isSwingingAnim.current = false;
+        swingTimer.current = 0;
+        batonRef.current.rotation.y = 0;
+      }
+    }
   });
   
   // Set initial position on mount
@@ -590,26 +625,29 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         <planeGeometry args={[0.3, 0.2]} />
         <meshStandardMaterial color="#00ffff" emissive="#00ffff" emissiveIntensity={1} />
       </mesh>
-      {/* Shock Baton - simple narrow box on right side */}
-      <mesh position={[0.5, 1.2, 0.3]} rotation={[0, 0, -0.3]} castShadow>
-        <boxGeometry args={[0.08, 0.5, 0.08]} />
-        <meshStandardMaterial 
-          color="#4a4a4a" 
-          emissive="#00ffff" 
-          emissiveIntensity={0.6}
-          metalness={0.8}
-          roughness={0.2}
-        />
-      </mesh>
-      {/* Baton handle/grip */}
-      <mesh position={[0.5, 1.0, 0.3]} rotation={[0, 0, -0.3]} castShadow>
-        <boxGeometry args={[0.1, 0.2, 0.1]} />
-        <meshStandardMaterial 
-          color="#2a2a2a" 
-          metalness={0.3}
-          roughness={0.7}
-        />
-      </mesh>
+      {/* Shock Baton - wrapped in group for animation */}
+      <group ref={batonRef} position={[0.5, 1.1, 0.3]} rotation={[0, 0, -0.3]}>
+        {/* Baton blade - simple narrow box */}
+        <mesh position={[0, 0.1, 0]} castShadow>
+          <boxGeometry args={[0.08, 0.5, 0.08]} />
+          <meshStandardMaterial 
+            color="#4a4a4a" 
+            emissive="#00ffff" 
+            emissiveIntensity={0.6}
+            metalness={0.8}
+            roughness={0.2}
+          />
+        </mesh>
+        {/* Baton handle/grip */}
+        <mesh position={[0, -0.1, 0]} castShadow>
+          <boxGeometry args={[0.1, 0.2, 0.1]} />
+          <meshStandardMaterial 
+            color="#2a2a2a" 
+            metalness={0.3}
+            roughness={0.7}
+          />
+        </mesh>
+      </group>
     </group>
   );
 }
