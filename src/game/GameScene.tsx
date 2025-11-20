@@ -162,6 +162,11 @@ export function GameScene() {
         <EnemyCrawler 
           initialPosition={[0, 0, 0]} 
           playerPosition={playerPosition}
+          patrolPoints={[
+            [-3, 0, 2],   // Near machinery block (northwest)
+            [3, 0, -2],   // Near another machinery block (southeast)
+            [0, 0, -6],   // Near terminal area (south)
+          ]}
         />
         
         {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}

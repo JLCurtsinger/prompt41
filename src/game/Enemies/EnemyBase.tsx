@@ -32,6 +32,7 @@ export interface EnemyBaseProps {
   onStateChange?: (newState: EnemyState, oldState: EnemyState) => void;
   maxHealth?: number;
   enemyId?: string;
+  isPatrolPaused?: () => boolean; // Optional helper to check if patrol should pause
 }
 
 export function useEnemyFSM({
@@ -45,6 +46,7 @@ export function useEnemyFSM({
   onStateChange,
   maxHealth = 100,
   enemyId,
+  isPatrolPaused,
 }: EnemyBaseProps) {
   const enemyRef = useRef<THREE.Group>(null);
   const currentState = useRef<EnemyState>('idle');
@@ -130,10 +132,12 @@ export function useEnemyFSM({
               patrolIndex.current = (patrolIndex.current + 1) % patrolPoints.length;
               patrolTarget.current = new THREE.Vector3(...patrolPoints[patrolIndex.current]);
             } else {
-              // Move toward current patrol point
-              const direction = patrolTarget.current.clone().sub(enemyPos).normalize();
-              const movement = direction.multiplyScalar(patrolSpeed * delta);
-              enemyRef.current.position.add(movement);
+              // Move toward current patrol point (unless paused)
+              if (!isPatrolPaused || !isPatrolPaused()) {
+                const direction = patrolTarget.current.clone().sub(enemyPos).normalize();
+                const movement = direction.multiplyScalar(patrolSpeed * delta);
+                enemyRef.current.position.add(movement);
+              }
             }
           }
         }
@@ -145,26 +149,30 @@ export function useEnemyFSM({
         const attackThreshold = attackRange * 0.95; // 5% buffer
         if (distanceToPlayer <= attackThreshold) {
           newState = 'attack';
-        } else if (distanceToPlayer > detectionRadius) {
-          // Player left detection radius, return to patrol
-          if (patrolPoints.length > 0) {
-            newState = 'patrol';
-            // Find nearest patrol point
-            const enemyPos = enemyRef.current.position;
-            let nearestIndex = 0;
-            let nearestDistance = Infinity;
-            patrolPoints.forEach((point, index) => {
-              const dist = enemyPos.distanceTo(new THREE.Vector3(...point));
-              if (dist < nearestDistance) {
-                nearestDistance = dist;
-                nearestIndex = index;
-              }
-            });
+        } else {
+          // Use larger threshold for returning to patrol (1.5x detection radius) to prevent rapid switching
+          const returnToPatrolThreshold = detectionRadius * 1.5;
+          if (distanceToPlayer > returnToPatrolThreshold) {
+            // Player left detection radius, return to patrol
+            if (patrolPoints.length > 0) {
+              newState = 'patrol';
+              // Find nearest patrol point
+              const enemyPos = enemyRef.current.position;
+              let nearestIndex = 0;
+              let nearestDistance = Infinity;
+              patrolPoints.forEach((point, index) => {
+                const dist = enemyPos.distanceTo(new THREE.Vector3(...point));
+                if (dist < nearestDistance) {
+                  nearestDistance = dist;
+                  nearestIndex = index;
+                }
+              });
             patrolIndex.current = nearestIndex;
             patrolTarget.current = new THREE.Vector3(...patrolPoints[nearestIndex]);
           } else {
             newState = 'idle';
           }
+          // Don't move when transitioning back to patrol
         } else {
           // Continue chasing - move toward player
           const enemyPos = enemyRef.current.position;

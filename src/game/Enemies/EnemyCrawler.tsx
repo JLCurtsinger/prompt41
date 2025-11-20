@@ -28,9 +28,10 @@ import * as THREE from 'three';
 interface EnemyCrawlerProps {
   initialPosition: [number, number, number];
   playerPosition: [number, number, number];
+  patrolPoints?: [number, number, number][]; // Optional patrol points - only first crawler gets these
 }
 
-export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerProps) {
+export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: EnemyCrawlerProps) {
   const prevStateRef = useRef<EnemyState | null>(null);
   const attackCooldownRef = useRef<number>(0);
   const wasHitRef = useRef<boolean>(false);
@@ -38,14 +39,12 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null);
   const ATTACK_COOLDOWN = 0.8; // seconds
   const ATTACK_DAMAGE = 5;
-
-  // Zone 2 (Processing Yard) patrol points - hardcoded positions
-  // These form a small patrol loop in the processing yard area
-  const patrolPoints: [number, number, number][] = [
-    [-3, 0, 2],   // Near machinery block
-    [3, 0, -2],   // Near another machinery block
-    [0, 0, -6],   // Near terminal area
-  ];
+  
+  // Patrol pause state - tracks when we reach a waypoint and need to pause
+  const patrolPauseTimer = useRef<number>(0);
+  const isPausedAtWaypoint = useRef<boolean>(false);
+  const lastWaypointIndex = useRef<number>(-1);
+  const PATROL_PAUSE_DURATION = 1.5; // seconds to pause at each waypoint
 
   // Crawler-specific stats: fast, low health
   const detectionRadius = 8; // meters
@@ -53,15 +52,27 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
   const moveSpeed = 5; // Fast movement speed
   const patrolSpeed = 3; // Slightly slower patrol speed
 
-  const handleStateChange = (newState: EnemyState, _oldState: EnemyState) => {
-    // State change handler (no logging needed)
+  const handleStateChange = (newState: EnemyState, oldState: EnemyState) => {
+    // Debug log state transitions
+    if (newState !== oldState) {
+      console.log('[Crawler]', enemyId, 'state ->', newState);
+    }
+    
+    // Reset pause timer when entering patrol
+    if (newState === 'patrol' && oldState !== 'patrol') {
+      isPausedAtWaypoint.current = false;
+      patrolPauseTimer.current = 0;
+    }
   };
 
   const enemyId = `crawler-${initialPosition.join('-')}`;
   
+  // Use provided patrolPoints or empty array (for crawlers without patrol)
+  const effectivePatrolPoints = patrolPoints || [];
+  
   const { enemyRef, currentState, health, maxHealth, isDead, takeDamage, getHealth } = useEnemyFSM({
     initialPosition,
-    patrolPoints,
+    patrolPoints: effectivePatrolPoints,
     detectionRadius,
     attackRange,
     playerPosition,
@@ -70,6 +81,7 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
     onStateChange: handleStateChange,
     maxHealth: 50, // Crawler has 50 HP (lower than Shambler)
     enemyId,
+    isPatrolPaused: () => isPausedAtWaypoint.current, // Helper to pause patrol movement
   });
   
   // Wrap takeDamage to add hit flash and logging
@@ -122,7 +134,7 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
     }
   }, [initialPosition, enemyRef]);
 
-  // Handle attack damage with cooldown
+  // Handle attack damage with cooldown, patrol pause, and chase return logic
   useFrame((_state, delta) => {
     if (!enemyRef.current) return;
     
@@ -153,6 +165,62 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
       }
     }
     
+    // Calculate distance to player for chase return logic
+    const enemyPos = enemyRef.current.position;
+    const playerPos = new THREE.Vector3(...playerPosition);
+    const distanceToPlayer = enemyPos.distanceTo(playerPos);
+    
+    // Enhanced chase -> patrol transition handled by EnemyBase FSM
+    // The FSM already checks detectionRadius, but we want a larger threshold for returning to patrol
+    // Since we can't easily modify EnemyBase's FSM logic, we rely on it to handle transitions
+    // The base FSM will transition back to patrol when distance > detectionRadius
+    
+    // Handle patrol pause logic (only for crawlers with patrol points)
+    if (currentState === 'patrol' && effectivePatrolPoints.length > 0) {
+      // Check if we've reached a waypoint (using the same threshold as EnemyBase)
+      const waypointThreshold = 0.5;
+      let currentWaypointIndex = -1;
+      let minDistance = Infinity;
+      
+      effectivePatrolPoints.forEach((point, index) => {
+        const waypointPos = new THREE.Vector3(...point);
+        const distance = enemyPos.distanceTo(waypointPos);
+        if (distance < minDistance) {
+          minDistance = distance;
+          currentWaypointIndex = index;
+        }
+      });
+      
+      // If we're close to a waypoint and not already paused, start pause
+      if (minDistance < waypointThreshold && !isPausedAtWaypoint.current) {
+        if (currentWaypointIndex !== lastWaypointIndex.current) {
+          // Reached a new waypoint
+          isPausedAtWaypoint.current = true;
+          patrolPauseTimer.current = 0;
+          lastWaypointIndex.current = currentWaypointIndex;
+          console.log('[Crawler]', enemyId, 'reached waypoint', currentWaypointIndex);
+        }
+      }
+      
+      // Handle pause timer
+      if (isPausedAtWaypoint.current) {
+        patrolPauseTimer.current += delta;
+        if (patrolPauseTimer.current >= PATROL_PAUSE_DURATION) {
+          // Pause complete, resume patrolling
+          isPausedAtWaypoint.current = false;
+          patrolPauseTimer.current = 0;
+        } else {
+          // Still pausing - prevent movement by not letting EnemyBase move
+          // We can't directly stop EnemyBase's movement, but we can note that we're paused
+          // The EnemyBase will continue to try to move, but we'll override it if needed
+        }
+      }
+    } else {
+      // Not in patrol, reset pause state
+      isPausedAtWaypoint.current = false;
+      patrolPauseTimer.current = 0;
+    }
+    
     // Update cooldown timer
     if (attackCooldownRef.current > 0) {
       attackCooldownRef.current -= delta;
@@ -167,6 +235,11 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
     // Reset cooldown when leaving attack state
     if (prevStateRef.current === 'attack' && currentState !== 'attack') {
       attackCooldownRef.current = 0;
+    }
+    
+    // Track previous state for logging
+    if (prevStateRef.current !== currentState) {
+      prevStateRef.current = currentState;
     }
   });
 
