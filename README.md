@@ -101,7 +101,7 @@ The player navigates the world using familiar first-person controls.
 | Jump       | Space       |
 | High Jump  | Jump + Space|
 | Crouch     | Ctrl        |
-| Melee      | return/space|
+| Melee      | return/Enter|
 | Pause      | Esc         |
 
 ---
