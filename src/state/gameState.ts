@@ -165,6 +165,9 @@ interface GameState {
     mode: 'normal' | 'locked' | 'alreadyHacked' | 'success';
   };
   
+  // Zone 2 -> Zone 3 door unlock flag
+  hasZone2DoorUnlocked: boolean;
+  
   // Actions
   setPlayerHealth: (health: number) => void;
   setIsSwinging: (swinging: boolean) => void;
@@ -208,6 +211,9 @@ interface GameState {
   openHackingOverlay: (terminalId: string, mode: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
   setHackingOverlayMode: (mode: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
   closeHackingOverlay: () => void;
+  
+  // Zone 2 door unlock action
+  unlockZone2Door: () => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -276,6 +282,9 @@ export const useGameState = create<GameState>((set, get) => ({
     terminalId: null,
     mode: 'normal',
   },
+  
+  // Zone 2 door unlock initial state
+  hasZone2DoorUnlocked: false,
   
   // Actions
   setPlayerHealth: (health) => set({ playerHealth: health }),
@@ -354,7 +363,9 @@ export const useGameState = create<GameState>((set, get) => ({
         isOpen: false,
         terminalId: null,
         mode: 'normal',
-      }
+      },
+      // Reset Zone 2 door unlock
+      hasZone2DoorUnlocked: false,
     });
     // Clear cooldowns
     hostLineCooldowns.clear();
@@ -589,6 +600,12 @@ export const useGameState = create<GameState>((set, get) => ({
       },
       isPaused: false,
     });
+  },
+  
+  // Zone 2 door unlock action
+  unlockZone2Door: () => {
+    set({ hasZone2DoorUnlocked: true });
+    console.log('Zone 2 -> Zone 3 door unlocked');
   },
 }));
 

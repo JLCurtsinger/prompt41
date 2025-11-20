@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { TriggerVolume } from './Interactables/TriggerVolume';
+import { HackingTerminal } from './Interactables/HackingTerminal';
+import { Door } from './Interactables/Door';
 
 // TODO: Wire this layout to match Zones 1–4 from CoreGameDetails.md (perimeter → yard → conduit → core chamber)
 
@@ -99,8 +101,11 @@ function ProcessingYardZone() {
         <meshStandardMaterial color="#1a4a6a" emissive="#1a4a6a" emissiveIntensity={0.2} />
       </mesh>
       
-      {/* TODO: Place first hackable terminal here (Zone 2) */}
-      <group name="zone2_terminal_placeholder" position={[0, 0, -5]} />
+      {/* Zone 2 terminal controlling Zone 2 -> Zone 3 door */}
+      <HackingTerminal
+        id="terminal-zone2-main"
+        position={[0, 0, -5]}
+      />
     </group>
   );
 }
@@ -248,6 +253,12 @@ export function LevelLayout() {
         <planeGeometry args={[10, 8]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
+      
+      {/* Door gating Zone 2 -> Zone 3 */}
+      <Door
+        id="zone2-zone3-main"
+        position={[10, 0, 0]}
+      />
       
       {/* Zone 3 to Zone 4 */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[30, 0, 0]} receiveShadow>

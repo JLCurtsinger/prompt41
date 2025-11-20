@@ -23,12 +23,15 @@ export function Door({ id, position }: DoorProps) {
   const doorRef = useRef<THREE.Group>(null);
   const { scene } = useThree();
   const doorState = useGameState((state) => getDoorState(state, id));
+  const hasZone2DoorUnlocked = useGameState((state) => state.hasZone2DoorUnlocked);
   const showInteractionPrompt = useGameState((state) => state.showInteractionPrompt);
   const clearInteractionPrompt = useGameState((state) => state.clearInteractionPrompt);
   const interactionPrompt = useGameState((state) => state.interactionPrompt);
   const [isInRange, setIsInRange] = useState(false);
   
-  const isOpen = doorState === 'open';
+  // Zone 2 -> Zone 3 door uses unlock flag, others use doorState
+  const isZone2Door = id === 'zone2-zone3-main';
+  const isOpen = isZone2Door ? hasZone2DoorUnlocked : doorState === 'open';
   const targetY = isOpen ? position[1] + 4 : position[1];
   const INTERACTION_RANGE = 2.5;
   

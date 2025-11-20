@@ -39,6 +39,7 @@ export function HackingOverlay() {
   const setIsShuttingDown = useGameState((state) => state.setIsShuttingDown);
   const playHostLine = useGameState((state) => state.playHostLine);
   const setHackingOverlayMode = useGameState((state) => state.setHackingOverlayMode);
+  const unlockZone2Door = useGameState((state) => state.unlockZone2Door);
 
   // Extract values for easier use
   const { isOpen, terminalId, mode } = hackingOverlay;
@@ -109,27 +110,32 @@ export function HackingOverlay() {
   }, [terminalId]);
 
   // Handle directive option click - useCallback for stable reference
-  const handleDirectiveSelect = useCallback((_optionIndex: number) => {
+  const handleDirectiveSelect = useCallback((optionIndex: number) => {
     if (!isOpen || !terminalId) return;
 
     try {
-      // For now, any button click counts as success
-      setTerminalState(terminalId, 'hacked');
+      // Simple mini-game: first button (index 0) is correct, others are wrong
+      const CORRECT_OPTION_INDEX = 0;
+      const isCorrect = optionIndex === CORRECT_OPTION_INDEX;
+      
+      if (isCorrect) {
+        // Success: hack terminal and unlock door
+        setTerminalState(terminalId, 'hacked');
 
-      // Zone 2 terminal opens door, Zone 4 terminal triggers shutdown
-      if (terminalId === 'terminal-zone2-main') {
-        setDoorState('zone1-zone2-main', 'open');
-        try {
-          playHostLine('hacking:success');
-        } catch (error) {
-          console.warn(`HackingOverlay: Error playing success host line:`, error);
-        }
-        try {
-          AudioManager.playSFX('hackingSuccess');
-        } catch (error) {
-          console.warn(`HackingOverlay: Error playing success SFX:`, error);
-        }
-      } else if (terminalId === 'terminal-zone4-final') {
+        // Zone 2 terminal unlocks Zone 2 -> Zone 3 door
+        if (terminalId === 'terminal-zone2-main') {
+          unlockZone2Door();
+          try {
+            playHostLine('hacking:success');
+          } catch (error) {
+            console.warn(`HackingOverlay: Error playing success host line:`, error);
+          }
+          try {
+            AudioManager.playSFX('hackingSuccess');
+          } catch (error) {
+            console.warn(`HackingOverlay: Error playing success SFX:`, error);
+          }
+        } else if (terminalId === 'terminal-zone4-final') {
         try {
           playHostLine('hacking:finalSuccess');
           playHostLine('shutdown:start');
@@ -152,14 +158,19 @@ export function HackingOverlay() {
         }
       }
 
-      // Switch to success mode, which will auto-close after timeout
-      setHackingOverlayMode('success');
+        // Switch to success mode, which will auto-close after timeout
+        setHackingOverlayMode('success');
+      } else {
+        // Failure: close overlay and log failure
+        console.log('[Hacking] Terminal hack failed');
+        closeHackingOverlay();
+      }
     } catch (error) {
       console.error(`HackingOverlay: Error in handleDirectiveSelect:`, error);
       // Ensure overlay closes even on error
       closeHackingOverlay();
     }
-  }, [isOpen, terminalId, setTerminalState, setDoorState, playHostLine, setIsShuttingDown, setHackingOverlayMode, closeHackingOverlay]);
+  }, [isOpen, terminalId, setTerminalState, unlockZone2Door, playHostLine, setIsShuttingDown, setHackingOverlayMode, closeHackingOverlay]);
 
   // NOW AFTER ALL HOOKS, do conditional rendering
   if (!isOpen || isDead || isShuttingDown) {

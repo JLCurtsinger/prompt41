@@ -265,8 +265,7 @@ export function GameScene() {
           name="Zone4_SentinelActivation"
         />
         
-        {/* Hacking Terminal in Zone 2 */}
-        <HackingTerminal id="terminal-zone2-main" position={[0, 0, -5]} />
+        {/* Hacking Terminal in Zone 2 is now in LevelLayout.tsx */}
         
         {/* Final Hacking Terminal in Zone 4 (Core Chamber) */}
         <HackingTerminal id="terminal-zone4-final" position={[40, 0, -3]} />
