@@ -57,16 +57,20 @@ export function useEnemyFSM({
   const isDead = useRef(false);
   
   // takeDamage function
-  const takeDamage = (amount: number) => {
-    if (isDead.current) return; // Already dead, ignore damage
+  const takeDamage = (amount: number): number => {
+    if (isDead.current) return health.current; // Already dead, ignore damage
     
+    const healthBefore = health.current;
     health.current = Math.max(0, health.current - amount);
+    const healthAfter = health.current;
     
     if (health.current <= 0) {
       isDead.current = true;
       currentState.current = 'idle'; // Stop all AI behavior
       console.log(`[Enemy] ${enemyId ?? 'unknown'} died`);
     }
+    
+    return healthAfter;
   };
 
   // Initialize state based on patrol points
@@ -222,7 +226,8 @@ export function useEnemyFSM({
     enemyRef,
     getCurrentState: () => currentState.current,
     currentState: currentState.current, // Also return value for initial render compatibility
-    health: health.current,
+    getHealth: () => health.current, // Getter function to always get current health
+    health: health.current, // Current snapshot for initial render
     maxHealth,
     isDead: isDead.current,
     takeDamage,

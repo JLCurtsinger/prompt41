@@ -291,22 +291,30 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       setIsSwinging(true);
       setTimeout(() => setIsSwinging(false), 300);
       
-      // Get player position and forward direction
-      const playerPos = playerRef.current.position;
+      console.log('[Combat] Baton swing started');
       
-      // Calculate forward direction from camera
-      const cameraForward = new THREE.Vector3();
-      camera.getWorldDirection(cameraForward);
-      cameraForward.y = 0; // Keep on horizontal plane
-      cameraForward.normalize();
+      // Get player position - use the same position source as enemies use
+      // Enemies use playerPosition prop which comes from PlayerPositionTracker
+      // which reads playerRef.current.position, so we use the same
+      const playerPos = playerRef.current.position.clone();
       
       // Find enemies in range
       const enemiesInRange = getEnemiesInRange(playerPos, BATON_RANGE);
       
+      // Log enemy check results
+      const distances = enemiesInRange.map(enemy => {
+        const enemyPos = enemy.getPosition();
+        return playerPos.distanceTo(enemyPos);
+      });
+      console.log('[Combat] Enemies in range check:', { count: enemiesInRange.length, distances });
+      
       if (enemiesInRange.length > 0) {
         // Hit the first enemy in range
         const hitEnemy = enemiesInRange[0];
+        const enemyPos = hitEnemy.getPosition();
+        const distance = playerPos.distanceTo(enemyPos);
         hitEnemy.takeDamage(BATON_DAMAGE);
+        console.log('[Combat] Baton hit enemy', hitEnemy.id, 'at distance', distance.toFixed(2), 'for', BATON_DAMAGE, 'damage');
       }
       
       // Update enter key tracking
@@ -581,6 +589,26 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       <mesh position={[0, 1.8, 0.2]} castShadow>
         <planeGeometry args={[0.3, 0.2]} />
         <meshStandardMaterial color="#00ffff" emissive="#00ffff" emissiveIntensity={1} />
+      </mesh>
+      {/* Shock Baton - simple narrow box on right side */}
+      <mesh position={[0.5, 1.2, 0.3]} rotation={[0, 0, -0.3]} castShadow>
+        <boxGeometry args={[0.08, 0.5, 0.08]} />
+        <meshStandardMaterial 
+          color="#4a4a4a" 
+          emissive="#00ffff" 
+          emissiveIntensity={0.6}
+          metalness={0.8}
+          roughness={0.2}
+        />
+      </mesh>
+      {/* Baton handle/grip */}
+      <mesh position={[0.5, 1.0, 0.3]} rotation={[0, 0, -0.3]} castShadow>
+        <boxGeometry args={[0.1, 0.2, 0.1]} />
+        <meshStandardMaterial 
+          color="#2a2a2a" 
+          metalness={0.3}
+          roughness={0.7}
+        />
       </mesh>
     </group>
   );

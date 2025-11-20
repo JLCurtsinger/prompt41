@@ -27,6 +27,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEnemyFSM, type EnemyState } from './EnemyBase';
 import { applyDamageToPlayer } from './enemyDamage';
 import { registerEnemy, unregisterEnemy } from './enemyRegistry';
+import { EnemyHealthBar } from './EnemyHealthBar';
 import * as THREE from 'three';
 
 interface EnemyShamblerProps {
@@ -115,7 +116,7 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
 
   const enemyId = `shambler-${initialPosition.join('-')}`;
   
-  const { enemyRef, getCurrentState, health, maxHealth, isDead, takeDamage } = useEnemyFSM({
+  const { enemyRef, getCurrentState, health, maxHealth, isDead, takeDamage, getHealth } = useEnemyFSM({
     initialPosition,
     patrolPoints: isActivated ? patrolPoints : [], // Only patrol if activated
     detectionRadius,
@@ -128,21 +129,23 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     enemyId,
   });
   
-  // Wrap takeDamage to add hit flash
+  // Wrap takeDamage to add hit flash and logging
   const wrappedTakeDamage = useRef((amount: number) => {
-    takeDamage(amount);
+    const healthAfter = takeDamage(amount);
     wasHitRef.current = true;
     hitFlashTimer.current = 0;
+    console.log('[Combat] Baton hit enemy', enemyId, 'for', amount, '=> hp:', healthAfter, '/', maxHealth);
   });
   
   // Update wrapped function when takeDamage changes
   useEffect(() => {
     wrappedTakeDamage.current = (amount: number) => {
-      takeDamage(amount);
+      const healthAfter = takeDamage(amount);
       wasHitRef.current = true;
       hitFlashTimer.current = 0;
+      console.log('[Combat] Baton hit enemy', enemyId, 'for', amount, '=> hp:', healthAfter, '/', maxHealth);
     };
-  }, [takeDamage]);
+  }, [takeDamage, enemyId, maxHealth]);
   
   // Register enemy with registry for hit detection
   useEffect(() => {
@@ -152,7 +155,7 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       id: enemyId,
       getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
       takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
-      isDead: () => isDead,
+      isDead: () => isDead, // isDead is a boolean value from useEnemyFSM
     };
     
     registerEnemy(enemyId, instance);
@@ -174,12 +177,12 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     // Get current state (reactive)
     const currentState = getCurrentState();
     
-    // Update registry (re-register with current position)
+    // Update registry (re-register with current position) - this ensures isDead closure is fresh
     const instance = {
       id: enemyId,
       getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
       takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
-      isDead: () => isDead,
+      isDead: () => isDead, // Fresh closure every frame ensures current value
     };
     registerEnemy(enemyId, instance);
     
@@ -261,6 +264,9 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
 
   return (
     <group ref={enemyRef}>
+      {/* Health bar above enemy */}
+      <EnemyHealthBar health={health} maxHealth={maxHealth} getHealth={getHealth} />
+      
       {/* TODO: Replace this placeholder with shamblerZombot.glb model */}
       {/* Taller, humanoid silhouette for Shambler Zombot */}
       
