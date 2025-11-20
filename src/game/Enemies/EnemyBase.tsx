@@ -167,24 +167,25 @@ export function useEnemyFSM({
                   nearestIndex = index;
                 }
               });
-            patrolIndex.current = nearestIndex;
-            patrolTarget.current = new THREE.Vector3(...patrolPoints[nearestIndex]);
+              patrolIndex.current = nearestIndex;
+              patrolTarget.current = new THREE.Vector3(...patrolPoints[nearestIndex]);
+            } else {
+              newState = 'idle';
+            }
+            // Don't move when transitioning back to patrol
           } else {
-            newState = 'idle';
-          }
-          // Don't move when transitioning back to patrol
-        } else {
-          // Continue chasing - move toward player
-          const enemyPos = enemyRef.current.position;
-          const playerPos = new THREE.Vector3(...playerPosition);
-          // Project onto XZ plane (no vertical movement)
-          const direction = playerPos.clone().sub(enemyPos);
-          direction.y = 0; // Lock Y movement
-          const distance = direction.length();
-          if (distance > 0.01) { // Avoid division by zero
-            direction.normalize();
-            const movement = direction.multiplyScalar(moveSpeed * delta);
-            enemyRef.current.position.add(movement);
+            // Continue chasing - move toward player
+            const enemyPos = enemyRef.current.position;
+            const playerPos = new THREE.Vector3(...playerPosition);
+            // Project onto XZ plane (no vertical movement)
+            const direction = playerPos.clone().sub(enemyPos);
+            direction.y = 0; // Lock Y movement
+            const distance = direction.length();
+            if (distance > 0.01) { // Avoid division by zero
+              direction.normalize();
+              const movement = direction.multiplyScalar(moveSpeed * delta);
+              enemyRef.current.position.add(movement);
+            }
           }
         }
         break;
