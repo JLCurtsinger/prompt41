@@ -1,5 +1,6 @@
 import { GameScene } from './game/GameScene'
 import { HUD } from './game/ui/HUD'
+import { EnemyHealthHUD } from './game/ui/EnemyHealthHUD'
 import { ScreenHitEffect } from './game/Effects/ScreenHitEffect'
 import { DeathOverlay } from './game/ui/DeathOverlay'
 import { HostLog } from './game/ui/HostLog'
@@ -16,6 +17,7 @@ function App() {
     <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden' }}>
       <GameScene />
       <HUD />
+      <EnemyHealthHUD />
       <ScreenHitEffect />
       <ScanlineOverlay />
       <ScreenGlitch />

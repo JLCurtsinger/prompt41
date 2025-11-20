@@ -111,6 +111,9 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
       getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
       takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
       isDead: () => isDead, // isDead is a boolean value from useEnemyFSM
+      getHealth: () => getHealth(), // Get current health
+      getMaxHealth: () => maxHealth, // Get max health
+      getEnemyName: () => 'Crawler', // Enemy name for HUD
     };
     
     registerEnemy(enemyId, instance);
@@ -118,7 +121,7 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
     return () => {
       unregisterEnemy(enemyId);
     };
-  }, [enemyId, isDead]);
+  }, [enemyId, isDead, getHealth, maxHealth]);
 
   // Track state changes for logging
   useEffect(() => {
@@ -147,6 +150,9 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
       getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
       takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
       isDead: () => isDead, // Fresh closure every frame ensures current value
+      getHealth: () => getHealth(), // Get current health
+      getMaxHealth: () => maxHealth, // Get max health
+      getEnemyName: () => 'Crawler', // Enemy name for HUD
     };
     registerEnemy(enemyId, instance);
     

@@ -9,6 +9,9 @@ export interface EnemyInstance {
   getPosition: () => THREE.Vector3; // Use getter function to get current position
   takeDamage: (amount: number) => void;
   isDead: () => boolean;
+  getHealth?: () => number; // Optional getter for current health
+  getMaxHealth?: () => number; // Optional getter for max health
+  getEnemyName?: () => string; // Optional getter for enemy name/type
 }
 
 const enemies = new Map<string, EnemyInstance>();

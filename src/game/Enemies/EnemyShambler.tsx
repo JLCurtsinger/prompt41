@@ -156,6 +156,9 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
       takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
       isDead: () => isDead, // isDead is a boolean value from useEnemyFSM
+      getHealth: () => getHealth(), // Get current health
+      getMaxHealth: () => maxHealth, // Get max health
+      getEnemyName: () => 'Shambler', // Enemy name for HUD
     };
     
     registerEnemy(enemyId, instance);
@@ -163,11 +166,10 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     return () => {
       unregisterEnemy(enemyId);
     };
-  }, [enemyId, isDead]);
+  }, [enemyId, isDead, getHealth, maxHealth]);
 
-  // Handle attack wind-up and damage, plus fallback movement for chase state
-  // NOTE: Movement during chase/patrol is primarily handled by the base FSM (EnemyBase.tsx)
-  // This hook handles attack logic and provides fallback movement to ensure Shambler moves
+  // Handle attack wind-up and damage
+  // NOTE: Movement during chase/patrol is handled by the base FSM (EnemyBase.tsx)
   useFrame((_state, delta) => {
     if (!enemyRef.current || !isActivated) return;
     
@@ -183,6 +185,9 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
       takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
       isDead: () => isDead, // Fresh closure every frame ensures current value
+      getHealth: () => getHealth(), // Get current health
+      getMaxHealth: () => maxHealth, // Get max health
+      getEnemyName: () => 'Shambler', // Enemy name for HUD
     };
     registerEnemy(enemyId, instance);
     
@@ -201,23 +206,9 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       }
     }
 
-    // Fallback movement in chase state (ensures movement even if base FSM has issues)
-    if (currentState === 'chase') {
-      const enemyPos = enemyRef.current.position;
-      const playerPos = new THREE.Vector3(...playerPosition);
-      
-      // Calculate direction to player (XZ plane only, no vertical movement)
-      const direction = playerPos.clone().sub(enemyPos);
-      direction.y = 0; // Lock Y movement
-      const distance = direction.length();
-      
-      if (distance > 0.01) { // Avoid division by zero and don't move if already very close
-        direction.normalize();
-        
-        // Apply movement: frame-rate independent
-        const movement = direction.multiplyScalar(moveSpeed * delta);
-        enemyRef.current.position.add(movement);
-      }
+    // Log state changes for debugging
+    if (prevStateRef.current !== currentState) {
+      console.log('[Shambler]', enemyId, 'state ->', currentState);
     }
 
     // Handle attack wind-up delay and damage
@@ -233,12 +224,14 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       
       if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME && !hasLoggedAttack.current) {
         hasLoggedAttack.current = true;
+        console.log('[Shambler] HEAVY ATTACK');
       }
       
       // Apply damage when wind-up completes and cooldown allows
       if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME && attackCooldownRef.current <= 0) {
         applyDamageToPlayer(ATTACK_DAMAGE, 'Shambler');
         attackCooldownRef.current = ATTACK_COOLDOWN;
+        console.log('[Shambler] Applied damage:', ATTACK_DAMAGE);
       }
     }
 

@@ -170,6 +170,12 @@ interface GameState {
   // Zone 2 -> Zone 3 door unlock flag
   hasZone2DoorUnlocked: boolean;
   
+  // Current target enemy for HUD display
+  currentTargetEnemyId: string | null;
+  currentTargetEnemyName: string | null;
+  currentTargetEnemyHealth: number | null;
+  currentTargetEnemyMaxHealth: number | null;
+  
   // Actions
   setPlayerHealth: (health: number) => void;
   setIsSwinging: (swinging: boolean) => void;
@@ -218,6 +224,9 @@ interface GameState {
   
   // Zone 2 door unlock action
   unlockZone2Door: () => void;
+  
+  // Target enemy actions
+  setCurrentTargetEnemy: (enemyId: string | null, enemyName: string | null, health: number | null, maxHealth: number | null) => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -291,6 +300,12 @@ export const useGameState = create<GameState>((set, get) => ({
   
   // Zone 2 door unlock initial state
   hasZone2DoorUnlocked: false,
+  
+  // Current target enemy initial state
+  currentTargetEnemyId: null,
+  currentTargetEnemyName: null,
+  currentTargetEnemyHealth: null,
+  currentTargetEnemyMaxHealth: null,
   
   // Actions
   setPlayerHealth: (health) => set({ playerHealth: health }),
@@ -374,6 +389,11 @@ export const useGameState = create<GameState>((set, get) => ({
       },
       // Reset Zone 2 door unlock
       hasZone2DoorUnlocked: false,
+      // Reset target enemy
+      currentTargetEnemyId: null,
+      currentTargetEnemyName: null,
+      currentTargetEnemyHealth: null,
+      currentTargetEnemyMaxHealth: null,
     });
     // Clear cooldowns
     hostLineCooldowns.clear();
@@ -626,6 +646,16 @@ export const useGameState = create<GameState>((set, get) => ({
   unlockZone2Door: () => {
     set({ hasZone2DoorUnlocked: true });
     console.log('Zone 2 -> Zone 3 door unlocked');
+  },
+  
+  // Target enemy actions
+  setCurrentTargetEnemy: (enemyId, enemyName, health, maxHealth) => {
+    set({
+      currentTargetEnemyId: enemyId,
+      currentTargetEnemyName: enemyName,
+      currentTargetEnemyHealth: health,
+      currentTargetEnemyMaxHealth: maxHealth,
+    });
   },
 }));
 

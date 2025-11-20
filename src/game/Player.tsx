@@ -32,7 +32,7 @@ import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState } from '../state/gameState';
 import { PLAYER_SPAWN_POSITION } from './LevelLayout';
-import { getEnemiesInRange } from './Enemies/enemyRegistry';
+import { getEnemiesInRange, getAllEnemies } from './Enemies/enemyRegistry';
 import * as THREE from 'three';
 
 interface PlayerProps {
@@ -99,6 +99,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const prevMouseButtonState = useRef<boolean>(false);
   const enterKeyPressed = useRef<boolean>(false);
   const prevEnterState = useRef<boolean>(false);
+  const hasHitThisSwing = useRef<boolean>(false); // Track if we've already hit an enemy this swing
   
   // Track previous states for console logging
   const prevSprintState = useRef(false);
@@ -308,40 +309,16 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     // Note: We check canAttack for cooldown, but allow animation even if isSwinging is true
     // (the animation should play every time an attack input is detected)
     if ((mouseJustPressed || enterJustPressed) && canAttack) {
-      // Perform attack
+      // Start attack
       lastAttackTime.current = currentTime;
       setIsSwinging(true);
       setTimeout(() => setIsSwinging(false), 300);
       
       console.log('[Combat] Baton swing started');
-      console.log('[Combat] Baton swing start: setting batonIsSwingingRef = true');
       
       batonIsSwingingRef.current = true;
       batonSwingTimeRef.current = 0;
-      
-      // Get player position - use the same position source as enemies use
-      // Enemies use playerPosition prop which comes from PlayerPositionTracker
-      // which reads playerRef.current.position, so we use the same
-      const playerPos = playerRef.current.position.clone();
-      
-      // Find enemies in range
-      const enemiesInRange = getEnemiesInRange(playerPos, BATON_RANGE);
-      
-      // Log enemy check results
-      const distances = enemiesInRange.map(enemy => {
-        const enemyPos = enemy.getPosition();
-        return playerPos.distanceTo(enemyPos);
-      });
-      console.log('[Combat] Enemies in range check:', { count: enemiesInRange.length, distances });
-      
-      if (enemiesInRange.length > 0) {
-        // Hit the first enemy in range
-        const hitEnemy = enemiesInRange[0];
-        const enemyPos = hitEnemy.getPosition();
-        const distance = playerPos.distanceTo(enemyPos);
-        hitEnemy.takeDamage(BATON_DAMAGE);
-        console.log('[Combat] Baton hit enemy', hitEnemy.id, 'at distance', distance.toFixed(2), 'for', BATON_DAMAGE, 'damage');
-      }
+      hasHitThisSwing.current = false; // Reset hit flag for new swing
       
       // Update enter key tracking
       if (enterJustPressed) {
@@ -615,9 +592,78 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       return;
     }
 
-    // TEMP DEBUG: always spin the baton so we can verify the ref works
-    // If this does not visibly spin the baton, then the ref is wrong or another piece of code is overriding the rotation
-    baton.rotation.y += 2 * delta;
+    // Continuous target tracking for HUD (find nearest enemy within combat range)
+    const { setCurrentTargetEnemy } = useGameState.getState();
+    const playerPos = playerRef.current.position.clone();
+    const COMBAT_RANGE = 5; // Range for showing enemy health in HUD (larger than melee range)
+    const allEnemies = getAllEnemies();
+    
+    if (allEnemies.length > 0) {
+      // Find nearest enemy within combat range
+      let nearestEnemy = null;
+      let nearestDistance = COMBAT_RANGE;
+      
+      for (const enemy of allEnemies) {
+        const enemyPos = enemy.getPosition();
+        const distance = playerPos.distanceTo(enemyPos);
+        
+        if (distance <= COMBAT_RANGE && distance < nearestDistance) {
+          nearestEnemy = enemy;
+          nearestDistance = distance;
+        }
+      }
+      
+      // Update target for HUD
+      if (nearestEnemy && nearestEnemy.getHealth && nearestEnemy.getMaxHealth && nearestEnemy.getEnemyName) {
+        const health = nearestEnemy.getHealth();
+        const maxHealth = nearestEnemy.getMaxHealth();
+        const enemyName = nearestEnemy.getEnemyName();
+        setCurrentTargetEnemy(nearestEnemy.id, enemyName, health, maxHealth);
+      } else if (!nearestEnemy) {
+        // No enemies in range, clear target
+        setCurrentTargetEnemy(null, null, null, null);
+      }
+    } else {
+      // No enemies at all, clear target
+      setCurrentTargetEnemy(null, null, null, null);
+    }
+    
+    // Melee hit detection during swing window
+    // Check for hits during the active swing period (not just at the start)
+    if (batonIsSwingingRef.current && !hasHitThisSwing.current) {
+      // Find enemies in range during swing
+      const enemiesInRange = getEnemiesInRange(playerPos, BATON_RANGE);
+      
+      if (enemiesInRange.length > 0) {
+        // Hit the first enemy in range
+        const hitEnemy = enemiesInRange[0];
+        const enemyPos = hitEnemy.getPosition();
+        const distance = playerPos.distanceTo(enemyPos);
+        
+        // Get enemy info before applying damage
+        const enemyName = hitEnemy.getEnemyName ? hitEnemy.getEnemyName() : 
+                         (hitEnemy.id.includes('crawler') ? 'Crawler' : 
+                          hitEnemy.id.includes('shambler') ? 'Shambler' : 'Enemy');
+        const maxHealth = hitEnemy.getMaxHealth ? hitEnemy.getMaxHealth() : 100;
+        
+        // Apply damage
+        hitEnemy.takeDamage(BATON_DAMAGE);
+        hasHitThisSwing.current = true; // Prevent multiple hits in one swing
+        
+        // Update target enemy for HUD (get health after damage)
+        const currentHealth = hitEnemy.getHealth ? hitEnemy.getHealth() : (maxHealth - BATON_DAMAGE);
+        setCurrentTargetEnemy(hitEnemy.id, enemyName, currentHealth, maxHealth);
+        
+        console.log('[Combat] Melee hit detected:', {
+          enemyId: hitEnemy.id,
+          enemyName,
+          distance: distance.toFixed(2),
+          damage: BATON_DAMAGE,
+          healthAfter: currentHealth,
+          maxHealth
+        });
+      }
+    }
 
     // Debug: Log baton animation state every frame during swing
     if (batonIsSwingingRef.current) {
@@ -648,6 +694,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         // End of swing: reset and stop
         batonIsSwingingRef.current = false;
         batonSwingTimeRef.current = 0;
+        hasHitThisSwing.current = false; // Reset hit flag for next swing
         baton.rotation.z = idleZ;
         console.log('[Combat] Baton swing ended');
       }
