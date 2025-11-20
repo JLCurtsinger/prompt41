@@ -468,18 +468,21 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     player.position.z += deltaMovement.z;
     
     // Rotate player to face movement direction
+    // Keep player upright (no roll or pitch)
+    player.rotation.x = 0;
+    player.rotation.z = 0;
+    
     if (velocity.current.length() > 0.1) {
       const targetRotation = Math.atan2(velocity.current.x, velocity.current.z);
-      const currentRotation = Math.atan2(
-        2 * player.quaternion.x * player.quaternion.w - 2 * player.quaternion.y * player.quaternion.z,
-        1 - 2 * player.quaternion.x * player.quaternion.x - 2 * player.quaternion.z * player.quaternion.z
-      );
+      const currentRotation = player.rotation.y;
       
       let rotationDiff = targetRotation - currentRotation;
+      // Normalize to [-PI, PI]
       if (rotationDiff > Math.PI) rotationDiff -= 2 * Math.PI;
       if (rotationDiff < -Math.PI) rotationDiff += 2 * Math.PI;
       
-      player.rotation.y += rotationDiff * ROTATION_SPEED * delta;
+      // Smoothly interpolate to target rotation
+      player.rotation.y = currentRotation + rotationDiff * ROTATION_SPEED * delta;
     }
     
     // Update camera rotation from mouse input
@@ -575,25 +578,33 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     // Update baton swing animation
     if (isSwingingAnim.current && batonRef.current) {
       swingTimer.current += delta;
-      const t = Math.min(swingTimer.current / SWING_DURATION, 1);
+      const normalized = Math.min(swingTimer.current / SWING_DURATION, 1);
       
-      // Simple ease-out curve
-      const eased = 1 - (1 - t) * (1 - t);
+      // Ease-out curve
+      const eased = 1 - (1 - normalized) * (1 - normalized);
       
-      // Start angle and end angle (local rotation around Y axis)
-      const startAngle = -SWING_ARC / 2;
-      const endAngle = SWING_ARC / 2;
+      // Swing arc: rotate around Z axis for vertical swing (most visible from third person)
+      // Start at -SWING_ARC/2, end at SWING_ARC/2
+      const swingAngle = -SWING_ARC / 2 + eased * SWING_ARC;
       
-      const angle = startAngle + (endAngle - startAngle) * eased;
+      // Apply swing rotation on Z axis (add to initial rotation.z which is -0.3)
+      // The baton's initial rotation is [0, 0, -0.3], so we add the swing to z
+      batonRef.current.rotation.z = -0.3 + swingAngle;
       
-      batonRef.current.rotation.y = angle;
+      // Debug log once per swing (only at start)
+      if (swingTimer.current < delta * 2) {
+        console.log('[Combat] Baton anim angle:', swingAngle.toFixed(3));
+      }
       
-      if (t >= 1) {
-        // Reset
+      if (normalized >= 1) {
+        // Reset to rest pose (preserve initial -0.3 rotation)
         isSwingingAnim.current = false;
         swingTimer.current = 0;
-        batonRef.current.rotation.y = 0;
+        batonRef.current.rotation.z = -0.3;
       }
+    } else if (batonRef.current) {
+      // Ensure baton is at rest pose when not swinging
+      batonRef.current.rotation.z = -0.3;
     }
   });
   
