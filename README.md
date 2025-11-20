@@ -12,7 +12,7 @@ _A suspense-driven, AI-assisted survival puzzle game built with Three.js and mod
 Overview
 --------
 
-**Prompt 41** is a first-person sci-fi horror experience built for ASU’s AME 294: Creating Games with Artificial Intelligence. You enter a sealed research facility where something has gone very wrong, and every hallway feels like it’s hiding a secret you weren’t meant to uncover. Stealth, environmental puzzles, and AI-driven systems shape how the world reacts to you, creating tension that never fully lets up.
+**Prompt 41** is a first-person sci-fi horror experience built for ASU’s **AME 294: Creating Games with Artificial Intelligence.** You enter a sealed research facility where something has gone very wrong, and every hallway feels like it’s hiding a secret you weren’t meant to uncover. Stealth, environmental puzzles, and AI-driven systems shape how the world reacts to you, creating tension that never fully lets up.
 
 This project investigates how artificial intelligence can elevate horror—using dynamic behaviors, adaptive threats, and shifting environments to keep players guessing. Every sound, every flicker of light, and every unexplained response from the system might be the clue that saves you… or the warning you didn’t hear in time.
 
