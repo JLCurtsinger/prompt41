@@ -45,22 +45,32 @@ const animationByState: Record<ShamblerState, string> = {
 };
 
 // Animation hook for future GLTF integration
+// NOTE: This handles GLTF-based visual animations (walk/run/idle/attack clips), NOT movement logic.
+// Movement is handled separately by the state machine and useFrame hooks.
 function playShamblerAnimation(
   state: ShamblerState,
   previousState: ShamblerState | null,
-  // TODO: Add GLTF mixer parameter once Colton's model is imported
+  // TODO: Load GLTF model and create AnimationMixer:
+  // 1. Import shamblerZombot.glb using useGLTF or GLTFLoader
+  // 2. Create mixer: const mixer = new THREE.AnimationMixer(model)
+  // 3. Store clips: const clips = animations.map(clip => clip.name)
+  // 4. Pass mixer to this function
   // mixer: THREE.AnimationMixer | null
 ) {
   if (state === previousState) return; // Only play animation on state change
   
   const animationName = animationByState[state];
-  // TODO: Wire this into GLTF animation mixer once model is imported
+  // TODO: Once GLTF model and mixer are available, wire this up:
   // if (mixer) {
-  //   const action = mixer.clipAction(animationName);
-  //   action.reset().play();
+  //   const clips = mixer.getRoot().animations || [];
+  //   const clip = clips.find(c => c.name === animationName);
+  //   if (clip) {
+  //     const action = mixer.clipAction(clip);
+  //     action.reset().fadeIn(0.2).play();
+  //   }
   // }
   
-  // Debug log for now
+  // Debug log for now (only logs on actual state changes, not every frame)
   if (previousState !== null) {
     console.log(`Shambler animation: ${animationByState[previousState]} -> ${animationName}`);
   }
@@ -107,7 +117,7 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     }
   };
 
-  const { enemyRef, currentState } = useEnemyFSM({
+  const { enemyRef, getCurrentState } = useEnemyFSM({
     initialPosition,
     patrolPoints: isActivated ? patrolPoints : [], // Only patrol if activated
     detectionRadius,
@@ -118,11 +128,39 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     onStateChange: handleStateChange,
   });
 
-  // Handle attack wind-up and damage
-  // NOTE: Movement during chase/patrol is handled by the base FSM (EnemyBase.tsx)
-  // This hook only handles attack logic - no position changes that would conflict with base movement
+  // Handle attack wind-up and damage, plus fallback movement for chase state
+  // NOTE: Movement during chase/patrol is primarily handled by the base FSM (EnemyBase.tsx)
+  // This hook handles attack logic and provides fallback movement to ensure Shambler moves
   useFrame((_state, delta) => {
     if (!enemyRef.current || !isActivated) return;
+
+    // Get current state (reactive)
+    const currentState = getCurrentState();
+
+    // Fallback movement in chase state (ensures movement even if base FSM has issues)
+    if (currentState === 'chase') {
+      const enemyPos = enemyRef.current.position;
+      const playerPos = new THREE.Vector3(...playerPosition);
+      
+      // Calculate direction to player (XZ plane only, no vertical movement)
+      const direction = playerPos.clone().sub(enemyPos);
+      direction.y = 0; // Lock Y movement
+      const distance = direction.length();
+      
+      if (distance > 0.01) { // Avoid division by zero and don't move if already very close
+        direction.normalize();
+        
+        // Apply movement: frame-rate independent
+        const movement = direction.multiplyScalar(moveSpeed * delta);
+        enemyRef.current.position.add(movement);
+        
+        // Debug: log position occasionally (only every ~60 frames to avoid spam)
+        // Commented out by default, uncomment for debugging if needed
+        // if (Math.random() < 0.016) { // ~1% chance per frame = ~once per second at 60fps
+        //   console.log('Shambler chase pos:', enemyRef.current.position.toArray());
+        // }
+      }
+    }
 
     // Handle attack wind-up delay and damage
     // IMPORTANT: In attack state, enemy should NOT move (base FSM already stops movement)
@@ -158,12 +196,12 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   // Track state changes (prevStateRef is now updated in useFrame)
   // This effect is kept for compatibility but state tracking is done in useFrame
 
-  // Set initial position
+  // Set initial position via ref (NOT via position prop - that would override manual updates)
   useEffect(() => {
     if (enemyRef.current) {
       enemyRef.current.position.set(...initialPosition);
     }
-  }, [initialPosition, enemyRef]);
+  }, [initialPosition]);
 
   // Log spawn when activated
   useEffect(() => {
@@ -173,7 +211,7 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   }, [isActivated]);
 
   return (
-    <group ref={enemyRef} position={initialPosition}>
+    <group ref={enemyRef}>
       {/* TODO: Replace this placeholder with shamblerZombot.glb model */}
       {/* Taller, humanoid silhouette for Shambler Zombot */}
       
