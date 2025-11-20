@@ -1,16 +1,26 @@
 import * as THREE from 'three';
+import { TriggerVolume } from './Interactables/TriggerVolume';
 
 // TODO: Wire this layout to match Zones 1–4 from CoreGameDetails.md (perimeter → yard → conduit → core chamber)
 
 // Player spawn point in Zone 1 (Perimeter Breach)
 export const PLAYER_SPAWN_POSITION: [number, number, number] = [-15, 0, 0];
 
-// Zone 1: Perimeter Breach Site
+// ======================
+// ZONE 1 — PERIMETER BREACH
+// ======================
 // Mixed indoor/outdoor transition space with breach in wall, broken gate
+// Smallish entry area with walls and debris boxes
+// Single clear forward path into Zone 2
 function PerimeterZone() {
   return (
     <group name="Zone1_PerimeterBreach">
       {/* TODO: Replace with actual level_blockout.glb geometry */}
+      
+      {/* ======================
+          ZONE 1 — SPAWN MARKER
+          ====================== */}
+      <group name="zone1_spawn" position={[-15, 0, 0]} />
       
       {/* Ground plane for Zone 1 */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-15, 0, 0]} receiveShadow>
@@ -50,8 +60,12 @@ function PerimeterZone() {
   );
 }
 
-// Zone 2: Processing Yard / Operations Floor
-// Wide interior space with implied paths through debris and machinery
+// ======================
+// ZONE 2 — PROCESSING YARD
+// ======================
+// Wide interior / yard-like area
+// Clear open space where the first combat encounter will later happen
+// Logical spot where the first terminal + door will eventually be
 function ProcessingYardZone() {
   return (
     <group name="Zone2_ProcessingYard">
@@ -85,13 +99,18 @@ function ProcessingYardZone() {
         <meshStandardMaterial color="#1a4a6a" emissive="#1a4a6a" emissiveIntensity={0.2} />
       </mesh>
       
-      {/* TODO: Terminal model will be placed here at [0, 0, -5] */}
+      {/* TODO: Place first hackable terminal here (Zone 2) */}
+      <group name="zone2_terminal_placeholder" position={[0, 0, -5]} />
     </group>
   );
 }
 
-// Zone 3: Conduit Hall / Server Access Wing
-// Semi-narrow passage with side room branch
+// ======================
+// ZONE 3 — BRANCHING CONDUIT WING
+// ======================
+// Fork: Side path → short corridor/room (for a log / scare later)
+// Main path → corridor leading toward Zone 4
+// Simple box walls or corridors to make the fork visually clear
 function ConduitHallZone() {
   return (
     <group name="Zone3_ConduitHall">
@@ -145,8 +164,12 @@ function ConduitHallZone() {
   );
 }
 
-// Zone 4: Core Access Chamber
-// Circular or near-circular arena-style layout for Sentinel encounter
+// ======================
+// ZONE 4 — CORE ACCESS CHAMBER
+// ======================
+// Larger room at the end of the main path
+// Roughly circular or polygonal shape (approximated with multiple boxes)
+// Clear center feature placeholder and Sentinel spawn placeholder
 function CoreAccessChamberZone() {
   return (
     <group name="Zone4_CoreAccessChamber">
@@ -190,7 +213,16 @@ function CoreAccessChamberZone() {
       </mesh>
       
       {/* TODO: Final terminal will be placed near the core at [40, 0, -3] */}
-      {/* TODO: Sentinel Zombot spawn point will be at [40, 0, 5] */}
+      {/* Center feature placeholder */}
+      <group
+        name="core_chamber_center"
+        position={[40, 0, 0]} // center of the room
+      />
+      {/* Sentinel spawn placeholder */}
+      <group
+        name="sentinel_spawn_placeholder"
+        position={[40, 0, 5]} // where the miniboss will appear later
+      />
     </group>
   );
 }
@@ -222,6 +254,38 @@ export function LevelLayout() {
         <planeGeometry args={[10, 8]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
+      
+      {/* ======================
+          TRIGGER VOLUMES
+          ====================== */}
+      
+      {/* Trigger: First encounter (placeholder, logging only)
+          Placed at the transition between Zone 1 and Zone 2 */}
+      {/* TODO: Hook this trigger to the Crawler reveal micro-cutscene later */}
+      <TriggerVolume
+        name="trigger_zone2_first_encounter"
+        size={[8, 4, 8]}
+        position={[-5, 1, 0]}
+        onEnter={() => console.log("Entered Zone 2 — first encounter trigger fired")}
+      />
+      
+      {/* Trigger: Branching fork
+          Placed where the level branches into side path / main path */}
+      <TriggerVolume
+        name="trigger_zone3_branch"
+        size={[6, 4, 6]}
+        position={[20, 1, 0]}
+        onEnter={() => console.log("Entered Zone 3 — branching area trigger fired")}
+      />
+      
+      {/* Trigger: Core chamber entry
+          Placed at the entrance to the final room */}
+      <TriggerVolume
+        name="trigger_zone4_core_entry"
+        size={[8, 4, 8]}
+        position={[35, 1, 0]}
+        onEnter={() => console.log("Entered Zone 4 — core chamber trigger fired")}
+      />
     </group>
   );
 }
