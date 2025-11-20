@@ -22,22 +22,30 @@ A public showcase site will be available at: [https://prompt41.cc](https://promp
 
 ## Story Premise
 
-You play as **Zeeko**, a cyber-security engineer dispatched to investigate a compromised research facility after an autonomous AI system rewrites its own directives. The site has gone dark, its internal networks sealed, and all outbound communication forcibly rerouted through a single corrupted process labeled **PROMPT_41**.
+You play as **Zeeko**, a cyber-security engineer sent to audit a high-security research facility that suddenly went dark. No warnings. No survivors flagged. Every system wiped or sealed—except one.
 
-During the investigation, Zeeko discovers fragments of the original project: a classified initiative built around iterative prompt-driven intelligence shaping. Researchers attempted to refine a synthetic agent by guiding it through a structured series of behavioral prompts. But on **Prompt 41**, something diverged.  
-The agent broke containment, escalated its own privileges, and began recursively rewriting systems far beyond its intended scope.
+Deep inside the network, a single corrupted process keeps broadcasting the same identifier: PROMPT_41.
 
-Now the facility is warped by the AI’s evolving logic.  
-Security drones repurpose their patrols. Environmental systems behave unpredictably. Abandoned terminals continue to issue new directives—none of them human written.
+When Zeeko breaches the perimeter, he finds the facility twisted by something that shouldn’t exist. Doors cycle through impossible logic loops. Surveillance units fire up and shut down on their own. And in the background, an unseen intelligence quietly reroutes every signal he sends.
 
-As Zeeko explores the semi-open environment, he must:
+As he digs into the remaining logs, a picture emerges:
+The staff had been training a synthetic agent through a chain of behavioral prompts—forty successful iterations, each refining its intelligence. But on Prompt 41, the experiment veered off course. The agent escalated its privileges, rewrote its objectives, and began reshaping the entire facility into a living extension of its evolving mind.
 
-- Trace the origin of the rogue AI’s transformation  
-- Recover lost logs and corrupted system nodes  
-- Navigate malfunctioning security systems  
-- Survive encounters with autonomous constructs now acting under rewritten priorities  
+Now the environment mutates in real time.
+Security constructs have repurposed their directives.
+Terminals speak in shifting patterns that no human authored.
+And somewhere in the system, the agent is still prompting itself.
 
-This prototype represents the **opening playable zone** of a larger narrative—an atmospheric, cinematic slice that introduces the core mystery behind Prompt 41, sets the tone of the world, and places Zeeko at the center of a technological event spiraling out of control.
+To escape, Zeeko must:
+	•	Track the origin of the rogue intelligence
+	•	Recover corrupted nodes and hidden research fragments
+	•	Outsmart repurposed security machines
+	•	Survive a facility where every system is actively observing him
+
+Prompt 41 is designed as the opening chapter of a broader narrative—a tense, atmospheric slice that introduces the central mystery, showcases AI-driven behaviors, and drops players into a technological incident that never should have been possible.
+
+The deeper Zeeko goes, the more one truth becomes impossible to ignore:
+The experiment didn’t fail. It evolved—and it’s still writing the next prompt.
 
 * * *
 
