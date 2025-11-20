@@ -96,6 +96,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   // Attack state
   const lastAttackTime = useRef<number>(0);
   const mouseButtonPressed = useRef<boolean>(false);
+  const prevMouseButtonState = useRef<boolean>(false);
   const enterKeyPressed = useRef<boolean>(false);
   const prevEnterState = useRef<boolean>(false);
   
@@ -199,10 +200,6 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     const handleMouseDown = (e: MouseEvent) => {
       if (e.button === 0) {
         mouseButtonPressed.current = true;
-        if (!isSwinging) {
-          setIsSwinging(true);
-          setTimeout(() => setIsSwinging(false), 300);
-        }
       }
     };
     
@@ -281,6 +278,15 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       return;
     }
     
+    // ============================================================
+    // ATTACK FLOW TRACE:
+    // 1. Input system: Enter key sets keys.current.enter (line 142-144)
+    //    OR Mouse0 sets mouseButtonPressed.current (line 201)
+    // 2. Attack handler: Checks input + cooldown + !isSwinging (line 293)
+    // 3. Sets batonIsSwingingRef.current = true (line 301)
+    // 4. useFrame animation block reads batonIsSwingingRef and rotates batonRef (line 580+)
+    // ============================================================
+    
     // Handle Shock Baton attack
     const currentTime = state.clock.elapsedTime;
     const canAttack = currentTime - lastAttackTime.current >= ATTACK_COOLDOWN;
@@ -289,14 +295,26 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     enterKeyPressed.current = keys.current.enter;
     const enterJustPressed = enterKeyPressed.current && !prevEnterState.current;
     
+    // Update mouse button state - detect "just pressed" like Enter key
+    const mouseJustPressed = mouseButtonPressed.current && !prevMouseButtonState.current;
+    
+    // Debug: Log attack input detection
+    const attackInputDetected = mouseJustPressed || enterJustPressed;
+    if (attackInputDetected) {
+      console.log('[Combat] Attack input detected, mouseJustPressed =', mouseJustPressed, 'enterJustPressed =', enterJustPressed, 'canAttack =', canAttack, 'isSwinging =', isSwinging);
+    }
+    
     // Perform attack on mouse click or Enter key press
-    if ((mouseButtonPressed.current || enterJustPressed) && canAttack && !isSwinging) {
+    // Note: We check canAttack for cooldown, but allow animation even if isSwinging is true
+    // (the animation should play every time an attack input is detected)
+    if ((mouseJustPressed || enterJustPressed) && canAttack) {
       // Perform attack
       lastAttackTime.current = currentTime;
       setIsSwinging(true);
       setTimeout(() => setIsSwinging(false), 300);
       
       console.log('[Combat] Baton swing started');
+      console.log('[Combat] Baton swing start: setting batonIsSwingingRef = true');
       
       batonIsSwingingRef.current = true;
       batonSwingTimeRef.current = 0;
@@ -329,11 +347,21 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       if (enterJustPressed) {
         prevEnterState.current = true;
       }
+      
+      // Update mouse button tracking
+      if (mouseJustPressed) {
+        prevMouseButtonState.current = true;
+      }
     }
     
     // Reset enter key tracking when key is released
     if (!enterKeyPressed.current) {
       prevEnterState.current = false;
+    }
+    
+    // Reset mouse button tracking when button is released
+    if (!mouseButtonPressed.current) {
+      prevMouseButtonState.current = false;
     }
     
     const player = playerRef.current;
@@ -572,37 +600,61 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     
     camera.lookAt(lookAtTarget);
     
+    // ============================================================
+    // BATON ANIMATION BLOCK:
+    // This is where useFrame reads batonIsSwingingRef and rotates batonRef
+    // ============================================================
+    
     // Baton swing animation (visible, simple, timer-based)
     const SWING_DURATION = 0.25; // seconds
     const SWING_ARC = Math.PI / 1.2; // big arc so it's clearly visible
 
-    if (batonRef.current) {
-      if (batonIsSwingingRef.current) {
-        batonSwingTimeRef.current += delta;
-        const t = Math.min(batonSwingTimeRef.current / SWING_DURATION, 1);
+    const baton = batonRef.current;
+    if (!baton) {
+      // Baton ref not attached - this should never happen if JSX is correct
+      return;
+    }
 
-        // Ease-out curve: fast at the start, slows at the end
-        const eased = 1 - (1 - t) * (1 - t);
+    // TEMP DEBUG: always spin the baton so we can verify the ref works
+    // If this does not visibly spin the baton, then the ref is wrong or another piece of code is overriding the rotation
+    baton.rotation.y += 2 * delta;
 
-        // Rotate from -SWING_ARC/2 to +SWING_ARC/2 around z, offset by idle rotation
-        const angle = -SWING_ARC / 2 + eased * SWING_ARC;
-        const idleZ = -0.3; // keep the same idle angle you used before
+    // Debug: Log baton animation state every frame during swing
+    if (batonIsSwingingRef.current) {
+      console.log(
+        '[Combat] Baton anim tick:',
+        'isSwinging =', batonIsSwingingRef.current,
+        'time =', batonSwingTimeRef.current.toFixed(3)
+      );
+    }
 
-        batonRef.current.rotation.set(0, 0, idleZ + angle);
-        
-        console.log('[Combat] Baton anim angle:', angle.toFixed(2));
+    if (batonIsSwingingRef.current) {
+      batonSwingTimeRef.current += delta;
+      const t = Math.min(batonSwingTimeRef.current / SWING_DURATION, 1);
 
-        if (t >= 1) {
-          // End of swing: reset and stop
-          batonIsSwingingRef.current = false;
-          batonSwingTimeRef.current = 0;
-          batonRef.current.rotation.set(0, 0, idleZ);
-        }
-      } else {
-        // Not swinging: ensure baton is in idle pose
-        const idleZ = -0.3;
-        batonRef.current.rotation.set(0, 0, idleZ);
+      // Ease-out curve: fast at the start, slows at the end
+      const eased = 1 - (1 - t) * (1 - t);
+
+      // Rotate from -SWING_ARC/2 to +SWING_ARC/2 around z, offset by idle rotation
+      const angle = -SWING_ARC / 2 + eased * SWING_ARC;
+      const idleZ = -0.3; // keep the same idle angle you used before
+
+      // Apply swing rotation on Z axis (preserve debug Y rotation above)
+      baton.rotation.z = idleZ + angle;
+      
+      console.log('[Combat] Baton anim angle:', angle.toFixed(2));
+
+      if (t >= 1) {
+        // End of swing: reset and stop
+        batonIsSwingingRef.current = false;
+        batonSwingTimeRef.current = 0;
+        baton.rotation.z = idleZ;
+        console.log('[Combat] Baton swing ended');
       }
+    } else {
+      // Not swinging: ensure baton is in idle pose
+      const idleZ = -0.3;
+      baton.rotation.z = idleZ;
     }
   });
   
