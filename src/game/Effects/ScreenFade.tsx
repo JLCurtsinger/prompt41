@@ -27,6 +27,7 @@
 
 import { useEffect, useState } from 'react';
 import { useGameState } from '../../state/gameState';
+import hostLinesData from '../../assets/data/hostLines.json';
 
 export function ScreenFade() {
   const hasCompletedLevel = useGameState((state) => state.hasCompletedLevel);
@@ -36,6 +37,7 @@ export function ScreenFade() {
   const [opacity, setOpacity] = useState(0);
   const [showText, setShowText] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [endLine, setEndLine] = useState<string | null>(null);
   
   const FADE_DURATION = 2; // seconds
   
@@ -44,6 +46,13 @@ export function ScreenFade() {
     if (hasCompletedLevel) {
       if (startTime === null) {
         setStartTime(performance.now() / 1000);
+        // End sequence - show end line
+        const hostLines = hostLinesData as Record<string, any>;
+        if (hostLines.end && Array.isArray(hostLines.end) && hostLines.end.length > 0) {
+          const randomLine = hostLines.end[Math.floor(Math.random() * hostLines.end.length)];
+          console.log(randomLine);
+          setEndLine(randomLine);
+        }
       }
       
       // Update opacity continuously
@@ -70,6 +79,7 @@ export function ScreenFade() {
       setOpacity(0);
       setShowText(false);
       setStartTime(null);
+      setEndLine(null);
     }
   }, [hasCompletedLevel, startTime]);
   
@@ -122,6 +132,20 @@ export function ScreenFade() {
           >
             PROCESS SUSPENDED
           </div>
+          {endLine && (
+            <div
+              style={{
+                color: '#ffffff',
+                fontFamily: 'monospace',
+                fontSize: '18px',
+                textAlign: 'center',
+                marginTop: '20px',
+                opacity: 0.8,
+              }}
+            >
+              {endLine}
+            </div>
+          )}
         </>
       )}
     </div>

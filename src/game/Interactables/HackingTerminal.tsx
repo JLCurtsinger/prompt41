@@ -16,6 +16,7 @@ import { useRef, useEffect, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState, getTerminalState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
+import { InteractionPrompt } from '../ui/InteractionPrompt';
 import * as THREE from 'three';
 
 interface HackingTerminalProps {
@@ -112,7 +113,6 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
           if (terminalState === 'locked') {
             // Check if terminal is locked by Sentinel
             if (isLockedBySentinel) {
-              console.log('[Hacking] Terminal locked until Sentinel is defeated');
               return;
             }
             
@@ -195,6 +195,10 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
           />
         </mesh>
       </group>
+      <InteractionPrompt 
+        visible={isInRange && terminalState === 'locked' && !isLockedBySentinel} 
+        position={[position[0], position[1] + 2, position[2]]}
+      />
     </>
   );
 }

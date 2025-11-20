@@ -5,6 +5,7 @@ import { TriggerVolume } from './Interactables/TriggerVolume';
 import { HackingTerminal } from './Interactables/HackingTerminal';
 import { Door } from './Interactables/Door';
 import { EnemySentinel } from './Enemies/EnemySentinel';
+import hostLinesData from '../assets/data/hostLines.json';
 
 // TODO: Wire this layout to match Zones 1–4 from CoreGameDetails.md (perimeter → yard → conduit → core chamber)
 
@@ -289,14 +290,14 @@ export function LevelLayout() {
           TRIGGER VOLUMES
           ====================== */}
       
-      {/* Trigger: First encounter (placeholder, logging only)
+      {/* Trigger: First encounter (placeholder)
           Placed at the transition between Zone 1 and Zone 2 */}
       {/* TODO: Hook this trigger to the Crawler reveal micro-cutscene later */}
       <TriggerVolume
         name="trigger_zone2_first_encounter"
         size={[8, 4, 8]}
         position={[-5, 1, 0]}
-        onEnter={() => console.log("Entered Zone 2 — first encounter trigger fired")}
+        onEnter={() => {}}
       />
       
       {/* Trigger: Branching fork
@@ -305,7 +306,7 @@ export function LevelLayout() {
         name="trigger_zone3_branch"
         size={[6, 4, 6]}
         position={[20, 1, 0]}
-        onEnter={() => console.log("Entered Zone 3 — branching area trigger fired")}
+        onEnter={() => {}}
       />
       
       {/* Trigger: Core chamber entry
@@ -315,8 +316,13 @@ export function LevelLayout() {
         size={[8, 4, 8]}
         position={[35, 1, 0]}
         onEnter={() => {
-          console.log("[Core] Entered core chamber");
           setIsSentinelActivated(true);
+          // Core entry - show coreEntry line
+          const hostLines = hostLinesData as Record<string, any>;
+          if (hostLines.coreEntry && Array.isArray(hostLines.coreEntry) && hostLines.coreEntry.length > 0) {
+            const randomLine = hostLines.coreEntry[Math.floor(Math.random() * hostLines.coreEntry.length)];
+            console.log(randomLine);
+          }
         }}
       />
       

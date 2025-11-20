@@ -45,9 +45,9 @@ const animationByState: Record<ShamblerState, string> = {
   attack: 'Attack',
 };
 
-// Animation hook for future GLTF integration
-// NOTE: This handles GLTF-based visual animations (walk/run/idle/attack clips), NOT movement logic.
-// Movement is handled separately by the state machine and useFrame hooks.
+  // Animation hook for future GLTF integration
+  // NOTE: This handles GLTF-based visual animations (walk/run/idle/attack clips), NOT movement logic.
+  // Movement is handled separately by the state machine and useFrame hooks.
 function playShamblerAnimation(
   state: ShamblerState,
   previousState: ShamblerState | null,
@@ -70,11 +70,6 @@ function playShamblerAnimation(
   //     action.reset().fadeIn(0.2).play();
   //   }
   // }
-  
-  // Debug log for now (only logs on actual state changes, not every frame)
-  if (previousState !== null) {
-    console.log(`Shambler animation: ${animationByState[previousState]} -> ${animationName}`);
-  }
 }
 
 export function EnemyShambler({ initialPosition, playerPosition, isActivated }: EnemyShamblerProps) {
@@ -104,9 +99,6 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   const ATTACK_DAMAGE = 15; // Heavy damage
 
   const handleStateChange = (newState: EnemyState, oldState: EnemyState) => {
-    // Log state transitions
-    console.log(`Shambler: state -> ${newState}`);
-    
     // Play animation on state change
     playShamblerAnimation(newState as ShamblerState, oldState as ShamblerState | null);
     
@@ -222,12 +214,6 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
         // Apply movement: frame-rate independent
         const movement = direction.multiplyScalar(moveSpeed * delta);
         enemyRef.current.position.add(movement);
-        
-        // Debug: log position occasionally (only every ~60 frames to avoid spam)
-        // Commented out by default, uncomment for debugging if needed
-        // if (Math.random() < 0.016) { // ~1% chance per frame = ~once per second at 60fps
-        //   console.log('Shambler chase pos:', enemyRef.current.position.toArray());
-        // }
       }
     }
 
@@ -243,7 +229,6 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       }
       
       if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME && !hasLoggedAttack.current) {
-        console.log('Shambler: HEAVY ATTACK');
         hasLoggedAttack.current = true;
         
         // Apply damage if cooldown is ready
@@ -273,12 +258,6 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     }
   }, [initialPosition]);
 
-  // Log spawn when activated
-  useEffect(() => {
-    if (isActivated) {
-      console.log('Shambler: spawned');
-    }
-  }, [isActivated]);
 
   return (
     <group ref={enemyRef}>

@@ -287,10 +287,6 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         // Hit the first enemy in range
         const hitEnemy = enemiesInRange[0];
         hitEnemy.takeDamage(BATON_DAMAGE);
-        console.log(`[Combat] Baton hit enemy for ${BATON_DAMAGE}`);
-      } else {
-        // Swing but no target
-        console.log('[Combat] Baton swing - no target in range');
       }
     }
     
@@ -308,11 +304,9 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         // Start jump
         verticalVelocity.current = JUMP_VELOCITY;
         isGrounded.current = false;
-        console.log('Jump: START');
         prevSpaceState.current = true; // Mark as processed
       } else {
         // Blocked - not grounded
-        console.log('Jump: BLOCKED (not grounded)');
         prevSpaceState.current = true; // Mark as processed to prevent spam
       }
     }
@@ -382,14 +376,9 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       targetSpeed = isSprinting ? SPRINT_SPEED : WALK_SPEED;
     }
     
-    // Log sprint state changes (only when actually moving)
+    // Update sprint state tracking
     if (isMoving) {
       if (isSprinting !== prevSprintState.current) {
-        if (isSprinting) {
-          console.log('Sprint: ON');
-        } else {
-          console.log('Sprint: OFF');
-        }
         prevSprintState.current = isSprinting;
       }
     } else {
@@ -446,57 +435,33 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     // Horizontal rotation (Left/Right arrows)
     if (keys.current.arrowLeft) {
       cameraRotation.current.horizontal -= HORIZONTAL_ARROW_SPEED * delta;
-      if (!prevArrowLeftState.current) {
-        console.log('Camera: arrow horizontal start LEFT');
-        prevArrowLeftState.current = true;
-      }
+      prevArrowLeftState.current = true;
     } else {
-      if (prevArrowLeftState.current) {
-        console.log('Camera: arrow horizontal stop');
-        prevArrowLeftState.current = false;
-      }
+      prevArrowLeftState.current = false;
     }
     
     if (keys.current.arrowRight) {
       cameraRotation.current.horizontal += HORIZONTAL_ARROW_SPEED * delta;
-      if (!prevArrowRightState.current) {
-        console.log('Camera: arrow horizontal start RIGHT');
-        prevArrowRightState.current = true;
-      }
+      prevArrowRightState.current = true;
     } else {
-      if (prevArrowRightState.current) {
-        console.log('Camera: arrow horizontal stop');
-        prevArrowRightState.current = false;
-      }
+      prevArrowRightState.current = false;
     }
     
     // Vertical rotation (Up/Down arrows)
     if (keys.current.arrowUp) {
       cameraRotation.current.vertical += VERTICAL_ARROW_SPEED * delta;
       cameraRotation.current.vertical = Math.max(-VERTICAL_LIMIT, Math.min(VERTICAL_LIMIT, cameraRotation.current.vertical));
-      if (!prevArrowUpState.current) {
-        console.log('Camera: arrow vertical start UP');
-        prevArrowUpState.current = true;
-      }
+      prevArrowUpState.current = true;
     } else {
-      if (prevArrowUpState.current) {
-        console.log('Camera: arrow vertical stop');
-        prevArrowUpState.current = false;
-      }
+      prevArrowUpState.current = false;
     }
     
     if (keys.current.arrowDown) {
       cameraRotation.current.vertical -= VERTICAL_ARROW_SPEED * delta;
       cameraRotation.current.vertical = Math.max(-VERTICAL_LIMIT, Math.min(VERTICAL_LIMIT, cameraRotation.current.vertical));
-      if (!prevArrowDownState.current) {
-        console.log('Camera: arrow vertical start DOWN');
-        prevArrowDownState.current = true;
-      }
+      prevArrowDownState.current = true;
     } else {
-      if (prevArrowDownState.current) {
-        console.log('Camera: arrow vertical stop');
-        prevArrowDownState.current = false;
-      }
+      prevArrowDownState.current = false;
     }
     
     // Calculate camera position based on rotation around player

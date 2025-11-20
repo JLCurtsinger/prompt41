@@ -20,6 +20,19 @@
   },
   "pickup": {
     "energyCell": ["Another resource for your collection.", "Power accumulates. Purpose remains unclear."]
-  }
+  },
+  "firstHack": [
+    "ARCHIVE-9: INPUT RECEIVED. MODIFYING DIRECTIVE...",
+    "THE HOST: You interact with systems you do not understand.",
+    "ARCHIVE-9: PRIORITY QUEUE UPDATED."
+  ],
+  "coreEntry": [
+    "THE HOST: You continue to intrude.",
+    "ARCHIVE-9: ALERT — CORE ACCESS BREACH DETECTED."
+  ],
+  "end": [
+    "THE HOST: PROCESS SUSPENDED.",
+    "ARCHIVE-9: SYSTEM OVERRIDE COMPLETE."
+  ]
 }
 

@@ -8,6 +8,18 @@
     "title": "CORE OVERRIDE NODE",
     "options": ["Shutdown Core", "Purge Host Memory", "Reset Directives"],
     "successMessage": "CORE OVERRIDE COMPLETE. SYSTEM SHUTDOWN INITIATED."
-  }
+  },
+  "crawler": [
+    "CRAWLER/CORE/003: PURSUE MOTION.",
+    "CRAWLER/CORE/007: INTERRUPT THREATS."
+  ],
+  "shambler": [
+    "SHAMBLER/CORE/014: DIRECTIVES CORRUPTED.",
+    "SHAMBLER/CORE/019: FALLBACK — ADVANCE TOWARD NOISE."
+  ],
+  "sentinel": [
+    "SENTINEL/PRIME/007: AUTHORITY REVOKED.",
+    "SENTINEL/PRIME/011: INITIATING FULL DEFENSE PROTOCOL."
+  ]
 }
 

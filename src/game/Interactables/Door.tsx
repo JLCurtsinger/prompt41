@@ -12,6 +12,7 @@
 import { useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState, getDoorState } from '../../state/gameState';
+import { InteractionPrompt } from '../ui/InteractionPrompt';
 import * as THREE from 'three';
 
 interface DoorProps {
@@ -165,6 +166,10 @@ export function Door({ id, position }: DoorProps) {
           <meshBasicMaterial visible={false} />
         </mesh>
       )}
+      <InteractionPrompt 
+        visible={isInRange && !isOpen} 
+        position={[position[0], position[1] + 2.5, position[2]]}
+      />
     </group>
   );
 }

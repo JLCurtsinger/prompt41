@@ -19,6 +19,7 @@ import { useEffect, useCallback, useMemo } from 'react';
 import { useGameState, getTerminalState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
 import directivesData from '../../assets/data/directives.json';
+import hostLinesData from '../../assets/data/hostLines.json';
 
 interface DirectiveData {
   title: string;
@@ -128,6 +129,12 @@ export function HackingOverlay() {
           unlockZone2Door();
           try {
             playHostLine('hacking:success');
+            // First hack - show firstHack line
+            const hostLines = hostLinesData as Record<string, any>;
+            if (hostLines.firstHack && Array.isArray(hostLines.firstHack) && hostLines.firstHack.length > 0) {
+              const randomLine = hostLines.firstHack[Math.floor(Math.random() * hostLines.firstHack.length)];
+              console.log(randomLine);
+            }
           } catch (error) {
             console.warn(`HackingOverlay: Error playing success host line:`, error);
           }
@@ -161,8 +168,7 @@ export function HackingOverlay() {
         // Switch to success mode, which will auto-close after timeout
         setHackingOverlayMode('success');
       } else {
-        // Failure: close overlay and log failure
-        console.log('[Hacking] Terminal hack failed');
+        // Failure: close overlay
         closeHackingOverlay();
       }
     } catch (error) {

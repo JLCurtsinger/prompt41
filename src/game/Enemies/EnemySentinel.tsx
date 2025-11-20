@@ -67,9 +67,6 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
   const ATTACK_DAMAGE = 40; // High damage
   
   const handleStateChange = (newState: EnemyState, oldState: EnemyState) => {
-    // Log state transitions
-    console.log(`Sentinel: state -> ${newState}`);
-    
     // Reset attack timer when entering attack state
     if (newState === 'attack') {
       attackWindUpTimer.current = 0;
@@ -131,7 +128,6 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
   // Handle death
   useEffect(() => {
     if (isDead) {
-      console.log('[Sentinel] defeated');
       setSentinelDefeated(true);
     }
   }, [isDead, setSentinelDefeated]);
@@ -180,7 +176,6 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
       }
       
       if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME && !hasLoggedAttack.current) {
-        console.log('Sentinel: ATTACK');
         hasLoggedAttack.current = true;
         
         // Apply damage if cooldown is ready
@@ -207,12 +202,6 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
     }
   }, [initialPosition]);
   
-  // Log spawn when activated
-  useEffect(() => {
-    if (isActivated) {
-      console.log('Sentinel: spawned');
-    }
-  }, [isActivated]);
   
   // Don't render if dead
   if (isDead) {

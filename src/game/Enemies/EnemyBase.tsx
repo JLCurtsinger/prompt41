@@ -173,8 +173,6 @@ export function useEnemyFSM({
             direction.normalize();
             const movement = direction.multiplyScalar(moveSpeed * delta);
             enemyRef.current.position.add(movement);
-            // Debug: uncomment to verify chase movement is running (spammy, only use for testing)
-            // console.log('EnemyBase chase movement:', enemyRef.current.position.toArray());
           }
         }
         break;

@@ -53,13 +53,7 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
   const patrolSpeed = 3; // Slightly slower patrol speed
 
   const handleStateChange = (newState: EnemyState, _oldState: EnemyState) => {
-    // Log state transitions
-    console.log(`Crawler: state -> ${newState}`);
-    
-    // Log attack action
-    if (newState === 'attack') {
-      console.log('Crawler: ATTACK');
-    }
+    // State change handler (no logging needed)
   };
 
   const enemyId = `crawler-${initialPosition.join('-')}`;
