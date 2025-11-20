@@ -158,6 +158,13 @@ interface GameState {
     sourceId?: string | null;
   };
   
+  // Hacking overlay state
+  hackingOverlay: {
+    isOpen: boolean;
+    terminalId: string | null;
+    mode: 'normal' | 'locked' | 'alreadyHacked' | 'success';
+  };
+  
   // Actions
   setPlayerHealth: (health: number) => void;
   setIsSwinging: (swinging: boolean) => void;
@@ -196,6 +203,11 @@ interface GameState {
   // Interaction prompt actions
   showInteractionPrompt: (payload: { message: string; actionKey?: string; sourceId?: string }) => void;
   clearInteractionPrompt: (sourceId?: string) => void;
+  
+  // Hacking overlay actions
+  openHackingOverlay: (terminalId: string, mode: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
+  setHackingOverlayMode: (mode: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
+  closeHackingOverlay: () => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -256,6 +268,13 @@ export const useGameState = create<GameState>((set, get) => ({
     message: null,
     actionKey: null,
     sourceId: null,
+  },
+  
+  // Hacking overlay initial state
+  hackingOverlay: {
+    isOpen: false,
+    terminalId: null,
+    mode: 'normal',
   },
   
   // Actions
@@ -329,6 +348,12 @@ export const useGameState = create<GameState>((set, get) => ({
         message: null,
         actionKey: null,
         sourceId: null,
+      },
+      // Close hacking overlay
+      hackingOverlay: {
+        isOpen: false,
+        terminalId: null,
+        mode: 'normal',
       }
     });
     // Clear cooldowns
@@ -531,6 +556,38 @@ export const useGameState = create<GameState>((set, get) => ({
           sourceId: null,
         },
       };
+    });
+  },
+  
+  // Hacking overlay actions
+  openHackingOverlay: (terminalId, mode) => {
+    set({
+      hackingOverlay: {
+        isOpen: true,
+        terminalId,
+        mode,
+      },
+      isPaused: true,
+    });
+  },
+  
+  setHackingOverlayMode: (mode) => {
+    set((state) => ({
+      hackingOverlay: {
+        ...state.hackingOverlay,
+        mode,
+      },
+    }));
+  },
+  
+  closeHackingOverlay: () => {
+    set({
+      hackingOverlay: {
+        isOpen: false,
+        terminalId: null,
+        mode: 'normal',
+      },
+      isPaused: false,
     });
   },
 }));

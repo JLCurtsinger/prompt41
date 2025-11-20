@@ -8,6 +8,7 @@ import { ScreenGlitch } from './game/Effects/ScreenGlitch'
 import { ScanlineOverlay } from './game/Effects/ScanlineOverlay'
 import { AudioSettings } from './game/ui/AudioSettings'
 import { InteractionPromptOverlay } from './game/ui/InteractionPromptOverlay'
+import { HackingOverlay } from './game/ui/HackingOverlay'
 import './App.css'
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
       <ZoneLabel />
       <InteractionPromptOverlay />
       <AudioSettings />
+      <HackingOverlay />
       <DeathOverlay />
     </div>
   )
