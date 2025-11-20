@@ -58,6 +58,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   
   // Jump constants
   const JUMP_VELOCITY = 5; // m/s upward
+  const DOUBLE_JUMP_VELOCITY = 5; // m/s upward (same as normal jump)
   const GRAVITY = -9.8; // m/s² (negative = downward)
   const GROUND_Y = 0; // Ground level
   
@@ -80,6 +81,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     shift: false,
     space: false,
     r: false,
+    enter: false,
     arrowUp: false,
     arrowDown: false,
     arrowLeft: false,
@@ -89,6 +91,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   // Attack state
   const lastAttackTime = useRef<number>(0);
   const mouseButtonPressed = useRef<boolean>(false);
+  const enterKeyPressed = useRef<boolean>(false);
+  const prevEnterState = useRef<boolean>(false);
   
   // Track previous states for console logging
   const prevSprintState = useRef(false);
@@ -97,6 +101,9 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const prevArrowRightState = useRef(false);
   const prevArrowUpState = useRef(false);
   const prevArrowDownState = useRef(false);
+  
+  // Double jump state
+  const hasDoubleJumped = useRef(false);
   
   // Mouse look state
   const mouseDelta = useRef({ x: 0, y: 0 });
@@ -125,6 +132,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       }
       if (key === 'r') {
         keys.current.r = true;
+      }
+      // Enter/Return key for melee attack
+      if (e.key === 'Enter' || e.code === 'Enter') {
+        keys.current.enter = true;
       }
       // Arrow keys (use exact key names, not lowercase)
       if (e.key === 'ArrowUp') {
@@ -160,6 +171,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       }
       if (key === 'r') {
         keys.current.r = false;
+      }
+      // Enter/Return key for melee attack
+      if (e.key === 'Enter' || e.code === 'Enter') {
+        keys.current.enter = false;
       }
       // Arrow keys (use exact key names, not lowercase)
       if (e.key === 'ArrowUp') {
@@ -265,7 +280,12 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     const currentTime = state.clock.elapsedTime;
     const canAttack = currentTime - lastAttackTime.current >= ATTACK_COOLDOWN;
     
-    if (mouseButtonPressed.current && canAttack && !isSwinging) {
+    // Update enter key state
+    enterKeyPressed.current = keys.current.enter;
+    const enterJustPressed = enterKeyPressed.current && !prevEnterState.current;
+    
+    // Perform attack on mouse click or Enter key press
+    if ((mouseButtonPressed.current || enterJustPressed) && canAttack && !isSwinging) {
       // Perform attack
       lastAttackTime.current = currentTime;
       setIsSwinging(true);
@@ -288,6 +308,16 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         const hitEnemy = enemiesInRange[0];
         hitEnemy.takeDamage(BATON_DAMAGE);
       }
+      
+      // Update enter key tracking
+      if (enterJustPressed) {
+        prevEnterState.current = true;
+      }
+    }
+    
+    // Reset enter key tracking when key is released
+    if (!enterKeyPressed.current) {
+      prevEnterState.current = false;
     }
     
     const player = playerRef.current;
@@ -296,17 +326,28 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     const currentY = player.position.y;
     isGrounded.current = currentY <= GROUND_Y + 0.01; // Small threshold for floating point precision
     
+    // Reset double jump when grounded
+    if (isGrounded.current) {
+      hasDoubleJumped.current = false;
+    }
+    
     // Handle jump input (check on key press, not hold)
     const spaceJustPressed = keys.current.space && !prevSpaceState.current;
     
     if (spaceJustPressed) {
       if (isGrounded.current) {
-        // Start jump
+        // Normal jump from ground
         verticalVelocity.current = JUMP_VELOCITY;
         isGrounded.current = false;
+        hasDoubleJumped.current = false;
+        prevSpaceState.current = true; // Mark as processed
+      } else if (!hasDoubleJumped.current) {
+        // Double jump in air
+        verticalVelocity.current = DOUBLE_JUMP_VELOCITY;
+        hasDoubleJumped.current = true;
         prevSpaceState.current = true; // Mark as processed
       } else {
-        // Blocked - not grounded
+        // Already used double jump - blocked
         prevSpaceState.current = true; // Mark as processed to prevent spam
       }
     }

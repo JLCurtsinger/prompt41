@@ -177,12 +177,12 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
       
       if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME && !hasLoggedAttack.current) {
         hasLoggedAttack.current = true;
-        
-        // Apply damage if cooldown is ready
-        if (attackCooldownRef.current <= 0) {
-          applyDamageToPlayer(ATTACK_DAMAGE, 'Sentinel');
-          attackCooldownRef.current = ATTACK_COOLDOWN;
-        }
+      }
+      
+      // Apply damage when wind-up completes and cooldown allows
+      if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME && attackCooldownRef.current <= 0) {
+        applyDamageToPlayer(ATTACK_DAMAGE, 'Sentinel');
+        attackCooldownRef.current = ATTACK_COOLDOWN;
       }
     }
     
