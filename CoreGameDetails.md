@@ -11,7 +11,7 @@ Tone: cinematic sci-fi with light psychological horror about AI agents interpret
 **Working title:** *Rogue Directives* (placeholder)
 
 ### Premise
-You play as **Alex Raines**, a cyber-security engineer investigating a compromised research site where autonomous AI agents have rewritten their directives. Although this prototype includes only a single level, it is designed to feel like the **opening playable zone** of a much larger world — with light branching, optional exploration, and a cinematic third-person presentation.
+You play as **Zeeko Raines**, a cyber-security engineer investigating a compromised research site where autonomous AI agents have rewritten their directives. Although this prototype includes only a single level, it is designed to feel like the **opening playable zone** of a much larger world — with light branching, optional exploration, and a cinematic third-person presentation.
 
 ### Core Fantasy
 - Explore a semi-open environment in third-person.  
@@ -160,14 +160,14 @@ The level is organized as a **hub-and-spoke** environment: a broad central area 
 
 ## 6. Characters & Enemies (Final Merged Version)
 
-This section reflects the actual characters, enemies, and props created for the project while keeping the original narrative setup (Alex Raines, rogue AI, etc.).
+This section reflects the actual characters, enemies, and props created for the project while keeping the original narrative setup (Zeeko Raines, rogue AI, etc.).
 
 ---
 
-### Player — Alex Raines (Hooded Operative, `mainChar.png`)
+### Player — Zeeko Raines (Hooded Operative, `mainChar.png`)
 
 - **Identity:**  
-  - Name: **Alex Raines**  
+  - Name: **Zeeko Raines**  
   - Role: Cyber-security engineer sent to investigate the rogue AI facility.  
 
 - **Appearance:**  
@@ -425,7 +425,7 @@ Stagger
 - Ranged enemy attack  
 - More complex hacking puzzles  
 - Screen glitch effect tied to player health or corruption  
-- Simple voice lines for Alex or the AIs  
+- Simple voice lines for Zeeko or the AIs  
 - Improved VFX (sparks, particle fog)  
 - More polished weapon animation or secondary attacks  
 
