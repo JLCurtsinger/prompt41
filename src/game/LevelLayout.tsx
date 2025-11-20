@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+// TODO: Wire this layout to match Zones 1–4 from CoreGameDetails.md (perimeter → yard → conduit → core chamber)
+
 // Player spawn point in Zone 1 (Perimeter Breach)
 export const PLAYER_SPAWN_POSITION: [number, number, number] = [-15, 0, 0];
 

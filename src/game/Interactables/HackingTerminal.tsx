@@ -25,6 +25,7 @@ interface HackingTerminalProps {
 
 
 export function HackingTerminal({ id, position }: HackingTerminalProps) {
+  // TODO: Hook this terminal to a real mini-game and gate a door per CoreGameDetails.md
   const terminalRef = useRef<THREE.Group>(null);
   const { scene } = useThree();
   const [isInRange, setIsInRange] = useState(false);

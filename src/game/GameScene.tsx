@@ -158,6 +158,7 @@ export function GameScene() {
         <PlayerPositionTracker onPositionUpdate={setPlayerPosition} />
         
         {/* Enemy: Crawler Zombot in Zone 2 (Processing Yard) */}
+        {/* TODO: This should be the first Crawler encounter from the design doc - add reveal micro-cutscene */}
         <EnemyCrawler 
           initialPosition={[0, 0, 0]} 
           playerPosition={playerPosition}
