@@ -1,3 +1,5 @@
+// NOTE: Currently unused. Do not re-enable until we design a non-buggy interaction prompt system.
+
 import { Html } from '@react-three/drei';
 
 interface InteractionPromptProps {
