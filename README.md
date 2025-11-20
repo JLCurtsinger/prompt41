@@ -1,5 +1,3 @@
- Prompt 41 – README
-
 Prompt 41
 =========
 
