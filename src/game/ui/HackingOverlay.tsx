@@ -15,7 +15,7 @@
 // 6. ESC Key:
 //    - Should close overlay and resume game
 
-import { useEffect } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useGameState, getTerminalState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
 import directivesData from '../../assets/data/directives.json';
@@ -27,6 +27,7 @@ interface DirectiveData {
 }
 
 export function HackingOverlay() {
+  // ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP
   const hackingOverlay = useGameState((state) => state.hackingOverlay);
   const isDead = useGameState((state) => state.isDead);
   const isShuttingDown = useGameState((state) => state.isShuttingDown);
@@ -39,73 +40,78 @@ export function HackingOverlay() {
   const playHostLine = useGameState((state) => state.playHostLine);
   const setHackingOverlayMode = useGameState((state) => state.setHackingOverlayMode);
 
-  // Don't render if not open, dead, or shutting down
-  if (!hackingOverlay.isOpen || isDead || isShuttingDown) {
-    return null;
-  }
+  // Extract values for easier use
+  const { isOpen, terminalId, mode } = hackingOverlay;
 
-  const terminalId = hackingOverlay.terminalId;
-  if (!terminalId) {
-    return null;
-  }
-
-  // Get directive data for this terminal with defensive checks
-  let directive: DirectiveData | undefined;
-  try {
-    if (!directivesData || typeof directivesData !== 'object') {
-      console.warn(`HackingOverlay: directivesData is invalid or missing`);
-    } else {
-      const directives = directivesData as Record<string, any>;
-      if (directives && typeof directives === 'object' && terminalId && directives[terminalId]) {
-        directive = directives[terminalId] as DirectiveData;
-      }
-    }
-  } catch (error) {
-    console.warn(`HackingOverlay: Error loading directive data:`, error);
-  }
-
-  // Safe fallbacks for all directive fields
-  const title = (directive && typeof directive === 'object' && typeof directive.title === 'string')
-    ? directive.title
-    : 'DIRECTIVE INTERFACE';
-
-  const options = (directive &&
-                   typeof directive === 'object' &&
-                   Array.isArray(directive.options) &&
-                   directive.options.length > 0)
-    ? directive.options
-    : ['Disable', 'Override', 'Convert'];
-
-  const successMessage = (directive &&
-                          typeof directive === 'object' &&
-                          typeof directive.successMessage === 'string')
-    ? directive.successMessage
-    : 'DIRECTIVE ACCEPTED.';
-
-  // Handle ESC key to close overlay
+  // Handle ESC key to close overlay - called unconditionally
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && hackingOverlay.isOpen) {
+    if (!isOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
         closeHackingOverlay();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [hackingOverlay.isOpen, closeHackingOverlay]);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, closeHackingOverlay]);
 
-  // Handle success mode auto-close
+  // Handle success mode auto-close - called unconditionally
   useEffect(() => {
-    if (hackingOverlay.mode === 'success') {
-      const timer = setTimeout(() => {
-        closeHackingOverlay();
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [hackingOverlay.mode, closeHackingOverlay]);
+    if (!isOpen || mode !== 'success') return;
 
-  // Handle directive option click
-  const handleDirectiveSelect = (_optionIndex: number) => {
+    const timer = window.setTimeout(() => {
+      closeHackingOverlay();
+    }, 2000);
+
+    return () => window.clearTimeout(timer);
+  }, [isOpen, mode, closeHackingOverlay]);
+
+  // Memoize directive data computation
+  const directiveData = useMemo(() => {
+    if (!terminalId) return null;
+
+    let directive: DirectiveData | undefined;
+    try {
+      if (!directivesData || typeof directivesData !== 'object') {
+        console.warn(`HackingOverlay: directivesData is invalid or missing`);
+      } else {
+        const directives = directivesData as Record<string, any>;
+        if (directives && typeof directives === 'object' && terminalId && directives[terminalId]) {
+          directive = directives[terminalId] as DirectiveData;
+        }
+      }
+    } catch (error) {
+      console.warn(`HackingOverlay: Error loading directive data:`, error);
+    }
+
+    // Safe fallbacks for all directive fields
+    const title = (directive && typeof directive === 'object' && typeof directive.title === 'string')
+      ? directive.title
+      : 'DIRECTIVE INTERFACE';
+
+    const options = (directive &&
+                     typeof directive === 'object' &&
+                     Array.isArray(directive.options) &&
+                     directive.options.length > 0)
+      ? directive.options
+      : ['Disable', 'Override', 'Convert'];
+
+    const successMessage = (directive &&
+                            typeof directive === 'object' &&
+                            typeof directive.successMessage === 'string')
+      ? directive.successMessage
+      : 'DIRECTIVE ACCEPTED.';
+
+    return { title, options, successMessage };
+  }, [terminalId]);
+
+  // Handle directive option click - useCallback for stable reference
+  const handleDirectiveSelect = useCallback((_optionIndex: number) => {
+    if (!isOpen || !terminalId) return;
+
     try {
       // For now, any button click counts as success
       setTerminalState(terminalId, 'hacked');
@@ -153,81 +159,60 @@ export function HackingOverlay() {
       // Ensure overlay closes even on error
       closeHackingOverlay();
     }
+  }, [isOpen, terminalId, setTerminalState, setDoorState, playHostLine, setIsShuttingDown, setHackingOverlayMode, closeHackingOverlay]);
+
+  // NOW AFTER ALL HOOKS, do conditional rendering
+  if (!isOpen || isDead || isShuttingDown) {
+    return null;
+  }
+
+  if (!terminalId) {
+    return null;
+  }
+
+  const { title, options, successMessage } = directiveData || {
+    title: 'DIRECTIVE INTERFACE',
+    options: ['Disable', 'Override', 'Convert'],
+    successMessage: 'DIRECTIVE ACCEPTED.'
   };
 
-  // Render based on mode
-  if (hackingOverlay.mode === 'locked') {
-    return (
+  // Derive body content based on mode (no hooks inside this logic)
+  let body: React.ReactNode;
+
+  if (mode === 'locked') {
+    body = (
       <div
         style={{
-          position: 'fixed',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1900,
-          pointerEvents: 'none',
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          color: '#ff0000',
+          padding: '15px 30px',
+          borderRadius: '5px',
+          fontFamily: 'monospace',
+          fontSize: '20px',
+          border: '2px solid #ff0000',
         }}
       >
-        <div
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
-            color: '#ff0000',
-            padding: '15px 30px',
-            borderRadius: '5px',
-            fontFamily: 'monospace',
-            fontSize: '20px',
-            border: '2px solid #ff0000',
-          }}
-        >
-          ACCESS LOCKED – THREAT ACTIVE
-        </div>
+        ACCESS LOCKED – THREAT ACTIVE
       </div>
     );
-  }
-
-  if (hackingOverlay.mode === 'alreadyHacked') {
-    return (
+  } else if (mode === 'alreadyHacked') {
+    body = (
       <div
         style={{
-          position: 'fixed',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1900,
-          pointerEvents: 'none',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          color: '#00ff00',
+          padding: '10px 20px',
+          borderRadius: '5px',
+          fontFamily: 'monospace',
+          fontSize: '18px',
         }}
       >
-        <div
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            color: '#00ff00',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            fontFamily: 'monospace',
-            fontSize: '18px',
-          }}
-        >
-          Terminal already hacked
-        </div>
+        Terminal already hacked
       </div>
     );
-  }
-
-  if (hackingOverlay.mode === 'success') {
-    return (
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1900,
-          pointerEvents: 'none',
-        }}
-      >
+  } else if (mode === 'success') {
+    body = (
+      <>
         <div
           style={{
             backgroundColor: 'rgba(0, 0, 0, 0.9)',
@@ -239,38 +224,23 @@ export function HackingOverlay() {
             animation: 'fadeOut 2s ease-out forwards',
           }}
         >
-          {typeof successMessage === 'string' ? successMessage : 'DIRECTIVE ACCEPTED.'}
-          <style>{`
-            @keyframes fadeOut {
-              0% { opacity: 1; }
-              70% { opacity: 1; }
-              100% { opacity: 0; }
-            }
-          `}</style>
+          {successMessage}
         </div>
-      </div>
+        <style>{`
+          @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; }
+          }
+        `}</style>
+      </>
     );
-  }
-
-  // Normal mode - main hacking interface
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1900,
-        color: '#00ff00',
-        fontFamily: 'monospace',
-        fontSize: '24px',
-      }}
-    >
+  } else {
+    // Normal mode - main hacking interface
+    body = (
       <div
         style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
           maxWidth: '640px',
           width: '100%',
           display: 'flex',
@@ -278,10 +248,13 @@ export function HackingOverlay() {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '20px',
+          color: '#00ff00',
+          fontFamily: 'monospace',
+          fontSize: '24px',
         }}
       >
         <div style={{ marginBottom: '40px', fontSize: '32px', fontWeight: 'bold' }}>
-          {typeof title === 'string' ? title : 'DIRECTIVE INTERFACE'}
+          {title}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '400px', width: '100%' }}>
@@ -331,6 +304,24 @@ export function HackingOverlay() {
           Press ESC to cancel
         </div>
       </div>
+    );
+  }
+
+  // Render overlay container with body
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: isOpen ? 'auto' : 'none',
+        zIndex: 1900,
+        backgroundColor: mode === 'normal' ? 'rgba(0, 0, 0, 0.9)' : 'transparent',
+      }}
+    >
+      {body}
     </div>
   );
 }
