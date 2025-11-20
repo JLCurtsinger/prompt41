@@ -51,10 +51,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding } = useGameState();
   
   // Baton swing animation state
-  const swingTimer = useRef(0);
-  const isSwingingAnim = useRef(false);
-  const SWING_DURATION = 0.25; // seconds
-  const SWING_ARC = Math.PI / 3; // 60 degrees
+  const batonSwingTimeRef = useRef(0);
+  const batonIsSwingingRef = useRef(false);
   
   // Movement constants
   const WALK_SPEED = 3;
@@ -298,11 +296,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       setIsSwinging(true);
       setTimeout(() => setIsSwinging(false), 300);
       
-      // Always start swing animation, regardless of whether enemies are hit
-      isSwingingAnim.current = true;
-      swingTimer.current = 0;
-      
       console.log('[Combat] Baton swing started');
+      
+      batonIsSwingingRef.current = true;
+      batonSwingTimeRef.current = 0;
       
       // Get player position - use the same position source as enemies use
       // Enemies use playerPosition prop which comes from PlayerPositionTracker
@@ -575,36 +572,37 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     
     camera.lookAt(lookAtTarget);
     
-    // Update baton swing animation
-    if (isSwingingAnim.current && batonRef.current) {
-      swingTimer.current += delta;
-      const normalized = Math.min(swingTimer.current / SWING_DURATION, 1);
-      
-      // Ease-out curve
-      const eased = 1 - (1 - normalized) * (1 - normalized);
-      
-      // Swing arc: rotate around Z axis for vertical swing (most visible from third person)
-      // Start at -SWING_ARC/2, end at SWING_ARC/2
-      const swingAngle = -SWING_ARC / 2 + eased * SWING_ARC;
-      
-      // Apply swing rotation on Z axis (add to initial rotation.z which is -0.3)
-      // The baton's initial rotation is [0, 0, -0.3], so we add the swing to z
-      batonRef.current.rotation.z = -0.3 + swingAngle;
-      
-      // Debug log once per swing (only at start)
-      if (swingTimer.current < delta * 2) {
-        console.log('[Combat] Baton anim angle:', swingAngle.toFixed(3));
+    // Baton swing animation (visible, simple, timer-based)
+    const SWING_DURATION = 0.25; // seconds
+    const SWING_ARC = Math.PI / 1.2; // big arc so it's clearly visible
+
+    if (batonRef.current) {
+      if (batonIsSwingingRef.current) {
+        batonSwingTimeRef.current += delta;
+        const t = Math.min(batonSwingTimeRef.current / SWING_DURATION, 1);
+
+        // Ease-out curve: fast at the start, slows at the end
+        const eased = 1 - (1 - t) * (1 - t);
+
+        // Rotate from -SWING_ARC/2 to +SWING_ARC/2 around z, offset by idle rotation
+        const angle = -SWING_ARC / 2 + eased * SWING_ARC;
+        const idleZ = -0.3; // keep the same idle angle you used before
+
+        batonRef.current.rotation.set(0, 0, idleZ + angle);
+        
+        console.log('[Combat] Baton anim angle:', angle.toFixed(2));
+
+        if (t >= 1) {
+          // End of swing: reset and stop
+          batonIsSwingingRef.current = false;
+          batonSwingTimeRef.current = 0;
+          batonRef.current.rotation.set(0, 0, idleZ);
+        }
+      } else {
+        // Not swinging: ensure baton is in idle pose
+        const idleZ = -0.3;
+        batonRef.current.rotation.set(0, 0, idleZ);
       }
-      
-      if (normalized >= 1) {
-        // Reset to rest pose (preserve initial -0.3 rotation)
-        isSwingingAnim.current = false;
-        swingTimer.current = 0;
-        batonRef.current.rotation.z = -0.3;
-      }
-    } else if (batonRef.current) {
-      // Ensure baton is at rest pose when not swinging
-      batonRef.current.rotation.z = -0.3;
     }
   });
   
