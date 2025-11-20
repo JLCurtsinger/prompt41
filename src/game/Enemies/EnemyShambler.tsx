@@ -34,13 +34,43 @@ interface EnemyShamblerProps {
   isActivated: boolean;
 }
 
+// Animation mapping for future GLTF animations
+type ShamblerState = 'idle' | 'patrol' | 'chase' | 'attack';
+
+const animationByState: Record<ShamblerState, string> = {
+  idle: 'Idle',
+  patrol: 'Walk',
+  chase: 'Run',
+  attack: 'Attack',
+};
+
+// Animation hook for future GLTF integration
+function playShamblerAnimation(
+  state: ShamblerState,
+  previousState: ShamblerState | null,
+  // TODO: Add GLTF mixer parameter once Colton's model is imported
+  // mixer: THREE.AnimationMixer | null
+) {
+  if (state === previousState) return; // Only play animation on state change
+  
+  const animationName = animationByState[state];
+  // TODO: Wire this into GLTF animation mixer once model is imported
+  // if (mixer) {
+  //   const action = mixer.clipAction(animationName);
+  //   action.reset().play();
+  // }
+  
+  // Debug log for now
+  if (previousState !== null) {
+    console.log(`Shambler animation: ${animationByState[previousState]} -> ${animationName}`);
+  }
+}
+
 export function EnemyShambler({ initialPosition, playerPosition, isActivated }: EnemyShamblerProps) {
   const prevStateRef = useRef<EnemyState | null>(null);
   const attackWindUpTimer = useRef<number>(0);
   const hasLoggedAttack = useRef<boolean>(false);
   const attackCooldownRef = useRef<number>(0);
-  const lastJerkyUpdate = useRef<number>(0);
-  const jerkyDirection = useRef(new THREE.Vector3(0, 0, 0));
 
   // Zone 3 (Conduit Hall) patrol points - hardcoded positions
   // These form a small patrol in the corridor area
@@ -58,11 +88,13 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   const ATTACK_WIND_UP_TIME = 0.5; // seconds before attack logs
   const ATTACK_COOLDOWN = 1.2; // seconds between attacks
   const ATTACK_DAMAGE = 15; // Heavy damage
-  const JERKY_UPDATE_INTERVAL = 0.15; // seconds between jerky direction changes
 
-  const handleStateChange = (newState: EnemyState, _oldState: EnemyState) => {
+  const handleStateChange = (newState: EnemyState, oldState: EnemyState) => {
     // Log state transitions
     console.log(`Shambler: state -> ${newState}`);
+    
+    // Play animation on state change
+    playShamblerAnimation(newState as ShamblerState, oldState as ShamblerState | null);
     
     // Reset attack timer when entering attack state
     if (newState === 'attack') {
@@ -86,51 +118,14 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     onStateChange: handleStateChange,
   });
 
-  // Apply jerky movement and handle attack wind-up
+  // Handle attack wind-up and damage
+  // NOTE: Movement during chase/patrol is handled by the base FSM (EnemyBase.tsx)
+  // This hook only handles attack logic - no position changes that would conflict with base movement
   useFrame((_state, delta) => {
     if (!enemyRef.current || !isActivated) return;
 
-    const now = performance.now() / 1000;
-
-    // Update jerky direction periodically for unpredictable motion
-    if (now - lastJerkyUpdate.current > JERKY_UPDATE_INTERVAL) {
-      // Randomize direction slightly (small angle variation)
-      const angleVariation = (Math.random() - 0.5) * 0.4; // ±0.2 radians
-      jerkyDirection.current.set(
-        Math.cos(angleVariation),
-        0,
-        Math.sin(angleVariation)
-      );
-      lastJerkyUpdate.current = now;
-    }
-
-    // Apply jerky movement during patrol and chase
-    if (currentState === 'patrol' || currentState === 'chase') {
-      // Add small random offset to position for jerky feel
-      const jerkyAmount = 0.03; // Small position offset per frame
-      const offsetX = (Math.random() - 0.5) * jerkyAmount;
-      const offsetZ = (Math.random() - 0.5) * jerkyAmount;
-      enemyRef.current.position.x += offsetX;
-      enemyRef.current.position.z += offsetZ;
-      
-      // Also slightly modify movement direction in chase
-      if (currentState === 'chase') {
-        const enemyPos = enemyRef.current.position;
-        const playerPos = new THREE.Vector3(...playerPosition);
-        const baseDirection = playerPos.clone().sub(enemyPos).normalize();
-        
-        // Add jerky direction component
-        baseDirection.add(jerkyDirection.current.clone().multiplyScalar(0.15));
-        baseDirection.normalize();
-        
-        // Apply additional movement with jerky variation
-        const speedVariation = 0.95 + Math.random() * 0.1; // 0.95x to 1.05x
-        const additionalMovement = baseDirection.multiplyScalar(moveSpeed * speedVariation * delta * 0.3);
-        enemyRef.current.position.add(additionalMovement);
-      }
-    }
-
     // Handle attack wind-up delay and damage
+    // IMPORTANT: In attack state, enemy should NOT move (base FSM already stops movement)
     if (currentState === 'attack') {
       attackWindUpTimer.current += delta;
       
@@ -155,14 +150,13 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     if (prevStateRef.current === 'attack' && currentState !== 'attack') {
       attackCooldownRef.current = 0;
     }
+    
+    // Update previous state for tracking
+    prevStateRef.current = currentState;
   });
 
-  // Track state changes for logging
-  useEffect(() => {
-    if (prevStateRef.current !== currentState) {
-      prevStateRef.current = currentState;
-    }
-  }, [currentState]);
+  // Track state changes (prevStateRef is now updated in useFrame)
+  // This effect is kept for compatibility but state tracking is done in useFrame
 
   // Set initial position
   useEffect(() => {

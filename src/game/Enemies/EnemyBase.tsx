@@ -112,8 +112,10 @@ export function useEnemyFSM({
         break;
 
       case 'chase':
-        // Check if player is within attack range
-        if (distanceToPlayer <= attackRange) {
+        // Check if player is within attack range (with small buffer for hysteresis)
+        // Use slightly smaller threshold when entering attack to prevent rapid bouncing
+        const attackThreshold = attackRange * 0.95; // 5% buffer
+        if (distanceToPlayer <= attackThreshold) {
           newState = 'attack';
         } else if (distanceToPlayer > detectionRadius) {
           // Player left detection radius, return to patrol
@@ -139,14 +141,20 @@ export function useEnemyFSM({
           // Continue chasing - move toward player
           const enemyPos = enemyRef.current.position;
           const playerPos = new THREE.Vector3(...playerPosition);
-          const direction = playerPos.clone().sub(enemyPos).normalize();
-          const movement = direction.multiplyScalar(moveSpeed * delta);
-          enemyRef.current.position.add(movement);
+          // Project onto XZ plane (no vertical movement)
+          const direction = playerPos.clone().sub(enemyPos);
+          direction.y = 0; // Lock Y movement
+          const distance = direction.length();
+          if (distance > 0.01) { // Avoid division by zero
+            direction.normalize();
+            const movement = direction.multiplyScalar(moveSpeed * delta);
+            enemyRef.current.position.add(movement);
+          }
         }
         break;
 
       case 'attack':
-        // Check if player moved out of attack range
+        // Check if player moved out of attack range (use full range when leaving to prevent rapid re-entry)
         if (distanceToPlayer > attackRange) {
           if (distanceToPlayer <= detectionRadius) {
             newState = 'chase';
@@ -172,7 +180,7 @@ export function useEnemyFSM({
             }
           }
         }
-        // In attack state, enemy doesn't move (could add attack animation here later)
+        // In attack state, enemy doesn't move (movement is handled by attack logic)
         break;
     }
 
