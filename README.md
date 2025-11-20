@@ -62,60 +62,58 @@ As you progress, the facility responds—lights fail, alarms trigger, and unseen
 
 * * *
 
-Gameplay & Controls
--------------------
+## Gameplay & Controls
 
 ### Movement
 
-Action
+The player navigates the world using familiar first-person controls.
 
-Control
+| **Action** | **Control** |
+|-----------:|:------------|
+| Move       | WASD        |
+| Look       | Mouse       |
+| Interact   | E           |
+| Sprint     | Shift       |
+| Crouch     | Ctrl        |
+| Pause      | Esc         |
 
-Move
-
-WASD
-
-Look
-
-Mouse
-
-Interact
-
-E
-
-Sprint
-
-Shift
-
-Crouch
-
-Ctrl
-
-Pause
-
-Esc
+---
 
 ### Terminal Interaction
 
-When approaching a terminal:
+Terminals are core to progression. When approaching one:
 
-1.  Press **E** to access it
-2.  A hacking overlay appears
-3.  Complete the mini-puzzle (timing, pattern matching, etc.)
-4.  Successful hacks unlock doors, disable alarms, or alter facility states
+1. Press **E** to access the terminal  
+2. A **hacking overlay** appears  
+3. Complete the mini-puzzle (timing, pattern-matching, or input-based challenges)  
+4. Successful hacks may:  
+   - Unlock secured doors  
+   - Disable alarms  
+   - Reroute power  
+   - Change environmental states  
+
+---
 
 ### Stealth
 
-*   Avoid bright light sources (security cameras, drones)
-*   Move slowly near patrol paths
-*   Sound attracts enemies
-*   Breaking line of sight lowers pursuit intensity
+Stealth is essential for survival. Systems dynamically react to visibility and noise.
+
+- Avoid bright lighting (security cameras, drones, motion scanners)  
+- Move slowly near patrol routes  
+- Noise attracts nearby enemies  
+- Breaking line-of-sight reduces pursuit intensity  
+- Darkness increases safety but restricts navigation  
+
+---
 
 ### Progression
 
-*   Explore to find keycards, logs, and system overrides
-*   Use terminals to unlock blocked paths
-*   Follow environmental clues to reconstruct what happened in Unit 41
+The player advances by interacting with systems, exploring new areas, and uncovering clues.
+
+- Collect keycards, logs, and system override codes  
+- Use terminals to unlock blocked paths or power down security  
+- Follow environmental hints to piece together what happened in Unit 41  
+- Restore or sabotage facility systems to alter the world around you  
 
 * * *
 
