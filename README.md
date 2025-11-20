@@ -98,6 +98,7 @@ The player navigates the world using familiar first-person controls.
 | Look       | Mouse       |
 | Interact   | E           |
 | Sprint     | Shift       |
+| Jump       | Space       |
 | Crouch     | Ctrl        |
 | Pause      | Esc         |
 
