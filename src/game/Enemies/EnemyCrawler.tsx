@@ -21,6 +21,8 @@ import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useEnemyFSM, type EnemyState } from './EnemyBase';
 import { applyDamageToPlayer } from './enemyDamage';
+import { registerEnemy, unregisterEnemy } from './enemyRegistry';
+import * as THREE from 'three';
 
 interface EnemyCrawlerProps {
   initialPosition: [number, number, number];
@@ -30,6 +32,9 @@ interface EnemyCrawlerProps {
 export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerProps) {
   const prevStateRef = useRef<EnemyState | null>(null);
   const attackCooldownRef = useRef<number>(0);
+  const wasHitRef = useRef<boolean>(false);
+  const hitFlashTimer = useRef<number>(0);
+  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null);
   const ATTACK_COOLDOWN = 0.8; // seconds
   const ATTACK_DAMAGE = 5;
 
@@ -57,7 +62,9 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
     }
   };
 
-  const { enemyRef, currentState } = useEnemyFSM({
+  const enemyId = `crawler-${initialPosition.join('-')}`;
+  
+  const { enemyRef, currentState, health, maxHealth, isDead, takeDamage } = useEnemyFSM({
     initialPosition,
     patrolPoints,
     detectionRadius,
@@ -66,7 +73,43 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
     moveSpeed,
     patrolSpeed,
     onStateChange: handleStateChange,
+    maxHealth: 50, // Crawler has 50 HP (lower than Shambler)
+    enemyId,
   });
+  
+  // Wrap takeDamage to add hit flash
+  const wrappedTakeDamage = useRef((amount: number) => {
+    takeDamage(amount);
+    wasHitRef.current = true;
+    hitFlashTimer.current = 0;
+  });
+  
+  // Update wrapped function when takeDamage changes
+  useEffect(() => {
+    wrappedTakeDamage.current = (amount: number) => {
+      takeDamage(amount);
+      wasHitRef.current = true;
+      hitFlashTimer.current = 0;
+    };
+  }, [takeDamage]);
+  
+  // Register enemy with registry for hit detection
+  useEffect(() => {
+    if (!enemyRef.current) return;
+    
+    const instance = {
+      id: enemyId,
+      getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
+      takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
+      isDead: () => isDead,
+    };
+    
+    registerEnemy(enemyId, instance);
+    
+    return () => {
+      unregisterEnemy(enemyId);
+    };
+  }, [enemyId, isDead]);
 
   // Track state changes for logging
   useEffect(() => {
@@ -84,13 +127,42 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
 
   // Handle attack damage with cooldown
   useFrame((_state, delta) => {
+    if (!enemyRef.current) return;
+    
+    // Stop all behavior if dead
+    if (isDead) return;
+    
+    // Update registry (re-register with current position)
+    const instance = {
+      id: enemyId,
+      getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
+      takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
+      isDead: () => isDead,
+    };
+    registerEnemy(enemyId, instance);
+    
+    // Handle hit flash effect
+    if (wasHitRef.current) {
+      hitFlashTimer.current += delta;
+      if (hitFlashTimer.current > 0.1) {
+        wasHitRef.current = false;
+        hitFlashTimer.current = 0;
+        if (materialRef.current) {
+          materialRef.current.emissiveIntensity = 0.3;
+        }
+      } else if (materialRef.current) {
+        // Flash white/red briefly
+        materialRef.current.emissiveIntensity = 0.8;
+      }
+    }
+    
     // Update cooldown timer
     if (attackCooldownRef.current > 0) {
       attackCooldownRef.current -= delta;
     }
 
-    // Apply damage when in attack state and cooldown is ready
-    if (currentState === 'attack' && attackCooldownRef.current <= 0) {
+    // Apply damage when in attack state and cooldown is ready (only if not dead)
+    if (currentState === 'attack' && attackCooldownRef.current <= 0 && !isDead) {
       applyDamageToPlayer(ATTACK_DAMAGE, 'Crawler');
       attackCooldownRef.current = ATTACK_COOLDOWN;
     }
@@ -109,6 +181,7 @@ export function EnemyCrawler({ initialPosition, playerPosition }: EnemyCrawlerPr
       <mesh position={[0, 0.3, 0]} castShadow>
         <boxGeometry args={[0.8, 0.4, 1.2]} />
         <meshStandardMaterial 
+          ref={materialRef}
           color="#2a2a2a" 
           emissive="#ff4444" 
           emissiveIntensity={0.3}

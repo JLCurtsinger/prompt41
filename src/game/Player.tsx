@@ -32,6 +32,7 @@ import { useRef, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState } from '../state/gameState';
 import { PLAYER_SPAWN_POSITION } from './LevelLayout';
+import { getEnemiesInRange } from './Enemies/enemyRegistry';
 import * as THREE from 'three';
 
 interface PlayerProps {
@@ -60,12 +61,16 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const GRAVITY = -9.8; // m/s² (negative = downward)
   const GROUND_Y = 0; // Ground level
   
+  // Combat constants
+  const BATON_RANGE = 2; // meters
+  const BATON_DAMAGE = 35; // damage per hit
+  const ATTACK_COOLDOWN = 0.4; // seconds between attacks
+  
   // Camera constants
   const CAMERA_DISTANCE = 3; // Distance behind player
   const CAMERA_HEIGHT = 1.6; // Height offset (head level)
   const CAMERA_SHOULDER_OFFSET = 0.5; // Horizontal offset to the right
   const CAMERA_SMOOTHNESS = 0.1;
-  const CAMERA_ROTATION_SMOOTHNESS = 0.1;
   
   const keys = useRef({
     w: false,
@@ -80,6 +85,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     arrowLeft: false,
     arrowRight: false,
   });
+  
+  // Attack state
+  const lastAttackTime = useRef<number>(0);
+  const mouseButtonPressed = useRef<boolean>(false);
   
   // Track previous states for console logging
   const prevSprintState = useRef(false);
@@ -168,9 +177,18 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     };
     
     const handleMouseDown = (e: MouseEvent) => {
-      if (e.button === 0 && !isSwinging) {
-        setIsSwinging(true);
-        setTimeout(() => setIsSwinging(false), 300);
+      if (e.button === 0) {
+        mouseButtonPressed.current = true;
+        if (!isSwinging) {
+          setIsSwinging(true);
+          setTimeout(() => setIsSwinging(false), 300);
+        }
+      }
+    };
+    
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 0) {
+        mouseButtonPressed.current = false;
       }
     };
     
@@ -196,6 +214,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('pointerlockchange', handlePointerLockChange);
     
@@ -208,6 +227,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('pointerlockchange', handlePointerLockChange);
       if (canvas) {
@@ -234,6 +254,39 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     // Freeze all controls when dead
     if (isDead) {
       return;
+    }
+    
+    // Handle Shock Baton attack
+    const currentTime = state.clock.elapsedTime;
+    const canAttack = currentTime - lastAttackTime.current >= ATTACK_COOLDOWN;
+    
+    if (mouseButtonPressed.current && canAttack && !isSwinging) {
+      // Perform attack
+      lastAttackTime.current = currentTime;
+      setIsSwinging(true);
+      setTimeout(() => setIsSwinging(false), 300);
+      
+      // Get player position and forward direction
+      const playerPos = playerRef.current.position;
+      
+      // Calculate forward direction from camera
+      const cameraForward = new THREE.Vector3();
+      camera.getWorldDirection(cameraForward);
+      cameraForward.y = 0; // Keep on horizontal plane
+      cameraForward.normalize();
+      
+      // Find enemies in range
+      const enemiesInRange = getEnemiesInRange(playerPos, BATON_RANGE);
+      
+      if (enemiesInRange.length > 0) {
+        // Hit the first enemy in range
+        const hitEnemy = enemiesInRange[0];
+        hitEnemy.takeDamage(BATON_DAMAGE);
+        console.log(`[Combat] Baton hit enemy for ${BATON_DAMAGE}`);
+      } else {
+        // Swing but no target
+        console.log('[Combat] Baton swing - no target in range');
+      }
     }
     
     const player = playerRef.current;

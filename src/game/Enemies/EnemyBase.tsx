@@ -30,6 +30,8 @@ export interface EnemyBaseProps {
   moveSpeed?: number;
   patrolSpeed?: number;
   onStateChange?: (newState: EnemyState, oldState: EnemyState) => void;
+  maxHealth?: number;
+  enemyId?: string;
 }
 
 export function useEnemyFSM({
@@ -41,12 +43,31 @@ export function useEnemyFSM({
   moveSpeed = 3,
   patrolSpeed = 2,
   onStateChange,
+  maxHealth = 100,
+  enemyId,
 }: EnemyBaseProps) {
   const enemyRef = useRef<THREE.Group>(null);
   const currentState = useRef<EnemyState>('idle');
   const patrolIndex = useRef(0);
   const patrolTarget = useRef<THREE.Vector3 | null>(null);
   const patrolThreshold = useRef(0.5); // Distance threshold to consider patrol point reached
+  
+  // Health system
+  const health = useRef(maxHealth);
+  const isDead = useRef(false);
+  
+  // takeDamage function
+  const takeDamage = (amount: number) => {
+    if (isDead.current) return; // Already dead, ignore damage
+    
+    health.current = Math.max(0, health.current - amount);
+    
+    if (health.current <= 0) {
+      isDead.current = true;
+      currentState.current = 'idle'; // Stop all AI behavior
+      console.log(`[Enemy] ${enemyId ?? 'unknown'} died`);
+    }
+  };
 
   // Initialize state based on patrol points
   useEffect(() => {
@@ -70,6 +91,9 @@ export function useEnemyFSM({
   // State transition logic
   useFrame((_state, delta) => {
     if (!enemyRef.current) return;
+    
+    // Early return if dead - stop all AI behavior
+    if (isDead.current) return;
 
     const distanceToPlayer = getDistanceToPlayer();
     const oldState = currentState.current;
@@ -200,6 +224,10 @@ export function useEnemyFSM({
     enemyRef,
     getCurrentState: () => currentState.current,
     currentState: currentState.current, // Also return value for initial render compatibility
+    health: health.current,
+    maxHealth,
+    isDead: isDead.current,
+    takeDamage,
   };
 }
 

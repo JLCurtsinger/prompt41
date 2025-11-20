@@ -26,6 +26,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useEnemyFSM, type EnemyState } from './EnemyBase';
 import { applyDamageToPlayer } from './enemyDamage';
+import { registerEnemy, unregisterEnemy } from './enemyRegistry';
 import * as THREE from 'three';
 
 interface EnemyShamblerProps {
@@ -81,6 +82,9 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   const attackWindUpTimer = useRef<number>(0);
   const hasLoggedAttack = useRef<boolean>(false);
   const attackCooldownRef = useRef<number>(0);
+  const wasHitRef = useRef<boolean>(false);
+  const hitFlashTimer = useRef<number>(0);
+  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null);
 
   // Zone 3 (Conduit Hall) patrol points - hardcoded positions
   // These form a small patrol in the corridor area
@@ -117,7 +121,9 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     }
   };
 
-  const { enemyRef, getCurrentState } = useEnemyFSM({
+  const enemyId = `shambler-${initialPosition.join('-')}`;
+  
+  const { enemyRef, getCurrentState, health, maxHealth, isDead, takeDamage } = useEnemyFSM({
     initialPosition,
     patrolPoints: isActivated ? patrolPoints : [], // Only patrol if activated
     detectionRadius,
@@ -126,16 +132,79 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     moveSpeed,
     patrolSpeed,
     onStateChange: handleStateChange,
+    maxHealth: 100, // Shambler has 100 HP
+    enemyId,
   });
+  
+  // Wrap takeDamage to add hit flash
+  const wrappedTakeDamage = useRef((amount: number) => {
+    takeDamage(amount);
+    wasHitRef.current = true;
+    hitFlashTimer.current = 0;
+  });
+  
+  // Update wrapped function when takeDamage changes
+  useEffect(() => {
+    wrappedTakeDamage.current = (amount: number) => {
+      takeDamage(amount);
+      wasHitRef.current = true;
+      hitFlashTimer.current = 0;
+    };
+  }, [takeDamage]);
+  
+  // Register enemy with registry for hit detection
+  useEffect(() => {
+    if (!enemyRef.current) return;
+    
+    const instance = {
+      id: enemyId,
+      getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
+      takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
+      isDead: () => isDead,
+    };
+    
+    registerEnemy(enemyId, instance);
+    
+    return () => {
+      unregisterEnemy(enemyId);
+    };
+  }, [enemyId, isDead]);
 
   // Handle attack wind-up and damage, plus fallback movement for chase state
   // NOTE: Movement during chase/patrol is primarily handled by the base FSM (EnemyBase.tsx)
   // This hook handles attack logic and provides fallback movement to ensure Shambler moves
   useFrame((_state, delta) => {
     if (!enemyRef.current || !isActivated) return;
+    
+    // Stop all behavior if dead
+    if (isDead) return;
 
     // Get current state (reactive)
     const currentState = getCurrentState();
+    
+    // Update registry (re-register with current position)
+    const instance = {
+      id: enemyId,
+      getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
+      takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
+      isDead: () => isDead,
+    };
+    registerEnemy(enemyId, instance);
+    
+    // Handle hit flash effect
+    if (wasHitRef.current) {
+      hitFlashTimer.current += delta;
+      if (hitFlashTimer.current > 0.1) {
+        wasHitRef.current = false;
+        hitFlashTimer.current = 0;
+        if (materialRef.current) {
+          materialRef.current.emissiveIntensity = 0.2;
+        }
+      } else if (materialRef.current) {
+        // Flash white/red briefly
+        materialRef.current.emissiveIntensity = 0.8;
+      }
+    }
 
     // Fallback movement in chase state (ensures movement even if base FSM has issues)
     if (currentState === 'chase') {
@@ -164,7 +233,8 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
 
     // Handle attack wind-up delay and damage
     // IMPORTANT: In attack state, enemy should NOT move (base FSM already stops movement)
-    if (currentState === 'attack') {
+    // Only attack if not dead
+    if (currentState === 'attack' && !isDead) {
       attackWindUpTimer.current += delta;
       
       // Update attack cooldown
@@ -219,6 +289,7 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       <mesh position={[0, 1.2, 0]} castShadow>
         <boxGeometry args={[0.6, 1.4, 0.5]} />
         <meshStandardMaterial 
+          ref={materialRef}
           color="#2a2a2a" 
           emissive="#ff6600" 
           emissiveIntensity={0.2}
