@@ -1,7 +1,10 @@
 import * as THREE from 'three';
+import { useRef, useState, useEffect } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import { TriggerVolume } from './Interactables/TriggerVolume';
 import { HackingTerminal } from './Interactables/HackingTerminal';
 import { Door } from './Interactables/Door';
+import { EnemySentinel } from './Enemies/EnemySentinel';
 
 // TODO: Wire this layout to match Zones 1–4 from CoreGameDetails.md (perimeter → yard → conduit → core chamber)
 
@@ -217,16 +220,10 @@ function CoreAccessChamberZone() {
         />
       </mesh>
       
-      {/* TODO: Final terminal will be placed near the core at [40, 0, -3] */}
       {/* Center feature placeholder */}
       <group
         name="core_chamber_center"
         position={[40, 0, 0]} // center of the room
-      />
-      {/* Sentinel spawn placeholder */}
-      <group
-        name="sentinel_spawn_placeholder"
-        position={[40, 0, 5]} // where the miniboss will appear later
       />
     </group>
   );
@@ -234,6 +231,28 @@ function CoreAccessChamberZone() {
 
 // Main level layout component combining all zones
 export function LevelLayout() {
+  const { scene } = useThree();
+  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([-15, 0, 0]);
+  const [isSentinelActivated, setIsSentinelActivated] = useState(false);
+  
+  // Track player position for enemies
+  useFrame(() => {
+    scene.traverse((object) => {
+      if (object instanceof THREE.Group) {
+        let hasCapsule = false;
+        object.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.geometry instanceof THREE.CapsuleGeometry) {
+            hasCapsule = true;
+          }
+        });
+        if (hasCapsule) {
+          const pos = object.position;
+          setPlayerPosition([pos.x, pos.y, pos.z]);
+        }
+      }
+    });
+  });
+  
   return (
     <group name="LevelLayout">
       <PerimeterZone />
@@ -295,7 +314,24 @@ export function LevelLayout() {
         name="trigger_zone4_core_entry"
         size={[8, 4, 8]}
         position={[35, 1, 0]}
-        onEnter={() => console.log("Entered Zone 4 — core chamber trigger fired")}
+        onEnter={() => {
+          console.log("[Core] Entered core chamber");
+          setIsSentinelActivated(true);
+        }}
+      />
+      
+      {/* Sentinel spawn in Zone 4 */}
+      <EnemySentinel
+        initialPosition={[40, 0, 5]}
+        playerPosition={playerPosition}
+        isActivated={isSentinelActivated}
+      />
+      
+      {/* Final Terminal in Zone 4 (locked until Sentinel is defeated) */}
+      <HackingTerminal
+        id="final_terminal"
+        position={[40, 0, -5]}
+        disabledUntilSentinelDefeated={true}
       />
     </group>
   );

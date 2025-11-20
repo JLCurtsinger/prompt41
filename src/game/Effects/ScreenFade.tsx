@@ -29,20 +29,19 @@ import { useEffect, useState } from 'react';
 import { useGameState } from '../../state/gameState';
 
 export function ScreenFade() {
-  const isShuttingDown = useGameState((state) => state.isShuttingDown);
+  const hasCompletedLevel = useGameState((state) => state.hasCompletedLevel);
+  const isEnding = useGameState((state) => state.isEnding);
   const resetPlayer = useGameState((state) => state.resetPlayer);
-  const setIsShuttingDown = useGameState((state) => state.setIsShuttingDown);
   
   const [opacity, setOpacity] = useState(0);
-  const [showRebootText, setShowRebootText] = useState(false);
-  const [hasReset, setHasReset] = useState(false);
+  const [showText, setShowText] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   
-  const FADE_DURATION = 4; // seconds
+  const FADE_DURATION = 2; // seconds
   
   // Handle fade-in animation
   useEffect(() => {
-    if (isShuttingDown && !hasReset) {
+    if (hasCompletedLevel) {
       if (startTime === null) {
         setStartTime(performance.now() / 1000);
       }
@@ -58,7 +57,7 @@ export function ScreenFade() {
         setOpacity(progress);
         
         if (progress >= 1) {
-          setShowRebootText(true);
+          setShowText(true);
           clearInterval(interval);
         }
       }, 16); // ~60fps
@@ -66,41 +65,16 @@ export function ScreenFade() {
       return () => {
         clearInterval(interval);
       };
-    } else if (!isShuttingDown) {
-      // Reset fade when shutdown is turned off
+    } else {
+      // Reset fade when level is not completed
       setOpacity(0);
-      setShowRebootText(false);
+      setShowText(false);
       setStartTime(null);
-      setHasReset(false);
     }
-  }, [isShuttingDown, startTime, hasReset]);
+  }, [hasCompletedLevel, startTime]);
   
-  // Handle R key for reboot
-  useEffect(() => {
-    if (!showRebootText || hasReset) return;
-    
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'r') {
-        // Reset everything via resetPlayer
-        resetPlayer();
-        setIsShuttingDown(false);
-        setOpacity(0);
-        setShowRebootText(false);
-        setStartTime(null);
-        setHasReset(true);
-        
-        // Reset player position (this would ideally be done in Player component, but since we can't modify it,
-        // we'll just reset the game state and let the level reset)
-        console.log('System rebooted. Level reset.');
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showRebootText, hasReset, resetPlayer, setIsShuttingDown]);
-  
-  // Don't render if not shutting down and fully transparent
-  if (!isShuttingDown && opacity === 0) {
+  // Don't render if not completed and fully transparent
+  if (!hasCompletedLevel && opacity === 0) {
     return null;
   }
   
@@ -123,30 +97,30 @@ export function ScreenFade() {
         transition: opacity < 1 ? 'opacity 0.1s linear' : 'none',
       }}
     >
-      {showRebootText && (
+      {showText && (
         <>
           <div
             style={{
               color: '#ffffff',
               fontFamily: 'monospace',
-              fontSize: '48px',
+              fontSize: '32px',
               fontWeight: 'bold',
-              marginBottom: '20px',
+              marginBottom: '15px',
               textAlign: 'center',
               textShadow: '0 0 10px rgba(255, 255, 255, 0.5)',
             }}
           >
-            SYSTEM SHUTDOWN
+            SYSTEM OVERRIDE COMPLETE
           </div>
           <div
             style={{
-              color: '#888888',
+              color: '#ffffff',
               fontFamily: 'monospace',
-              fontSize: '18px',
+              fontSize: '24px',
               textAlign: 'center',
             }}
           >
-            Press R to reboot
+            PROCESS SUSPENDED
           </div>
         </>
       )}

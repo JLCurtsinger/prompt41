@@ -23,11 +23,11 @@
 //    - Health bar should decrease (visible in console logs)
 
 import { useEffect, useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useEnemyFSM, type EnemyState } from './EnemyBase';
 import { applyDamageToPlayer } from './enemyDamage';
 import { useGameState } from '../../state/gameState';
-import { AudioManager } from '../audio/AudioManager';
+import { registerEnemy, unregisterEnemy } from './enemyRegistry';
 import * as THREE from 'three';
 
 interface EnemySentinelProps {
@@ -39,16 +39,15 @@ interface EnemySentinelProps {
 export function EnemySentinel({ initialPosition, playerPosition, isActivated }: EnemySentinelProps) {
   const prevStateRef = useRef<EnemyState | null>(null);
   const attackCooldownRef = useRef<number>(0);
-  const healthRef = useRef<number>(100); // Sentinel starts with 100 health
-  const maxHealth = 100;
-  const phase2Threshold = 40; // Health percentage for phase 2
-  const isPhase2Ref = useRef<boolean>(false);
-  const lastDamageTime = useRef<number>(0);
-  const damageCooldown = 0.5; // Prevent rapid damage spam
+  const attackWindUpTimer = useRef<number>(0);
+  const hasLoggedAttack = useRef<boolean>(false);
+  const wasHitRef = useRef<boolean>(false);
+  const hitFlashTimer = useRef<number>(0);
+  const materialRef = useRef<THREE.MeshStandardMaterial | null>(null);
   
-  const { scene } = useThree();
-  const isSwinging = useGameState((state) => state.isSwinging);
   const setSentinelDefeated = useGameState((state) => state.setSentinelDefeated);
+  
+  const enemyId = `sentinel-${initialPosition.join('-')}`;
   
   // Zone 4 (Core Chamber) patrol points - small circle around center
   const patrolPoints: [number, number, number][] = [
@@ -60,84 +59,136 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
   
   // Sentinel-specific stats
   const detectionRadius = 10; // meters
-  const attackRange = 4; // meters
-  const phase1MoveSpeed = 2.5; // Slower than Shambler
-  const phase2MoveSpeed = 3.5; // Faster in phase 2
-  const patrolSpeed = 2.0;
-  const ATTACK_COOLDOWN = 1.5; // seconds
-  const ATTACK_DAMAGE = 25; // High damage
-  const PLAYER_ATTACK_RANGE = 2.5; // meters - player can attack Sentinel within this range
-  const PLAYER_ATTACK_DAMAGE = 10; // damage per player swing
+  const attackRange = 2.5; // meters
+  const moveSpeed = 1.0; // Slow movement
+  const patrolSpeed = 0.8;
+  const ATTACK_WIND_UP_TIME = 1.3; // seconds before attack
+  const ATTACK_COOLDOWN = 2.0; // seconds between attacks
+  const ATTACK_DAMAGE = 40; // High damage
   
-  // Get current move speed based on phase
-  const getMoveSpeed = () => isPhase2Ref.current ? phase2MoveSpeed : phase1MoveSpeed;
-  
-  const handleStateChange = (newState: EnemyState, _oldState: EnemyState) => {
+  const handleStateChange = (newState: EnemyState, oldState: EnemyState) => {
     // Log state transitions
     console.log(`Sentinel: state -> ${newState}`);
     
-    // Log phase 2 activation
-    if (!isPhase2Ref.current && healthRef.current <= phase2Threshold) {
-      isPhase2Ref.current = true;
-      console.log('Sentinel: PHASE 2 ACTIVATED');
+    // Reset attack timer when entering attack state
+    if (newState === 'attack') {
+      attackWindUpTimer.current = 0;
+      hasLoggedAttack.current = false;
+    } else {
+      // Reset attack state when leaving attack
+      attackWindUpTimer.current = 0;
+      hasLoggedAttack.current = false;
     }
   };
   
-  const { enemyRef, currentState } = useEnemyFSM({
+  const { enemyRef, getCurrentState, health, maxHealth, isDead, takeDamage } = useEnemyFSM({
     initialPosition,
     patrolPoints: isActivated ? patrolPoints : [], // Only patrol if activated
     detectionRadius,
     attackRange,
     playerPosition,
-    moveSpeed: getMoveSpeed(), // Will update dynamically
+    moveSpeed,
     patrolSpeed,
     onStateChange: handleStateChange,
+    maxHealth: 350, // Sentinel has 350 HP
+    enemyId,
   });
   
-  // Update move speed when phase changes
-  useEffect(() => {
-    if (isPhase2Ref.current && enemyRef.current) {
-      // Phase 2 is active - speed is handled by dynamic getMoveSpeed
-    }
-  }, [isPhase2Ref.current]);
+  // Wrap takeDamage to add hit flash and check for death
+  const wrappedTakeDamage = useRef((amount: number) => {
+    takeDamage(amount);
+    wasHitRef.current = true;
+    hitFlashTimer.current = 0;
+  });
   
-  // Handle attack damage and phase changes
+  // Update wrapped function when takeDamage changes
+  useEffect(() => {
+    wrappedTakeDamage.current = (amount: number) => {
+      takeDamage(amount);
+      wasHitRef.current = true;
+      hitFlashTimer.current = 0;
+    };
+  }, [takeDamage]);
+  
+  // Register enemy with registry for hit detection
+  useEffect(() => {
+    if (!enemyRef.current) return;
+    
+    const instance = {
+      id: enemyId,
+      getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
+      takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
+      isDead: () => isDead,
+    };
+    
+    registerEnemy(enemyId, instance);
+    
+    return () => {
+      unregisterEnemy(enemyId);
+    };
+  }, [enemyId, isDead]);
+  
+  // Handle death
+  useEffect(() => {
+    if (isDead) {
+      console.log('[Sentinel] defeated');
+      setSentinelDefeated(true);
+    }
+  }, [isDead, setSentinelDefeated]);
+  
+  // Handle attack wind-up and damage
   useFrame((_state, delta) => {
     if (!enemyRef.current || !isActivated) return;
     
-    // Check if Sentinel is defeated
-    if (healthRef.current <= 0) {
-      setSentinelDefeated(true);
-      AudioManager.playSFX('enemyDeath');
-      // Hide or disable Sentinel (could add death animation here)
-      enemyRef.current.visible = false;
-      return;
+    // Stop all behavior if dead
+    if (isDead) return;
+    
+    // Get current state (reactive)
+    const currentState = getCurrentState();
+    
+    // Update registry (re-register with current position)
+    const instance = {
+      id: enemyId,
+      getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
+      takeDamage: (amount: number) => wrappedTakeDamage.current(amount),
+      isDead: () => isDead,
+    };
+    registerEnemy(enemyId, instance);
+    
+    // Handle hit flash effect
+    if (wasHitRef.current) {
+      hitFlashTimer.current += delta;
+      if (hitFlashTimer.current > 0.1) {
+        wasHitRef.current = false;
+        hitFlashTimer.current = 0;
+        if (materialRef.current) {
+          materialRef.current.emissiveIntensity = 0.3;
+        }
+      } else if (materialRef.current) {
+        // Flash white/red briefly
+        materialRef.current.emissiveIntensity = 0.8;
+      }
     }
     
-    // Update attack cooldown
-    if (attackCooldownRef.current > 0) {
-      attackCooldownRef.current -= delta;
-    }
-    
-    // Check for phase transition
-    const healthPercent = (healthRef.current / maxHealth) * 100;
-    if (healthPercent <= phase2Threshold && !isPhase2Ref.current) {
-      isPhase2Ref.current = true;
-      console.log('Sentinel: PHASE 2 ACTIVATED');
-    }
-    
-    // Handle attack damage
-    if (currentState === 'attack' && attackCooldownRef.current <= 0) {
-      if (isPhase2Ref.current) {
-        // Phase 2: Sweep attack
-        console.log('Sentinel: SWEEP ATTACK');
-      } else {
-        // Phase 1: Normal attack
-        console.log('Sentinel: ATTACK');
+    // Handle attack wind-up delay and damage
+    if (currentState === 'attack' && !isDead) {
+      attackWindUpTimer.current += delta;
+      
+      // Update attack cooldown
+      if (attackCooldownRef.current > 0) {
+        attackCooldownRef.current -= delta;
       }
       
-      applyDamageToPlayer(ATTACK_DAMAGE, 'Sentinel');
-      attackCooldownRef.current = ATTACK_COOLDOWN;
+      if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME && !hasLoggedAttack.current) {
+        console.log('Sentinel: ATTACK');
+        hasLoggedAttack.current = true;
+        
+        // Apply damage if cooldown is ready
+        if (attackCooldownRef.current <= 0) {
+          applyDamageToPlayer(ATTACK_DAMAGE, 'Sentinel');
+          attackCooldownRef.current = ATTACK_COOLDOWN;
+        }
+      }
     }
     
     // Reset cooldown when leaving attack state
@@ -145,76 +196,28 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
       attackCooldownRef.current = 0;
     }
     
-    // Check if player is attacking Sentinel
-    let playerPosition3D: THREE.Vector3 | null = null;
-    
-    scene.traverse((object) => {
-      if (object instanceof THREE.Group) {
-        let hasCapsule = false;
-        object.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.geometry instanceof THREE.CapsuleGeometry) {
-            hasCapsule = true;
-          }
-        });
-        if (hasCapsule) {
-          playerPosition3D = object.position.clone();
-        }
-      }
-    });
-    
-    if (playerPosition3D && isSwinging && healthRef.current > 0) {
-      const enemyPos = enemyRef.current.position;
-      const distance = enemyPos.distanceTo(playerPosition3D);
-      
-      if (distance <= PLAYER_ATTACK_RANGE) {
-        const now = performance.now() / 1000;
-        
-        // Prevent damage spam with cooldown
-        if (now - lastDamageTime.current >= damageCooldown) {
-          healthRef.current = Math.max(0, healthRef.current - PLAYER_ATTACK_DAMAGE);
-          lastDamageTime.current = now;
-          console.log(`Sentinel: hit! Health: ${healthRef.current}/${maxHealth}`);
-          
-          if (healthRef.current <= 0) {
-            console.log('Sentinel: DEFEATED');
-            setSentinelDefeated(true);
-            AudioManager.playSFX('enemyDeath');
-          }
-        }
-      }
-    }
+    // Update previous state for tracking
+    prevStateRef.current = currentState;
   });
-  
-  // Track state changes
-  useEffect(() => {
-    if (prevStateRef.current !== currentState) {
-      prevStateRef.current = currentState;
-    }
-  }, [currentState]);
   
   // Set initial position
   useEffect(() => {
     if (enemyRef.current) {
       enemyRef.current.position.set(...initialPosition);
     }
-  }, [initialPosition, enemyRef]);
+  }, [initialPosition]);
   
   // Log spawn when activated
   useEffect(() => {
     if (isActivated) {
       console.log('Sentinel: spawned');
-      healthRef.current = maxHealth;
-      isPhase2Ref.current = false;
     }
   }, [isActivated]);
   
-  // Don't render if defeated
-  if (healthRef.current <= 0) {
+  // Don't render if dead
+  if (isDead) {
     return null;
   }
-  
-  const healthPercent = (healthRef.current / maxHealth) * 100;
-  const isPhase2 = healthPercent <= phase2Threshold;
   
   return (
     <group ref={enemyRef} position={initialPosition}>
@@ -225,8 +228,9 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
       <mesh position={[0, 1.5, 0]} castShadow>
         <boxGeometry args={[0.8, 2, 0.7]} />
         <meshStandardMaterial 
+          ref={materialRef}
           color="#2a2a2a" 
-          emissive={isPhase2 ? "#ff6600" : "#ffaa00"} 
+          emissive="#ffaa00" 
           emissiveIntensity={0.3}
         />
       </mesh>
@@ -236,8 +240,8 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
         <sphereGeometry args={[0.3, 12, 12]} />
         <meshStandardMaterial 
           color="#1a1a1a" 
-          emissive={isPhase2 ? "#ff4400" : "#ff8800"} 
-          emissiveIntensity={isPhase2 ? 1.5 : 1.2}
+          emissive="#ff8800" 
+          emissiveIntensity={1.2}
         />
       </mesh>
       
@@ -267,23 +271,6 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
         <meshStandardMaterial color="#1a1a1a" />
       </mesh>
       
-      {/* Health bar indicator (simple visual representation) */}
-      <mesh position={[0, 3.2, 0]} visible={true}>
-        <boxGeometry args={[1, 0.1, 0.01]} />
-        <meshStandardMaterial 
-          color="#ff0000" 
-          emissive="#ff0000" 
-          emissiveIntensity={0.5}
-        />
-      </mesh>
-      <mesh position={[0, 3.2, 0.01]} visible={true}>
-        <boxGeometry args={[(healthRef.current / maxHealth) * 1, 0.1, 0.01]} />
-        <meshStandardMaterial 
-          color={isPhase2 ? "#ff8800" : "#00ff00"} 
-          emissive={isPhase2 ? "#ff8800" : "#00ff00"} 
-          emissiveIntensity={0.8}
-        />
-      </mesh>
     </group>
   );
 }

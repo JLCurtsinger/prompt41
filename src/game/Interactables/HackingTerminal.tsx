@@ -21,11 +21,11 @@ import * as THREE from 'three';
 interface HackingTerminalProps {
   id: string;
   position: [number, number, number];
+  disabledUntilSentinelDefeated?: boolean;
 }
 
 
-export function HackingTerminal({ id, position }: HackingTerminalProps) {
-  // TODO: Hook this terminal to a real mini-game and gate a door per CoreGameDetails.md
+export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = false }: HackingTerminalProps) {
   const terminalRef = useRef<THREE.Group>(null);
   const { scene } = useThree();
   const [isInRange, setIsInRange] = useState(false);
@@ -41,9 +41,8 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
   
   const INTERACTION_RANGE = 2.5;
   
-  // Check if this is the final terminal and if Sentinel must be defeated
-  const isFinalTerminal = id === 'terminal-zone4-final';
-  const isLockedBySentinel = isFinalTerminal && !sentinelDefeated && terminalState === 'locked';
+  // Check if this terminal is locked by Sentinel
+  const isLockedBySentinel = disabledUntilSentinelDefeated && !sentinelDefeated && terminalState === 'locked';
   
   // Check if player is in range
   useFrame(() => {
@@ -111,13 +110,9 @@ export function HackingTerminal({ id, position }: HackingTerminalProps) {
       if (e.key.toLowerCase() === 'e' && isInRange && !hackingOverlay.isOpen) {
         try {
           if (terminalState === 'locked') {
-            // Check if final terminal is locked by Sentinel
+            // Check if terminal is locked by Sentinel
             if (isLockedBySentinel) {
-              openHackingOverlay(id, 'locked');
-              // Auto-close locked message after 2 seconds
-              setTimeout(() => {
-                closeHackingOverlay();
-              }, 2000);
+              console.log('[Hacking] Terminal locked until Sentinel is defeated');
               return;
             }
             

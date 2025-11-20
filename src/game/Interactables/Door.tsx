@@ -90,7 +90,6 @@ export function Door({ id, position }: DoorProps) {
       // For now, show generic prompt - door opens via terminal hack, not direct interaction
       showInteractionPrompt({
         message: 'Door locked (requires hack)',
-        actionKey: null,
         sourceId: `door-${id}`,
       });
     } else if (!nowInRange && wasInRange) {

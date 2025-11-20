@@ -47,7 +47,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const verticalVelocity = useRef(0);
   
   const { camera } = useThree();
-  const { isSwinging, setIsSwinging, isDead, resetPlayer } = useGameState();
+  const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding } = useGameState();
   
   // Movement constants
   const WALK_SPEED = 3;
@@ -253,6 +253,11 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     
     // Freeze all controls when dead
     if (isDead) {
+      return;
+    }
+    
+    // Freeze all controls when ending sequence has begun
+    if (isEnding) {
       return;
     }
     

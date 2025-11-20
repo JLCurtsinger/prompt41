@@ -172,13 +172,7 @@ export function GameScene() {
           isActivated={isShamblerActivated}
         />
         
-        {/* Enemy: Sentinel Miniboss in Zone 4 (Core Chamber) */}
-        {/* Sentinel starts idle until activated by trigger volume */}
-        <EnemySentinel
-          initialPosition={[40, 0, 0]}
-          playerPosition={playerPosition}
-          isActivated={isSentinelActivated}
-        />
+        {/* Sentinel is now in LevelLayout.tsx */}
         
         {/* Trigger volumes for zone detection and scripted events */}
         {/* Zone 1 perimeter trigger - fires when player enters the breach area */}
@@ -250,25 +244,9 @@ export function GameScene() {
           name="Zone3_ShamblerActivation"
         />
         
-        {/* Zone 4 Sentinel activation trigger - fires when player enters Zone 4 (Core Chamber) */}
-        {/* This is the "Sentinel intro moment" - activates the Sentinel Miniboss */}
-        <TriggerVolume
-          position={[35, 1, 0]}
-          size={[6, 4, 6]}
-          onEnter={() => {
-            console.log('Sentinel activation triggered');
-            setIsSentinelActivated(true);
-            playHostLine('combat:sentinelSpawn');
-            // TODO: Hook into Sentinel Zombot boot-up micro-cutscene
-            // TODO: Adjust lighting for dramatic reveal
-          }}
-          name="Zone4_SentinelActivation"
-        />
+        {/* Sentinel activation and final terminal are now in LevelLayout.tsx */}
         
         {/* Hacking Terminal in Zone 2 is now in LevelLayout.tsx */}
-        
-        {/* Final Hacking Terminal in Zone 4 (Core Chamber) */}
-        <HackingTerminal id="terminal-zone4-final" position={[40, 0, -3]} />
         
         {/* Door between Zone 1 and Zone 2 */}
         <Door id="zone1-zone2-main" position={[-7, 0, 0]} />

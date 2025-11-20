@@ -135,6 +135,8 @@ interface GameState {
   // Sentinel and shutdown state
   sentinelDefeated: boolean;
   isShuttingDown: boolean;
+  hasCompletedLevel: boolean;
+  isEnding: boolean;
   
   // Host message bus
   hostMessages: HostMessage[];
@@ -187,6 +189,8 @@ interface GameState {
   // Sentinel and shutdown actions
   setSentinelDefeated: (defeated: boolean) => void;
   setIsShuttingDown: (shuttingDown: boolean) => void;
+  completeLevel: () => void;
+  setEnding: (ending: boolean) => void;
   
   // Host message actions
   playHostLine: (eventKey: string, options?: { zoneId?: string }) => void;
@@ -253,6 +257,8 @@ export const useGameState = create<GameState>((set, get) => ({
   // Sentinel and shutdown state
   sentinelDefeated: false,
   isShuttingDown: false,
+  hasCompletedLevel: false,
+  isEnding: false,
   
   // Host message bus initial state
   hostMessages: [],
@@ -343,6 +349,8 @@ export const useGameState = create<GameState>((set, get) => ({
       // Reset Sentinel and shutdown
       sentinelDefeated: false,
       isShuttingDown: false,
+      hasCompletedLevel: false,
+      isEnding: false,
       isPaused: false,
       // Reset host messages
       hostMessages: [],
@@ -401,6 +409,18 @@ export const useGameState = create<GameState>((set, get) => ({
   setIsShuttingDown: (shuttingDown) => {
     set({ isShuttingDown: shuttingDown });
     console.log(`System shutdown: ${shuttingDown}`);
+  },
+  
+  completeLevel: () => {
+    set({ 
+      hasCompletedLevel: true,
+      isEnding: true 
+    });
+    console.log('Level completed');
+  },
+  
+  setEnding: (ending) => {
+    set({ isEnding: ending });
   },
   
   // Host message actions

@@ -40,6 +40,7 @@ export function HackingOverlay() {
   const playHostLine = useGameState((state) => state.playHostLine);
   const setHackingOverlayMode = useGameState((state) => state.setHackingOverlayMode);
   const unlockZone2Door = useGameState((state) => state.unlockZone2Door);
+  const completeLevel = useGameState((state) => state.completeLevel);
 
   // Extract values for easier use
   const { isOpen, terminalId, mode } = hackingOverlay;
@@ -135,21 +136,20 @@ export function HackingOverlay() {
           } catch (error) {
             console.warn(`HackingOverlay: Error playing success SFX:`, error);
           }
-        } else if (terminalId === 'terminal-zone4-final') {
-        try {
-          playHostLine('hacking:finalSuccess');
-          playHostLine('shutdown:start');
-        } catch (error) {
-          console.warn(`HackingOverlay: Error playing final host lines:`, error);
-        }
-        setIsShuttingDown(true);
-        try {
-          AudioManager.playSFX('hackingSuccess');
-          AudioManager.playSFX('shutdownStart');
-        } catch (error) {
-          console.warn(`HackingOverlay: Error playing final SFX:`, error);
-        }
-      } else {
+        } else if (terminalId === 'final_terminal') {
+          // Final terminal hack - complete the level
+          completeLevel();
+          try {
+            playHostLine('hacking:finalSuccess');
+          } catch (error) {
+            console.warn(`HackingOverlay: Error playing final host line:`, error);
+          }
+          try {
+            AudioManager.playSFX('hackingSuccess');
+          } catch (error) {
+            console.warn(`HackingOverlay: Error playing success SFX:`, error);
+          }
+        } else {
         try {
           playHostLine('hacking:success');
           AudioManager.playSFX('hackingSuccess');
@@ -170,7 +170,7 @@ export function HackingOverlay() {
       // Ensure overlay closes even on error
       closeHackingOverlay();
     }
-  }, [isOpen, terminalId, setTerminalState, unlockZone2Door, playHostLine, setIsShuttingDown, setHackingOverlayMode, closeHackingOverlay]);
+  }, [isOpen, terminalId, setTerminalState, unlockZone2Door, completeLevel, playHostLine, setHackingOverlayMode, closeHackingOverlay]);
 
   // NOW AFTER ALL HOOKS, do conditional rendering
   if (!isOpen || isDead || isShuttingDown) {
