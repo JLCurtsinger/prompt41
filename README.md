@@ -95,13 +95,13 @@ The player navigates the world using familiar first-person controls.
 | **Action** | **Control** |
 |-----------:|:------------|
 | Move       | WASD        |
-| Look       | Mouse       |
+| Look       | mouse/arrows|
 | Interact   | E           |
 | Sprint     | Shift       |
 | Jump       | Space       |
-| High Jump  | Jump + Space|
+| High Jump  | Space x 2   |
 | Crouch     | Ctrl        |
-| Melee      | return/Enter|
+| Melee      | return/enter|
 | Pause      | Esc         |
 
 ---
