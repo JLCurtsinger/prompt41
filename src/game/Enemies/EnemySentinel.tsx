@@ -251,7 +251,7 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
   }
   
   return (
-    <group ref={enemyRef} position={initialPosition}>
+    <group ref={enemyRef}>
       {/* Health bar above enemy */}
       <EnemyHealthBar health={health} maxHealth={maxHealth} getHealth={getHealth} />
       
