@@ -133,9 +133,14 @@ export function useEnemyFSM({
             } else {
               // Move toward current patrol point (unless paused)
               if (!isPatrolPaused || !isPatrolPaused()) {
-                const direction = patrolTarget.current.clone().sub(enemyPos).normalize();
-                const movement = direction.multiplyScalar(patrolSpeed * delta);
-                enemyRef.current.position.add(movement);
+                const direction = patrolTarget.current.clone().sub(enemyPos);
+                direction.y = 0; // Lock Y movement (project onto XZ plane)
+                const distance = direction.length();
+                if (distance > 0.01) { // Avoid division by zero
+                  direction.normalize();
+                  const movement = direction.multiplyScalar(patrolSpeed * delta);
+                  enemyRef.current.position.add(movement);
+                }
               }
             }
           }

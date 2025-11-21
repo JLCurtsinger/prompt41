@@ -47,10 +47,8 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   const hasUnregistered = useRef<boolean>(false);
   const DEATH_DURATION = 0.5; // seconds
   
-  // Animation state for bob/lean/lunge
+  // Animation state for bob/lean
   const animationTime = useRef<number>(0);
-  const attackLungeTimer = useRef<number>(0);
-  const attackBasePosition = useRef<THREE.Vector3 | null>(null);
   
   const { incrementEnemiesKilled, checkWinCondition } = useGameState();
   
@@ -59,9 +57,6 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   const isPausedAtWaypoint = useRef<boolean>(false);
   const lastWaypointIndex = useRef<number>(-1);
   const PATROL_PAUSE_DURATION = 1.5; // seconds to pause at each waypoint
-  
-  // Patrol state for manual movement between waypoints
-  const patrolIndexRef = useRef(0);
 
   // Crawler-specific stats: fast, low health
   // Movement speeds - tuned for visible movement in small level
@@ -71,10 +66,8 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   
   const detectionRadius = 8; // meters
   const attackRange = CRAWLER_ATTACK_RANGE;
-  // Movement is now handled manually in EnemyCrawler.useFrame.
-  // EnemyBase is only used for state transitions and detection.
-  const moveSpeed = 0;
-  const patrolSpeed = 0;
+  const moveSpeed = CRAWLER_CHASE_SPEED;
+  const patrolSpeed = CRAWLER_PATROL_SPEED;
 
   const handleStateChange = (newState: EnemyState, oldState: EnemyState) => {
     // Debug log state transitions
@@ -207,32 +200,6 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
     };
     registerEnemy(enemyId, instance);
     
-    // --- Manual movement for Crawler (patrol + chase) ---
-    const enemyPos = enemyRef.current.position;
-    const playerPos = new THREE.Vector3(...playerPosition);
-    if (currentState === 'patrol' && effectivePatrolPoints.length > 0 && !isPausedAtWaypoint.current) {
-      const target = new THREE.Vector3(...effectivePatrolPoints[patrolIndexRef.current]);
-      const toTarget = target.clone().sub(enemyPos);
-      toTarget.y = 0; // Lock Y movement (project onto XZ plane)
-      const dist = toTarget.length();
-      if (dist > 0.05) {
-        toTarget.normalize().multiplyScalar(CRAWLER_PATROL_SPEED * delta);
-        enemyPos.add(toTarget);
-      } else {
-        // Reached this waypoint, move to the next patrol point
-        patrolIndexRef.current = (patrolIndexRef.current + 1) % effectivePatrolPoints.length;
-      }
-    } else if (currentState === 'chase') {
-      const toPlayer = playerPos.clone().sub(enemyPos);
-      toPlayer.y = 0; // Lock Y movement (project onto XZ plane)
-      const dist = toPlayer.length();
-      if (dist > 0.05) {
-        toPlayer.normalize().multiplyScalar(CRAWLER_CHASE_SPEED * delta);
-        enemyPos.add(toPlayer);
-      }
-    }
-    // --- end manual movement ---
-    
     // Update animation time for bob/lean effects
     animationTime.current += delta;
     
@@ -251,9 +218,9 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
       }
     }
     
-    // Visual animations only - movement comes from manual movement block above
+    // Visual animations only - movement comes from EnemyBase FSM
     // INTENTIONAL: We only adjust position.y for bob and rotation for visual feedback
-    // We do NOT write to position.x or position.z - those are controlled by manual movement
+    // We do NOT write to position.x or position.z - those are controlled by EnemyBase
     if (enemyRef.current) {
       const baseGroundY = initialPosition[1];
       
@@ -301,18 +268,9 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
       }
     }
     
-    // Calculate distance to player for chase return logic
-    const enemyPos = enemyRef.current.position;
-    const playerPos = new THREE.Vector3(...playerPosition);
-    const distanceToPlayer = enemyPos.distanceTo(playerPos);
-    
-    // Enhanced chase -> patrol transition handled by EnemyBase FSM
-    // The FSM already checks detectionRadius, but we want a larger threshold for returning to patrol
-    // Since we can't easily modify EnemyBase's FSM logic, we rely on it to handle transitions
-    // The base FSM will transition back to patrol when distance > detectionRadius
-    
     // Handle patrol pause logic (only for crawlers with patrol points)
-    if (currentState === 'patrol' && effectivePatrolPoints.length > 0) {
+    // This uses EnemyBase's position to detect waypoint proximity, but does NOT move the enemy
+    if (currentState === 'patrol' && effectivePatrolPoints.length > 0 && enemyRef.current) {
       // Check if we've reached a waypoint (using the same threshold as EnemyBase)
       const waypointThreshold = 0.5;
       let currentWaypointIndex = -1;
@@ -320,7 +278,7 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
       
       effectivePatrolPoints.forEach((point, index) => {
         const waypointPos = new THREE.Vector3(...point);
-        const distance = enemyPos.distanceTo(waypointPos);
+        const distance = enemyRef.current!.position.distanceTo(waypointPos);
         if (distance < minDistance) {
           minDistance = distance;
           currentWaypointIndex = index;
