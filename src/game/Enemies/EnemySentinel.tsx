@@ -46,6 +46,10 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
   const hitFlashTimer = useRef<number>(0);
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null);
   
+  // Animation state for visual cues
+  const animationTime = useRef<number>(0);
+  const stateLogTimer = useRef<number>(0); // Timer for logging state once per second
+  
   const setSentinelDefeated = useGameState((state) => state.setSentinelDefeated);
   
   const enemyId = `sentinel-${initialPosition.join('-')}`;
@@ -61,8 +65,8 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
   // Sentinel-specific stats
   const detectionRadius = 10; // meters
   const attackRange = 2.5; // meters
-  const moveSpeed = 1.0; // Slow movement
-  const patrolSpeed = 0.8;
+  const moveSpeed = 3.0; // TEMPORARILY increased for visibility
+  const patrolSpeed = 2.0; // TEMPORARILY increased for visibility
   const ATTACK_WIND_UP_TIME = 1.3; // seconds before attack
   const ATTACK_COOLDOWN = 2.0; // seconds between attacks
   const ATTACK_DAMAGE = 40; // High damage
@@ -128,6 +132,11 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
     };
   }, [enemyId, isDead]);
   
+  // Log isActivated changes
+  useEffect(() => {
+    console.log('[Sentinel]', enemyId, 'isActivated changed to:', isActivated);
+  }, [isActivated, enemyId]);
+
   // Handle death
   useEffect(() => {
     if (isDead) {
@@ -144,6 +153,17 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
     
     // Get current state (reactive)
     const currentState = getCurrentState();
+    
+    // Log FSM state and distance to player once per second
+    stateLogTimer.current += delta;
+    if (stateLogTimer.current >= 1.0) {
+      const distanceToPlayer = enemyRef.current.position.distanceTo(new THREE.Vector3(...playerPosition));
+      console.log('[Sentinel]', enemyId, 'state:', currentState, 'distance:', distanceToPlayer.toFixed(1));
+      stateLogTimer.current = 0;
+    }
+    
+    // Update animation time for visual cues
+    animationTime.current += delta;
     
     // Update registry (re-register with current position) - this ensures isDead closure is fresh
     const instance = {
@@ -192,6 +212,25 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
     // Reset cooldown when leaving attack state
     if (prevStateRef.current === 'attack' && currentState !== 'attack') {
       attackCooldownRef.current = 0;
+    }
+    
+    // Visual cues: simple forward lean and bob during chase (rotation and Y only)
+    if (enemyRef.current && currentState === 'chase') {
+      const baseGroundY = initialPosition[1];
+      // Small vertical bob
+      const bobAmount = 0.05;
+      const bobSpeed = 3.0;
+      const bob = Math.sin(animationTime.current * bobSpeed) * bobAmount;
+      enemyRef.current.position.y = baseGroundY + bob;
+      
+      // Small forward lean (rotation only)
+      enemyRef.current.rotation.x = -0.08;
+    } else if (enemyRef.current) {
+      // Reset rotation when not chasing
+      enemyRef.current.rotation.x = 0;
+      if (currentState !== 'chase') {
+        enemyRef.current.position.y = initialPosition[1];
+      }
     }
     
     // Update previous state for tracking

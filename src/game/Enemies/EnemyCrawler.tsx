@@ -220,82 +220,51 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
       }
     }
     
-    // Simple animations based on state - applied to the visible group
-    // These transform the entire enemy group that contains all meshes
+    // Visual animations only - movement comes from EnemyBase FSM
+    // INTENTIONAL: We only adjust position.y for bob and rotation for visual feedback
+    // We do NOT write to position.x or position.z - those are controlled by EnemyBase
     if (enemyRef.current) {
-      const baseY = initialPosition[1];
+      const baseGroundY = initialPosition[1];
       
       if (currentState === 'patrol') {
-        // Patrol: slight up-and-down bob
+        // Patrol: slight vertical bob only (no X/Z movement)
         const bobAmount = 0.05;
         const bobSpeed = 3.0;
         const bob = Math.sin(animationTime.current * bobSpeed) * bobAmount;
-        enemyRef.current.position.y = baseY + bob;
+        enemyRef.current.position.y = baseGroundY + bob;
         
-        // Tiny sway
+        // Tiny sway (rotation only)
         const swayAmount = 0.02;
         const swaySpeed = 2.0;
         enemyRef.current.rotation.z = Math.sin(animationTime.current * swaySpeed) * swayAmount;
+        enemyRef.current.rotation.x = 0;
       } else if (currentState === 'chase') {
-        // Chase: lean forward slightly and more aggressive bob
+        // Chase: vertical bob + forward lean (rotation only, no position changes)
         const bobAmount = 0.08;
         const bobSpeed = 4.0;
         const bob = Math.sin(animationTime.current * bobSpeed) * bobAmount;
-        enemyRef.current.position.y = baseY + bob;
+        enemyRef.current.position.y = baseGroundY + bob;
         
-        // Lean forward (rotate around X axis)
+        // Lean forward (rotation only - additive, doesn't reset transform)
         enemyRef.current.rotation.x = -0.1; // Lean forward
         enemyRef.current.rotation.z = 0;
       } else if (currentState === 'attack') {
-        // Attack: small lunge forward when damage is applied
-        // Note: FSM doesn't move enemy in attack state, so we can safely apply lunge
-        if (prevStateRef.current !== 'attack') {
-          // Just entered attack state - store base position
-          attackBasePosition.current = enemyRef.current.position.clone();
-          attackLungeTimer.current = 0;
-        }
+        // Attack: REMOVED position.copy() and lunge movement
+        // Now only visual feedback: stronger forward lean or shake (rotation only)
+        // Position is NOT modified - EnemyBase FSM controls all movement
+        const bobAmount = 0.06;
+        const bobSpeed = 5.0;
+        const bob = Math.sin(animationTime.current * bobSpeed) * bobAmount;
+        enemyRef.current.position.y = baseGroundY + bob;
         
-        attackLungeTimer.current += delta;
-        
-        if (attackBasePosition.current && attackLungeTimer.current < 0.15) {
-          // Small forward lunge from base position
-          const lungeAmount = 0.1;
-          const playerPos = new THREE.Vector3(...playerPosition);
-          const direction = playerPos.clone().sub(attackBasePosition.current);
-          direction.y = 0;
-          if (direction.length() > 0.01) {
-            direction.normalize();
-            // Apply lunge (eased out, then reset)
-            const t = attackLungeTimer.current / 0.15;
-            if (t < 0.5) {
-              // Lunge forward
-              const eased = t * 2; // 0 to 1
-              const lunge = direction.multiplyScalar(lungeAmount * eased);
-              enemyRef.current.position.copy(attackBasePosition.current).add(lunge);
-            } else {
-              // Reset back
-              const eased = (t - 0.5) * 2; // 0 to 1
-              const reset = direction.multiplyScalar(-lungeAmount * (1 - eased));
-              enemyRef.current.position.copy(attackBasePosition.current).add(reset);
-            }
-          } else {
-            enemyRef.current.position.copy(attackBasePosition.current);
-          }
-        } else if (attackBasePosition.current) {
-          // Lunge complete - reset to base
-          enemyRef.current.position.copy(attackBasePosition.current);
-        }
-        
-        enemyRef.current.rotation.x = 0;
-        enemyRef.current.rotation.z = 0;
-        if (attackBasePosition.current) {
-          enemyRef.current.position.y = attackBasePosition.current.y;
-        } else {
-          enemyRef.current.position.y = baseY;
-        }
+        // Stronger forward lean or brief shake (rotation only)
+        const shakeAmount = 0.05;
+        const shakeSpeed = 10.0;
+        enemyRef.current.rotation.x = -0.15 + Math.sin(animationTime.current * shakeSpeed) * shakeAmount;
+        enemyRef.current.rotation.z = Math.sin(animationTime.current * shakeSpeed * 1.3) * shakeAmount * 0.5;
       } else {
-        // Idle: reset to base position
-        enemyRef.current.position.y = baseY;
+        // Idle: reset to base position and rotation
+        enemyRef.current.position.y = baseGroundY;
         enemyRef.current.rotation.x = 0;
         enemyRef.current.rotation.z = 0;
       }
