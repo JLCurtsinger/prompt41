@@ -94,6 +94,9 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   const attackLungeTimer = useRef<number>(0);
   const attackBasePosition = useRef<THREE.Vector3 | null>(null);
   
+  // Patrol index for manual movement across Zone 3 waypoints
+  const patrolIndexRef = useRef(0);
+  
   const { incrementEnemiesKilled, checkWinCondition } = useGameState();
 
   // Zone 3 (Conduit Hall) patrol points - hardcoded positions
@@ -112,8 +115,9 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   
   const detectionRadius = 6; // meters (smaller than Crawler)
   const attackRange = SHAMBLER_ATTACK_RANGE;
-  const moveSpeed = SHAMBLER_CHASE_SPEED;
-  const patrolSpeed = SHAMBLER_PATROL_SPEED;
+  // Movement is handled manually in EnemyShambler.useFrame.
+  const moveSpeed = 0;
+  const patrolSpeed = 0;
   const ATTACK_WIND_UP_TIME = 0.5; // seconds before attack logs
   const ATTACK_COOLDOWN = 1.2; // seconds between attacks
   const ATTACK_DAMAGE = 15; // Heavy damage
@@ -225,6 +229,32 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     // Get current state (reactive)
     const currentState = getCurrentState();
     
+    // --- Manual movement for Shambler (patrol + chase) ---
+    const enemyPos = enemyRef.current.position;
+    const playerPos = new THREE.Vector3(...playerPosition);
+    if (currentState === 'patrol' && patrolPoints.length > 0) {
+      const target = new THREE.Vector3(...patrolPoints[patrolIndexRef.current]);
+      const toTarget = target.clone().sub(enemyPos);
+      toTarget.y = 0; // Lock Y movement (project onto XZ plane)
+      const dist = toTarget.length();
+      if (dist > 0.05) {
+        toTarget.normalize().multiplyScalar(SHAMBLER_PATROL_SPEED * delta);
+        enemyPos.add(toTarget);
+      } else {
+        // Advance to the next patrol point
+        patrolIndexRef.current = (patrolIndexRef.current + 1) % patrolPoints.length;
+      }
+    } else if (currentState === 'chase') {
+      const toPlayer = playerPos.clone().sub(enemyPos);
+      toPlayer.y = 0; // Lock Y movement (project onto XZ plane)
+      const dist = toPlayer.length();
+      if (dist > 0.05) {
+        toPlayer.normalize().multiplyScalar(SHAMBLER_CHASE_SPEED * delta);
+        enemyPos.add(toPlayer);
+      }
+    }
+    // --- end manual movement ---
+    
     // Update registry (re-register with current position) - this ensures isDead closure is fresh
     const instance = {
       id: enemyId,
@@ -261,9 +291,9 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       console.log('[Shambler]', enemyId, 'state ->', currentState, 'distance:', distanceToPlayer.toFixed(1));
     }
     
-    // Visual animations only - movement comes from EnemyBase FSM
+    // Visual animations only - movement comes from manual movement block above
     // INTENTIONAL: We only adjust position.y for bob and rotation for visual feedback
-    // We do NOT write to position.x or position.z - those are controlled by EnemyBase
+    // We do NOT write to position.x or position.z - those are controlled by manual movement
     if (enemyRef.current) {
       const baseGroundY = initialPosition[1];
       

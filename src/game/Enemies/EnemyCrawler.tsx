@@ -59,6 +59,9 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   const isPausedAtWaypoint = useRef<boolean>(false);
   const lastWaypointIndex = useRef<number>(-1);
   const PATROL_PAUSE_DURATION = 1.5; // seconds to pause at each waypoint
+  
+  // Patrol state for manual movement between waypoints
+  const patrolIndexRef = useRef(0);
 
   // Crawler-specific stats: fast, low health
   // Movement speeds - tuned for visible movement in small level
@@ -68,8 +71,10 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   
   const detectionRadius = 8; // meters
   const attackRange = CRAWLER_ATTACK_RANGE;
-  const moveSpeed = CRAWLER_CHASE_SPEED;
-  const patrolSpeed = CRAWLER_PATROL_SPEED;
+  // Movement is now handled manually in EnemyCrawler.useFrame.
+  // EnemyBase is only used for state transitions and detection.
+  const moveSpeed = 0;
+  const patrolSpeed = 0;
 
   const handleStateChange = (newState: EnemyState, oldState: EnemyState) => {
     // Debug log state transitions
@@ -202,6 +207,32 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
     };
     registerEnemy(enemyId, instance);
     
+    // --- Manual movement for Crawler (patrol + chase) ---
+    const enemyPos = enemyRef.current.position;
+    const playerPos = new THREE.Vector3(...playerPosition);
+    if (currentState === 'patrol' && effectivePatrolPoints.length > 0 && !isPausedAtWaypoint.current) {
+      const target = new THREE.Vector3(...effectivePatrolPoints[patrolIndexRef.current]);
+      const toTarget = target.clone().sub(enemyPos);
+      toTarget.y = 0; // Lock Y movement (project onto XZ plane)
+      const dist = toTarget.length();
+      if (dist > 0.05) {
+        toTarget.normalize().multiplyScalar(CRAWLER_PATROL_SPEED * delta);
+        enemyPos.add(toTarget);
+      } else {
+        // Reached this waypoint, move to the next patrol point
+        patrolIndexRef.current = (patrolIndexRef.current + 1) % effectivePatrolPoints.length;
+      }
+    } else if (currentState === 'chase') {
+      const toPlayer = playerPos.clone().sub(enemyPos);
+      toPlayer.y = 0; // Lock Y movement (project onto XZ plane)
+      const dist = toPlayer.length();
+      if (dist > 0.05) {
+        toPlayer.normalize().multiplyScalar(CRAWLER_CHASE_SPEED * delta);
+        enemyPos.add(toPlayer);
+      }
+    }
+    // --- end manual movement ---
+    
     // Update animation time for bob/lean effects
     animationTime.current += delta;
     
@@ -220,9 +251,9 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
       }
     }
     
-    // Visual animations only - movement comes from EnemyBase FSM
+    // Visual animations only - movement comes from manual movement block above
     // INTENTIONAL: We only adjust position.y for bob and rotation for visual feedback
-    // We do NOT write to position.x or position.z - those are controlled by EnemyBase
+    // We do NOT write to position.x or position.z - those are controlled by manual movement
     if (enemyRef.current) {
       const baseGroundY = initialPosition[1];
       
