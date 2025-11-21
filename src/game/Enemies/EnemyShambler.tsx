@@ -28,6 +28,7 @@ import { useEnemyFSM, type EnemyState } from './EnemyBase';
 import { applyDamageToPlayer } from './enemyDamage';
 import { registerEnemy, unregisterEnemy } from './enemyRegistry';
 import { EnemyHealthBar } from './EnemyHealthBar';
+import { useGameState } from '../../state/gameState';
 import * as THREE from 'three';
 
 interface EnemyShamblerProps {
@@ -81,6 +82,19 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   const wasHitRef = useRef<boolean>(false);
   const hitFlashTimer = useRef<number>(0);
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null);
+  
+  // Death animation state
+  const deathTimer = useRef<number>(0);
+  const isDying = useRef<boolean>(false);
+  const hasUnregistered = useRef<boolean>(false);
+  const DEATH_DURATION = 0.6; // seconds
+  
+  // Animation state for bob/lean/lunge
+  const animationTime = useRef<number>(0);
+  const attackLungeTimer = useRef<number>(0);
+  const attackBasePosition = useRef<THREE.Vector3 | null>(null);
+  
+  const { incrementEnemiesKilled, checkWinCondition } = useGameState();
 
   // Zone 3 (Conduit Hall) patrol points - hardcoded positions
   // These form a small patrol in the corridor area
@@ -91,10 +105,15 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   ];
 
   // Shambler-specific stats: slow, heavy, jerky
+  // Movement speeds - slower than Crawler but still clearly visible
+  const SHAMBLER_PATROL_SPEED = 1.0; // units/sec - deliberate, slow
+  const SHAMBLER_CHASE_SPEED = 2.0; // units/sec - threatening but not fast
+  const SHAMBLER_ATTACK_RANGE = 2.5; // meters (slightly longer for heavy swing)
+  
   const detectionRadius = 6; // meters (smaller than Crawler)
-  const attackRange = 2.5; // meters (slightly longer for heavy swing)
-  const moveSpeed = 1.8; // Slow movement speed
-  const patrolSpeed = 1.5; // Even slower patrol speed
+  const attackRange = SHAMBLER_ATTACK_RANGE;
+  const moveSpeed = SHAMBLER_CHASE_SPEED;
+  const patrolSpeed = SHAMBLER_PATROL_SPEED;
   const ATTACK_WIND_UP_TIME = 0.5; // seconds before attack logs
   const ATTACK_COOLDOWN = 1.2; // seconds between attacks
   const ATTACK_DAMAGE = 15; // Heavy damage
@@ -173,7 +192,34 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   useFrame((_state, delta) => {
     if (!enemyRef.current || !isActivated) return;
     
-    // Stop all behavior if dead
+    // Handle death animation
+    if (isDead && !hasUnregistered.current) {
+      if (!isDying.current) {
+        isDying.current = true;
+        deathTimer.current = 0;
+        console.log('[Shambler]', enemyId, 'death sequence started');
+      }
+      
+      deathTimer.current += delta;
+      const deathProgress = Math.min(deathTimer.current / DEATH_DURATION, 1);
+      
+      // Scale down and sink into floor
+      const scale = 1 - deathProgress;
+      enemyRef.current.scale.set(scale, scale, scale);
+      enemyRef.current.position.y = initialPosition[1] - deathProgress * 0.5; // Sink into floor
+      
+      if (deathProgress >= 1 && !hasUnregistered.current) {
+        // Death animation complete - unregister and increment kill count
+        unregisterEnemy(enemyId);
+        incrementEnemiesKilled();
+        checkWinCondition();
+        hasUnregistered.current = true;
+        console.log('[Shambler]', enemyId, 'unregistered');
+      }
+      return; // Stop all other behavior during death
+    }
+    
+    // Stop all behavior if dead (after death animation)
     if (isDead) return;
 
     // Get current state (reactive)
@@ -191,6 +237,9 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
     };
     registerEnemy(enemyId, instance);
     
+    // Update animation time for bob/lean effects
+    animationTime.current += delta;
+    
     // Handle hit flash effect
     if (wasHitRef.current) {
       hitFlashTimer.current += delta;
@@ -206,9 +255,90 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       }
     }
 
-    // Log state changes for debugging
+    // Log state changes for debugging (concise)
     if (prevStateRef.current !== currentState) {
-      console.log('[Shambler]', enemyId, 'state ->', currentState);
+      const distanceToPlayer = enemyRef.current.position.distanceTo(new THREE.Vector3(...playerPosition));
+      console.log('[Shambler]', enemyId, 'state ->', currentState, 'distance:', distanceToPlayer.toFixed(1));
+    }
+    
+    // Simple animations based on state - applied to the visible group
+    if (enemyRef.current) {
+      const baseY = initialPosition[1];
+      
+      if (currentState === 'patrol') {
+        // Patrol: slight up-and-down bob (slower than Crawler)
+        const bobAmount = 0.06;
+        const bobSpeed = 2.0;
+        const bob = Math.sin(animationTime.current * bobSpeed) * bobAmount;
+        enemyRef.current.position.y = baseY + bob;
+        
+        // Tiny sway
+        const swayAmount = 0.03;
+        const swaySpeed = 1.5;
+        enemyRef.current.rotation.z = Math.sin(animationTime.current * swaySpeed) * swayAmount;
+      } else if (currentState === 'chase') {
+        // Chase: lean forward slightly and more aggressive bob
+        const bobAmount = 0.1;
+        const bobSpeed = 3.0;
+        const bob = Math.sin(animationTime.current * bobSpeed) * bobAmount;
+        enemyRef.current.position.y = baseY + bob;
+        
+        // Lean forward (rotate around X axis)
+        enemyRef.current.rotation.x = -0.15; // More lean than Crawler
+        enemyRef.current.rotation.z = 0;
+      } else if (currentState === 'attack') {
+        // Attack: small lunge forward when damage is applied
+        // Note: FSM doesn't move enemy in attack state, so we can safely apply lunge
+        if (prevStateRef.current !== 'attack') {
+          // Just entered attack state - store base position
+          attackBasePosition.current = enemyRef.current.position.clone();
+          attackLungeTimer.current = 0;
+        }
+        
+        attackLungeTimer.current += delta;
+        
+        if (attackBasePosition.current && attackLungeTimer.current < 0.2) {
+          // Small forward lunge from base position
+          const lungeAmount = 0.15;
+          const playerPos = new THREE.Vector3(...playerPosition);
+          const direction = playerPos.clone().sub(attackBasePosition.current);
+          direction.y = 0;
+          if (direction.length() > 0.01) {
+            direction.normalize();
+            // Apply lunge (eased out, then reset)
+            const t = attackLungeTimer.current / 0.2;
+            if (t < 0.5) {
+              // Lunge forward
+              const eased = t * 2; // 0 to 1
+              const lunge = direction.multiplyScalar(lungeAmount * eased);
+              enemyRef.current.position.copy(attackBasePosition.current).add(lunge);
+            } else {
+              // Reset back
+              const eased = (t - 0.5) * 2; // 0 to 1
+              const reset = direction.multiplyScalar(-lungeAmount * (1 - eased));
+              enemyRef.current.position.copy(attackBasePosition.current).add(reset);
+            }
+          } else {
+            enemyRef.current.position.copy(attackBasePosition.current);
+          }
+        } else if (attackBasePosition.current) {
+          // Lunge complete - reset to base
+          enemyRef.current.position.copy(attackBasePosition.current);
+        }
+        
+        enemyRef.current.rotation.x = 0;
+        enemyRef.current.rotation.z = 0;
+        if (attackBasePosition.current) {
+          enemyRef.current.position.y = attackBasePosition.current.y;
+        } else {
+          enemyRef.current.position.y = baseY;
+        }
+      } else {
+        // Idle: reset to base position
+        enemyRef.current.position.y = baseY;
+        enemyRef.current.rotation.x = 0;
+        enemyRef.current.rotation.z = 0;
+      }
     }
 
     // Handle attack wind-up delay and damage
@@ -229,9 +359,15 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       
       // Apply damage when wind-up completes and cooldown allows
       if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME && attackCooldownRef.current <= 0) {
-        applyDamageToPlayer(ATTACK_DAMAGE, 'Shambler');
-        attackCooldownRef.current = ATTACK_COOLDOWN;
-        console.log('[Shambler] Applied damage:', ATTACK_DAMAGE);
+        const distanceToPlayer = enemyRef.current.position.distanceTo(new THREE.Vector3(...playerPosition));
+        console.log('[Shambler] attackTriggered: distance=', distanceToPlayer.toFixed(2), 'range=', attackRange);
+        
+        if (distanceToPlayer <= attackRange) {
+          applyDamageToPlayer(ATTACK_DAMAGE, 'Shambler');
+          attackCooldownRef.current = ATTACK_COOLDOWN;
+          attackLungeTimer.current = 0; // Start lunge animation
+          console.log('[Shambler] Applied damage:', ATTACK_DAMAGE);
+        }
       }
     }
 

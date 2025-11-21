@@ -23,6 +23,7 @@ import { useEnemyFSM, type EnemyState } from './EnemyBase';
 import { applyDamageToPlayer } from './enemyDamage';
 import { registerEnemy, unregisterEnemy } from './enemyRegistry';
 import { EnemyHealthBar } from './EnemyHealthBar';
+import { useGameState } from '../../state/gameState';
 import * as THREE from 'three';
 
 interface EnemyCrawlerProps {
@@ -40,6 +41,19 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   const ATTACK_COOLDOWN = 0.8; // seconds
   const ATTACK_DAMAGE = 5;
   
+  // Death animation state
+  const deathTimer = useRef<number>(0);
+  const isDying = useRef<boolean>(false);
+  const hasUnregistered = useRef<boolean>(false);
+  const DEATH_DURATION = 0.5; // seconds
+  
+  // Animation state for bob/lean/lunge
+  const animationTime = useRef<number>(0);
+  const attackLungeTimer = useRef<number>(0);
+  const attackBasePosition = useRef<THREE.Vector3 | null>(null);
+  
+  const { incrementEnemiesKilled, checkWinCondition } = useGameState();
+  
   // Patrol pause state - tracks when we reach a waypoint and need to pause
   const patrolPauseTimer = useRef<number>(0);
   const isPausedAtWaypoint = useRef<boolean>(false);
@@ -47,10 +61,15 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   const PATROL_PAUSE_DURATION = 1.5; // seconds to pause at each waypoint
 
   // Crawler-specific stats: fast, low health
+  // Movement speeds - tuned for visible movement in small level
+  const CRAWLER_PATROL_SPEED = 1.5; // units/sec - visible but not too fast
+  const CRAWLER_CHASE_SPEED = 3.0; // units/sec - clearly closes distance
+  const CRAWLER_ATTACK_RANGE = 2.0; // meters
+  
   const detectionRadius = 8; // meters
-  const attackRange = 2; // meters
-  const moveSpeed = 5; // Fast movement speed
-  const patrolSpeed = 3; // Slightly slower patrol speed
+  const attackRange = CRAWLER_ATTACK_RANGE;
+  const moveSpeed = CRAWLER_CHASE_SPEED;
+  const patrolSpeed = CRAWLER_PATROL_SPEED;
 
   const handleStateChange = (newState: EnemyState, oldState: EnemyState) => {
     // Debug log state transitions
@@ -141,7 +160,34 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   useFrame((_state, delta) => {
     if (!enemyRef.current) return;
     
-    // Stop all behavior if dead
+    // Handle death animation
+    if (isDead && !hasUnregistered.current) {
+      if (!isDying.current) {
+        isDying.current = true;
+        deathTimer.current = 0;
+        console.log('[Crawler]', enemyId, 'death sequence started');
+      }
+      
+      deathTimer.current += delta;
+      const deathProgress = Math.min(deathTimer.current / DEATH_DURATION, 1);
+      
+      // Scale down and sink into floor
+      const scale = 1 - deathProgress;
+      enemyRef.current.scale.set(scale, scale, scale);
+      enemyRef.current.position.y = initialPosition[1] - deathProgress * 0.5; // Sink into floor
+      
+      if (deathProgress >= 1 && !hasUnregistered.current) {
+        // Death animation complete - unregister and increment kill count
+        unregisterEnemy(enemyId);
+        incrementEnemiesKilled();
+        checkWinCondition();
+        hasUnregistered.current = true;
+        console.log('[Crawler]', enemyId, 'unregistered');
+      }
+      return; // Stop all other behavior during death
+    }
+    
+    // Stop all behavior if dead (after death animation)
     if (isDead) return;
     
     // Update registry (re-register with current position) - this ensures isDead closure is fresh
@@ -156,6 +202,9 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
     };
     registerEnemy(enemyId, instance);
     
+    // Update animation time for bob/lean effects
+    animationTime.current += delta;
+    
     // Handle hit flash effect
     if (wasHitRef.current) {
       hitFlashTimer.current += delta;
@@ -168,6 +217,87 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
       } else if (materialRef.current) {
         // Flash white/red briefly
         materialRef.current.emissiveIntensity = 0.8;
+      }
+    }
+    
+    // Simple animations based on state - applied to the visible group
+    // These transform the entire enemy group that contains all meshes
+    if (enemyRef.current) {
+      const baseY = initialPosition[1];
+      
+      if (currentState === 'patrol') {
+        // Patrol: slight up-and-down bob
+        const bobAmount = 0.05;
+        const bobSpeed = 3.0;
+        const bob = Math.sin(animationTime.current * bobSpeed) * bobAmount;
+        enemyRef.current.position.y = baseY + bob;
+        
+        // Tiny sway
+        const swayAmount = 0.02;
+        const swaySpeed = 2.0;
+        enemyRef.current.rotation.z = Math.sin(animationTime.current * swaySpeed) * swayAmount;
+      } else if (currentState === 'chase') {
+        // Chase: lean forward slightly and more aggressive bob
+        const bobAmount = 0.08;
+        const bobSpeed = 4.0;
+        const bob = Math.sin(animationTime.current * bobSpeed) * bobAmount;
+        enemyRef.current.position.y = baseY + bob;
+        
+        // Lean forward (rotate around X axis)
+        enemyRef.current.rotation.x = -0.1; // Lean forward
+        enemyRef.current.rotation.z = 0;
+      } else if (currentState === 'attack') {
+        // Attack: small lunge forward when damage is applied
+        // Note: FSM doesn't move enemy in attack state, so we can safely apply lunge
+        if (prevStateRef.current !== 'attack') {
+          // Just entered attack state - store base position
+          attackBasePosition.current = enemyRef.current.position.clone();
+          attackLungeTimer.current = 0;
+        }
+        
+        attackLungeTimer.current += delta;
+        
+        if (attackBasePosition.current && attackLungeTimer.current < 0.15) {
+          // Small forward lunge from base position
+          const lungeAmount = 0.1;
+          const playerPos = new THREE.Vector3(...playerPosition);
+          const direction = playerPos.clone().sub(attackBasePosition.current);
+          direction.y = 0;
+          if (direction.length() > 0.01) {
+            direction.normalize();
+            // Apply lunge (eased out, then reset)
+            const t = attackLungeTimer.current / 0.15;
+            if (t < 0.5) {
+              // Lunge forward
+              const eased = t * 2; // 0 to 1
+              const lunge = direction.multiplyScalar(lungeAmount * eased);
+              enemyRef.current.position.copy(attackBasePosition.current).add(lunge);
+            } else {
+              // Reset back
+              const eased = (t - 0.5) * 2; // 0 to 1
+              const reset = direction.multiplyScalar(-lungeAmount * (1 - eased));
+              enemyRef.current.position.copy(attackBasePosition.current).add(reset);
+            }
+          } else {
+            enemyRef.current.position.copy(attackBasePosition.current);
+          }
+        } else if (attackBasePosition.current) {
+          // Lunge complete - reset to base
+          enemyRef.current.position.copy(attackBasePosition.current);
+        }
+        
+        enemyRef.current.rotation.x = 0;
+        enemyRef.current.rotation.z = 0;
+        if (attackBasePosition.current) {
+          enemyRef.current.position.y = attackBasePosition.current.y;
+        } else {
+          enemyRef.current.position.y = baseY;
+        }
+      } else {
+        // Idle: reset to base position
+        enemyRef.current.position.y = baseY;
+        enemyRef.current.rotation.x = 0;
+        enemyRef.current.rotation.z = 0;
       }
     }
     
@@ -236,6 +366,7 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
     if (currentState === 'attack' && attackCooldownRef.current <= 0 && !isDead) {
       applyDamageToPlayer(ATTACK_DAMAGE, 'Crawler');
       attackCooldownRef.current = ATTACK_COOLDOWN;
+      attackLungeTimer.current = 0; // Start lunge animation
     }
 
     // Reset cooldown when leaving attack state

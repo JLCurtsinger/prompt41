@@ -3,6 +3,7 @@ import { HUD } from './game/ui/HUD'
 import { EnemyHealthHUD } from './game/ui/EnemyHealthHUD'
 import { ScreenHitEffect } from './game/Effects/ScreenHitEffect'
 import { DeathOverlay } from './game/ui/DeathOverlay'
+import { VictoryOverlay } from './game/ui/VictoryOverlay'
 import { HostLog } from './game/ui/HostLog'
 import { ZoneLabel } from './game/ui/ZoneLabel'
 import { ScreenGlitch } from './game/Effects/ScreenGlitch'
@@ -27,6 +28,7 @@ function App() {
       <AudioSettings />
       <HackingOverlay />
       <DeathOverlay />
+      <VictoryOverlay />
     </div>
   )
 }

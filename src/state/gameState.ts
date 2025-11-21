@@ -138,6 +138,9 @@ interface GameState {
   hasCompletedLevel: boolean;
   isEnding: boolean;
   
+  // Enemy kill tracking
+  enemiesKilled: number;
+  
   // Host message bus
   hostMessages: HostMessage[];
   lastHostEvent: string | null;
@@ -227,6 +230,10 @@ interface GameState {
   
   // Target enemy actions
   setCurrentTargetEnemy: (enemyId: string | null, enemyName: string | null, health: number | null, maxHealth: number | null) => void;
+  
+  // Enemy kill tracking
+  incrementEnemiesKilled: () => void;
+  checkWinCondition: () => boolean;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -268,6 +275,9 @@ export const useGameState = create<GameState>((set, get) => ({
   isShuttingDown: false,
   hasCompletedLevel: false,
   isEnding: false,
+  
+  // Enemy kill tracking initial state
+  enemiesKilled: 0,
   
   // Host message bus initial state
   hostMessages: [],
@@ -366,6 +376,8 @@ export const useGameState = create<GameState>((set, get) => ({
       isShuttingDown: false,
       hasCompletedLevel: false,
       isEnding: false,
+      // Reset enemy kills
+      enemiesKilled: 0,
       isPaused: false,
       // Reset host messages
       hostMessages: [],
@@ -656,6 +668,28 @@ export const useGameState = create<GameState>((set, get) => ({
       currentTargetEnemyHealth: health,
       currentTargetEnemyMaxHealth: maxHealth,
     });
+  },
+  
+  // Enemy kill tracking
+  incrementEnemiesKilled: () => {
+    set((state) => {
+      const newCount = state.enemiesKilled + 1;
+      console.log(`[Game] Enemy killed. Total: ${newCount}`);
+      return { enemiesKilled: newCount };
+    });
+  },
+  
+  // Win condition check: enemiesKilled >= 3 OR all enemies dead
+  checkWinCondition: () => {
+    const state = get();
+    // For now, simple win condition: kill 3+ enemies
+    // Can be extended to check for all enemies dead or other objectives
+    const hasWon = state.enemiesKilled >= 3;
+    if (hasWon && !state.hasCompletedLevel) {
+      set({ hasCompletedLevel: true, isEnding: true });
+      console.log('[Game] Win condition met!');
+    }
+    return hasWon;
   },
 }));
 

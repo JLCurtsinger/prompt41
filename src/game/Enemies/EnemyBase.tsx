@@ -62,7 +62,6 @@ export function useEnemyFSM({
   const takeDamage = (amount: number): number => {
     if (isDead.current) return health.current; // Already dead, ignore damage
     
-    const healthBefore = health.current;
     health.current = Math.max(0, health.current - amount);
     const healthAfter = health.current;
     
