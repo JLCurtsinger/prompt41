@@ -33,6 +33,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState } from '../state/gameState';
 import { PLAYER_SPAWN_POSITION } from './LevelLayout';
 import { getEnemiesInRange, getAllEnemies } from './Enemies/enemyRegistry';
+import { BatonSFX, BatonSFXHandle } from './audio/BatonSFX';
 import * as THREE from 'three';
 
 interface PlayerProps {
@@ -42,13 +43,14 @@ interface PlayerProps {
 export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const playerRef = useRef<THREE.Group>(null);
   const batonRef = useRef<THREE.Group>(null);
+  const batonSfxRef = useRef<BatonSFXHandle | null>(null);
   const velocity = useRef(new THREE.Vector3());
   const direction = useRef(new THREE.Vector3());
   const isGrounded = useRef(true);
   const verticalVelocity = useRef(0);
   
   const { camera } = useThree();
-  const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding } = useGameState();
+  const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding, setBatonSfxRef } = useGameState();
   
   // Baton swing animation state
   const batonSwingTimeRef = useRef(0);
@@ -119,6 +121,11 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const VERTICAL_LIMIT = Math.PI / 3; // 60 degrees up/down
   const HORIZONTAL_ARROW_SPEED = 1.5; // radians per second
   const VERTICAL_ARROW_SPEED = 1.5; // radians per second
+  
+  // Register the SFX ref globally so attack logic can call it
+  useEffect(() => {
+    setBatonSfxRef(batonSfxRef);
+  }, [setBatonSfxRef]);
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -319,6 +326,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       batonIsSwingingRef.current = true;
       batonSwingTimeRef.current = 0;
       hasHitThisSwing.current = false; // Reset hit flag for new swing
+      
+      // Play swing audio
+      const sfx = batonSfxRef.current;
+      sfx?.playSwing();
       
       // Update enter key tracking
       if (enterJustPressed) {
@@ -650,6 +661,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         hitEnemy.takeDamage(BATON_DAMAGE);
         hasHitThisSwing.current = true; // Prevent multiple hits in one swing
         
+        // Play impact audio
+        const sfx = batonSfxRef.current;
+        sfx?.playImpact();
+        
         // Update target enemy for HUD (get health after damage)
         const currentHealth = hitEnemy.getHealth ? hitEnemy.getHealth() : (maxHealth - BATON_DAMAGE);
         setCurrentTargetEnemy(hitEnemy.id, enemyName, currentHealth, maxHealth);
@@ -734,28 +749,30 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         <meshStandardMaterial color="#00ffff" emissive="#00ffff" emissiveIntensity={1} />
       </mesh>
       {/* Shock Baton - wrapped in group for animation */}
-      <group ref={batonRef} position={[0.5, 1.1, 0.3]} rotation={[0, 0, -0.3]}>
-        {/* Baton blade - simple narrow box */}
-        <mesh position={[0, 0.1, 0]} castShadow>
-          <boxGeometry args={[0.08, 0.5, 0.08]} />
-          <meshStandardMaterial 
-            color="#4a4a4a" 
-            emissive="#00ffff" 
-            emissiveIntensity={0.6}
-            metalness={0.8}
-            roughness={0.2}
-          />
-        </mesh>
-        {/* Baton handle/grip */}
-        <mesh position={[0, -0.1, 0]} castShadow>
-          <boxGeometry args={[0.1, 0.2, 0.1]} />
-          <meshStandardMaterial 
-            color="#2a2a2a" 
-            metalness={0.3}
-            roughness={0.7}
-          />
-        </mesh>
-      </group>
+      <BatonSFX ref={batonSfxRef}>
+        <group ref={batonRef} position={[0.5, 1.1, 0.3]} rotation={[0, 0, -0.3]}>
+          {/* Baton blade - simple narrow box */}
+          <mesh position={[0, 0.1, 0]} castShadow>
+            <boxGeometry args={[0.08, 0.5, 0.08]} />
+            <meshStandardMaterial 
+              color="#4a4a4a" 
+              emissive="#00ffff" 
+              emissiveIntensity={0.6}
+              metalness={0.8}
+              roughness={0.2}
+            />
+          </mesh>
+          {/* Baton handle/grip */}
+          <mesh position={[0, -0.1, 0]} castShadow>
+            <boxGeometry args={[0.1, 0.2, 0.1]} />
+            <meshStandardMaterial 
+              color="#2a2a2a" 
+              metalness={0.3}
+              roughness={0.7}
+            />
+          </mesh>
+        </group>
+      </BatonSFX>
     </group>
   );
 }

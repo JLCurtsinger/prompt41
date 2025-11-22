@@ -107,9 +107,11 @@
 // 4. Reset Player:
 //    - Set a prompt, then call resetPlayer() -> prompt should be cleared
 
+import React from 'react';
 import { create } from 'zustand';
 import hostLinesData from '../assets/data/hostLines.json';
 import { AudioManager } from '../game/audio/AudioManager';
+import type { BatonSFXHandle } from '../game/audio/BatonSFX';
 
 interface HostMessage {
   id: string;
@@ -179,6 +181,9 @@ interface GameState {
   currentTargetEnemyHealth: number | null;
   currentTargetEnemyMaxHealth: number | null;
   
+  // Baton SFX ref
+  batonSfxRef?: React.RefObject<BatonSFXHandle | null>;
+  
   // Actions
   setPlayerHealth: (health: number) => void;
   setIsSwinging: (swinging: boolean) => void;
@@ -234,6 +239,9 @@ interface GameState {
   // Enemy kill tracking
   incrementEnemiesKilled: () => void;
   checkWinCondition: () => boolean;
+  
+  // Baton SFX actions
+  setBatonSfxRef: (ref: React.RefObject<BatonSFXHandle | null>) => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -316,6 +324,9 @@ export const useGameState = create<GameState>((set, get) => ({
   currentTargetEnemyName: null,
   currentTargetEnemyHealth: null,
   currentTargetEnemyMaxHealth: null,
+  
+  // Baton SFX ref initial state
+  batonSfxRef: undefined,
   
   // Actions
   setPlayerHealth: (health) => set({ playerHealth: health }),
@@ -691,5 +702,8 @@ export const useGameState = create<GameState>((set, get) => ({
     }
     return hasWon;
   },
+  
+  // Baton SFX actions
+  setBatonSfxRef: (ref) => set({ batonSfxRef: ref }),
 }));
 
