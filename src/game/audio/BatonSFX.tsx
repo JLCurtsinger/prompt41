@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import React, { forwardRef, useRef, useImperativeHandle, ReactNode } from 'react';
+import React, {
+  forwardRef,
+  useRef,
+  useImperativeHandle,
+} from 'react';
 import { PositionalAudio } from '@react-three/drei';
 
 export type BatonSFXHandle = {
@@ -7,47 +11,46 @@ export type BatonSFXHandle = {
   playImpact: () => void;
 };
 
-interface BatonSFXProps {
-  children?: ReactNode;
-}
+type BatonSFXProps = React.JSX.IntrinsicElements['group'];
 
-export const BatonSFX = forwardRef<BatonSFXHandle, BatonSFXProps>((props, ref) => {
-  const swingRef = useRef<THREE.PositionalAudio | null>(null);
-  const impactRef = useRef<THREE.PositionalAudio | null>(null);
+export const BatonSFX = forwardRef<BatonSFXHandle, BatonSFXProps>(
+  function BatonSFX(props, ref) {
+    const swingRef = useRef<THREE.PositionalAudio | null>(null);
+    const impactRef = useRef<THREE.PositionalAudio | null>(null);
 
-  useImperativeHandle(ref, () => ({
-    playSwing() {
-      const a = swingRef.current;
-      if (!a) return;
-      a.stop();
-      a.offset = 0;
-      a.play();
-    },
-    playImpact() {
-      const a = impactRef.current;
-      if (!a) return;
-      a.stop();
-      a.offset = 0;
-      a.play();
-    }
-  }));
+    useImperativeHandle(ref, () => ({
+      playSwing() {
+        const a = swingRef.current;
+        if (!a) return;
+        a.stop();
+        a.offset = 0;
+        a.play();
+      },
+      playImpact() {
+        const a = impactRef.current;
+        if (!a) return;
+        a.stop();
+        a.offset = 0;
+        a.play();
+      },
+    }));
 
-  return (
-    <group>
-      <PositionalAudio
-        ref={swingRef}
-        url="/audio/baton-swing.ogg"
-        distance={5}
-      />
-      <PositionalAudio
-        ref={impactRef}
-        url="/audio/baton-impact.ogg"
-        distance={5}
-      />
-      {props.children}
-    </group>
-  );
-});
+    return (
+      <group {...props}>
+        <PositionalAudio
+          ref={swingRef}
+          url="/audio/baton-swing.ogg"
+          distance={5}
+        />
+        <PositionalAudio
+          ref={impactRef}
+          url="/audio/baton-impact.ogg"
+          distance={5}
+        />
+        {props.children}
+      </group>
+    );
+  }
+);
 
 BatonSFX.displayName = 'BatonSFX';
-
