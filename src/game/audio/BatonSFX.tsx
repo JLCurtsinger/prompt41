@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import React, { forwardRef, useRef, useImperativeHandle } from 'react';
+import React, { forwardRef, useRef, useImperativeHandle, ReactNode } from 'react';
 import { PositionalAudio } from '@react-three/drei';
 
 export type BatonSFXHandle = {
@@ -7,7 +7,11 @@ export type BatonSFXHandle = {
   playImpact: () => void;
 };
 
-export const BatonSFX = forwardRef<BatonSFXHandle>((props, ref) => {
+interface BatonSFXProps {
+  children?: ReactNode;
+}
+
+export const BatonSFX = forwardRef<BatonSFXHandle, BatonSFXProps>((props, ref) => {
   const swingRef = useRef<THREE.PositionalAudio | null>(null);
   const impactRef = useRef<THREE.PositionalAudio | null>(null);
 
@@ -44,4 +48,6 @@ export const BatonSFX = forwardRef<BatonSFXHandle>((props, ref) => {
     </group>
   );
 });
+
+BatonSFX.displayName = 'BatonSFX';
 
