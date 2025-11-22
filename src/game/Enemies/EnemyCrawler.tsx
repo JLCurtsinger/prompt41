@@ -51,8 +51,6 @@ export function EnemyCrawler({
   const animationTimeRef = useRef(0);
   const wasHitRef = useRef(false);
   const hitFlashTimerRef = useRef(0);
-  // Debug logging timer (logs once per second)
-  const debugLogTimerRef = useRef(0);
 
   const enemyId = `crawler-${initialPosition.join('-')}`;
 
@@ -142,12 +140,6 @@ export function EnemyCrawler({
   useFrame((_state, delta) => {
     if (!enemyRef.current || hasFinishedDeathRef.current) return;
 
-    // TEMPORARY: brute-force movement test to detect external resets.
-    // Comment this out after testing.
-    enemyRef.current.position.x += 1 * delta;
-    console.log('[Crawler TEST MOVE]', enemyId, 'posX =', enemyRef.current.position.x);
-    return;
-
     // Death handling
     if (healthRef.current <= 0) {
       if (!isDyingRef.current) {
@@ -181,35 +173,6 @@ export function EnemyCrawler({
 
     const currentState = stateRef.current;
 
-    // Debug: log state, position, distance, and patrol target once per second
-    debugLogTimerRef.current += delta;
-    if (debugLogTimerRef.current >= 1) {
-      debugLogTimerRef.current = 0;
-      // Compute current patrol target if any
-      let patrolTarget: THREE.Vector3 | null = null;
-      if (patrolPoints.length > 0) {
-        const idx = patrolIndexRef.current;
-        const clampedIdx = Math.min(Math.max(idx, 0), patrolPoints.length - 1);
-        patrolTarget = new THREE.Vector3(...patrolPoints[clampedIdx]);
-      }
-      const pos = enemyRef.current.position;
-      console.log(
-        '[Crawler DEBUG]',
-        enemyId,
-        '| state =',
-        currentState,
-        '| pos =',
-        pos.x.toFixed(2),
-        pos.y.toFixed(2),
-        pos.z.toFixed(2),
-        '| playerDist =',
-        distanceToPlayer.toFixed(2),
-        patrolTarget
-          ? `| target = ${patrolTarget.x.toFixed(2)}, ${patrolTarget.y.toFixed(2)}, ${patrolTarget.z.toFixed(2)}`
-          : '| target = none',
-      );
-    }
-
     // FSM transitions + movement
     if (currentState === 'patrol') {
       if (distanceToPlayer <= DETECTION_RADIUS) {
@@ -234,27 +197,7 @@ export function EnemyCrawler({
         } else if (dist > 0.01) {
           dir.normalize();
           const movement = dir.multiplyScalar(PATROL_SPEED * delta);
-          const before = enemyRef.current.position.clone();
           enemyRef.current.position.add(movement);
-          const after = enemyRef.current.position;
-          console.log(
-            '[Crawler MOVE patrol]',
-            enemyId,
-            '| distToTarget =',
-            dist.toFixed(2),
-            '| before =',
-            before.x.toFixed(2),
-            before.y.toFixed(2),
-            before.z.toFixed(2),
-            '| movement =',
-            movement.x.toFixed(4),
-            movement.y.toFixed(4),
-            movement.z.toFixed(4),
-            '| after =',
-            after.x.toFixed(2),
-            after.y.toFixed(2),
-            after.z.toFixed(2),
-          );
         }
       }
     } else if (currentState === 'chase') {
@@ -285,27 +228,7 @@ export function EnemyCrawler({
         if (dist > 0.01) {
           dir.normalize();
           const movement = dir.multiplyScalar(CHASE_SPEED * delta);
-          const before = enemyRef.current.position.clone();
           enemyRef.current.position.add(movement);
-          const after = enemyRef.current.position;
-          console.log(
-            '[Crawler MOVE chase]',
-            enemyId,
-            '| distToPlayer =',
-            dist.toFixed(2),
-            '| before =',
-            before.x.toFixed(2),
-            before.y.toFixed(2),
-            before.z.toFixed(2),
-            '| movement =',
-            movement.x.toFixed(4),
-            movement.y.toFixed(4),
-            movement.z.toFixed(4),
-            '| after =',
-            after.x.toFixed(2),
-            after.y.toFixed(2),
-            after.z.toFixed(2),
-          );
         }
       }
     } else if (currentState === 'attack') {
