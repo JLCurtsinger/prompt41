@@ -142,6 +142,12 @@ export function EnemyCrawler({
   useFrame((_state, delta) => {
     if (!enemyRef.current || hasFinishedDeathRef.current) return;
 
+    // TEMPORARY: brute-force movement test to detect external resets.
+    // Comment this out after testing.
+    enemyRef.current.position.x += 1 * delta;
+    console.log('[Crawler TEST MOVE]', enemyId, 'posX =', enemyRef.current.position.x);
+    return;
+
     // Death handling
     if (healthRef.current <= 0) {
       if (!isDyingRef.current) {
@@ -228,7 +234,27 @@ export function EnemyCrawler({
         } else if (dist > 0.01) {
           dir.normalize();
           const movement = dir.multiplyScalar(PATROL_SPEED * delta);
+          const before = enemyRef.current.position.clone();
           enemyRef.current.position.add(movement);
+          const after = enemyRef.current.position;
+          console.log(
+            '[Crawler MOVE patrol]',
+            enemyId,
+            '| distToTarget =',
+            dist.toFixed(2),
+            '| before =',
+            before.x.toFixed(2),
+            before.y.toFixed(2),
+            before.z.toFixed(2),
+            '| movement =',
+            movement.x.toFixed(4),
+            movement.y.toFixed(4),
+            movement.z.toFixed(4),
+            '| after =',
+            after.x.toFixed(2),
+            after.y.toFixed(2),
+            after.z.toFixed(2),
+          );
         }
       }
     } else if (currentState === 'chase') {
@@ -259,7 +285,27 @@ export function EnemyCrawler({
         if (dist > 0.01) {
           dir.normalize();
           const movement = dir.multiplyScalar(CHASE_SPEED * delta);
+          const before = enemyRef.current.position.clone();
           enemyRef.current.position.add(movement);
+          const after = enemyRef.current.position;
+          console.log(
+            '[Crawler MOVE chase]',
+            enemyId,
+            '| distToPlayer =',
+            dist.toFixed(2),
+            '| before =',
+            before.x.toFixed(2),
+            before.y.toFixed(2),
+            before.z.toFixed(2),
+            '| movement =',
+            movement.x.toFixed(4),
+            movement.y.toFixed(4),
+            movement.z.toFixed(4),
+            '| after =',
+            after.x.toFixed(2),
+            after.y.toFixed(2),
+            after.z.toFixed(2),
+          );
         }
       }
     } else if (currentState === 'attack') {
