@@ -33,7 +33,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState } from '../state/gameState';
 import { PLAYER_SPAWN_POSITION } from './LevelLayout';
 import { getEnemiesInRange, getAllEnemies } from './Enemies/enemyRegistry';
-import { BatonSFX, BatonSFXHandle } from './audio/BatonSFX';
+import { BatonSFX } from './audio/BatonSFX';
+import type { BatonSFXHandle } from './audio/BatonSFX';
 import * as THREE from 'three';
 
 interface PlayerProps {
