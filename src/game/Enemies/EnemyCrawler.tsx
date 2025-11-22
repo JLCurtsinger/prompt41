@@ -1,30 +1,26 @@
-// TEST PLAN (Crawler Zombot)
+// TEST PLAN (Crawler Zombot - Standalone Version)
 // 1. Spawn:
-//    - Should spawn at initial position in Zone 2
-//    - Should start in patrol state if patrol points are provided
+//    - Spawns at initialPosition in Zone 2
 // 2. Patrol:
-//    - Should move between 2-3 patrol points in Zone 2
-//    - Console should log: "Crawler: state -> patrol"
+//    - Moves between provided patrolPoints in Zone 2
+//    - Logs state transitions in console
 // 3. Detection:
-//    - When player enters detection radius, should log: "Crawler: state -> chase"
-//    - Should start moving toward player
+//    - When player enters detection radius, logs "state -> chase" and moves toward player
 // 4. Attack:
-//    - When player is within attack range, should log: "Crawler: state -> attack"
-//    - Should log: "Crawler: ATTACK" when in attack state
-//    - Should apply 5 damage to player with 0.8s cooldown between attacks
-//    - Console should show: "Damage: -5 from Crawler -> current HP: XX"
+//    - When within attack range, logs "ATTACK" and applies 5 damage with 0.8s cooldown
 // 5. Return to Patrol:
-//    - When player leaves detection radius, should return to patrol
-//    - Should log state transitions appropriately
+//    - When player leaves detection radius, returns to patrol and resumes waypoint loop
 
 import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useEnemyFSM, type EnemyState } from './EnemyBase';
+import * as THREE from 'three';
+
+import { EnemyHealthBar } from './EnemyHealthBar';
 import { applyDamageToPlayer } from './enemyDamage';
 import { registerEnemy, unregisterEnemy } from './enemyRegistry';
-import { EnemyHealthBar } from './EnemyHealthBar';
 import { useGameState } from '../../state/gameState';
-import * as THREE from 'three';
+
+type CrawlerState = 'idle' | 'patrol' | 'chase' | 'attack';
 
 interface EnemyCrawlerProps {
   initialPosition: [number, number, number];
@@ -37,92 +33,84 @@ export function EnemyCrawler({
   playerPosition,
   patrolPoints = [],
 }: EnemyCrawlerProps) {
-  const enemyId = `crawler-${initialPosition.join('-')}`;
-
-  const prevStateRef = useRef<EnemyState | null>(null);
-  const attackCooldownRef = useRef(0);
-  const wasHitRef = useRef(false);
-  const hitFlashTimer = useRef(0);
+  const enemyRef = useRef<THREE.Group>(null);
   const materialRef = useRef<THREE.MeshStandardMaterial | null>(null);
 
-  // simple death handling
-  const deathTimer = useRef(0);
-  const hasStartedDying = useRef(false);
-  const hasFinishedDeath = useRef(false);
-  const DEATH_DURATION = 0.5;
+  const stateRef = useRef<CrawlerState>('idle');
+  const patrolIndexRef = useRef(0);
 
-  const animationTime = useRef(0);
+  const attackCooldownRef = useRef(0);
+  const prevStateRef = useRef<CrawlerState>('idle');
+
+  const healthRef = useRef(50);
+  const maxHealth = 50;
+  const deathTimerRef = useRef(0);
+  const isDyingRef = useRef(false);
+  const hasFinishedDeathRef = useRef(false);
+
+  const animationTimeRef = useRef(0);
+  const wasHitRef = useRef(false);
+  const hitFlashTimerRef = useRef(0);
+
+  const enemyId = `crawler-${initialPosition.join('-')}`;
 
   const { incrementEnemiesKilled, checkWinCondition } = useGameState();
 
-  // Crawler stats
+  // Constants tuned for visibility
+  const DETECTION_RADIUS = 8;
+  const ATTACK_RANGE = 2;
+  const PATROL_SPEED = 1.5;
+  const CHASE_SPEED = 3.0;
   const ATTACK_COOLDOWN = 0.8;
   const ATTACK_DAMAGE = 5;
+  const PATROL_PAUSE_DURATION = 1.5;
+  const DEATH_DURATION = 0.5;
 
-  const CRAWLER_PATROL_SPEED = 1.5;
-  const CRAWLER_CHASE_SPEED = 3.0;
-  const CRAWLER_ATTACK_RANGE = 2.0;
-  const DETECTION_RADIUS = 8;
+  const patrolPauseTimerRef = useRef(0);
+  const isPausedAtWaypointRef = useRef(false);
 
-  const handleStateChange = (newState: EnemyState, oldState: EnemyState) => {
-    if (newState !== oldState) {
-      console.log('[Crawler]', enemyId, 'state ->', newState);
+  // Initial state based on whether patrol points exist
+  useEffect(() => {
+    if (patrolPoints.length > 0) {
+      stateRef.current = 'patrol';
+      patrolIndexRef.current = 0;
+      console.log('[Crawler]', enemyId, 'state -> patrol (init)');
+    } else {
+      stateRef.current = 'idle';
+      console.log('[Crawler]', enemyId, 'state -> idle (no patrol points)');
     }
-  };
+  }, [enemyId, patrolPoints.length]);
 
-  // NOTE: we now ONLY use EnemyBase for FSM + movement.
-  const {
-    enemyRef,
-    getCurrentState,
-    getHealth,
-    health,
-    maxHealth,
-    takeDamage,
-    updateFSM,
-  } = useEnemyFSM({
-    initialPosition,
-    patrolPoints,
-    detectionRadius: DETECTION_RADIUS,
-    attackRange: CRAWLER_ATTACK_RANGE,
-    playerPosition,
-    moveSpeed: CRAWLER_CHASE_SPEED,
-    patrolSpeed: CRAWLER_PATROL_SPEED,
-    onStateChange: handleStateChange,
-    maxHealth: 50,
-    enemyId,
-  });
-
-  // Wrap takeDamage to trigger hit flash + logging
-  const wrappedTakeDamageRef = useRef<(amount: number) => void>(() => {});
-
+  // Set initial position
   useEffect(() => {
-    wrappedTakeDamageRef.current = (amount: number) => {
-      const healthAfter = takeDamage(amount);
-      wasHitRef.current = true;
-      hitFlashTimer.current = 0;
-      console.log(
-        '[Combat] Baton hit enemy',
-        enemyId,
-        'for',
-        amount,
-        '=> hp:',
-        healthAfter,
-        '/',
-        maxHealth,
-      );
-    };
-  }, [takeDamage, enemyId, maxHealth]);
+    if (enemyRef.current) {
+      enemyRef.current.position.set(...initialPosition);
+    }
+  }, [initialPosition]);
 
-  // Register enemy once for melee hit detection
+  // Register with enemyRegistry for baton hits / HUD
   useEffect(() => {
-    if (!enemyRef.current) return;
-
     const instance = {
       id: enemyId,
       getPosition: () => enemyRef.current?.position.clone() ?? new THREE.Vector3(),
-      takeDamage: (amount: number) => wrappedTakeDamageRef.current(amount),
-      isDead: () => getHealth() <= 0,
-      getHealth: () => getHealth(),
+      takeDamage: (amount: number) => {
+        const before = healthRef.current;
+        healthRef.current = Math.max(0, before - amount);
+        wasHitRef.current = true;
+        hitFlashTimerRef.current = 0;
+        console.log(
+          '[Combat] Baton hit Crawler',
+          enemyId,
+          'for',
+          amount,
+          '=> hp:',
+          healthRef.current,
+          '/',
+          maxHealth,
+        );
+      },
+      isDead: () => healthRef.current <= 0,
+      getHealth: () => healthRef.current,
       getMaxHealth: () => maxHealth,
       getEnemyName: () => 'Crawler',
     };
@@ -132,42 +120,43 @@ export function EnemyCrawler({
     return () => {
       unregisterEnemy(enemyId);
     };
-  }, [enemyId, enemyRef, getHealth, maxHealth]);
+  }, [enemyId, maxHealth]);
 
-  // Ensure initial position
-  useEffect(() => {
-    if (enemyRef.current) {
-      enemyRef.current.position.set(...initialPosition);
-    }
-  }, [initialPosition, enemyRef]);
+  // State transition helper with logging
+  const setState = (nextState: CrawlerState, debugInfo?: string) => {
+    const prev = stateRef.current;
+    if (prev === nextState) return;
+    stateRef.current = nextState;
+    console.log(
+      '[Crawler]',
+      enemyId,
+      'state ->',
+      nextState,
+      debugInfo ? `(${debugInfo})` : '',
+    );
+  };
 
+  // Main behavior loop
   useFrame((_state, delta) => {
-    if (!enemyRef.current || hasFinishedDeath.current) return;
+    if (!enemyRef.current || hasFinishedDeathRef.current) return;
 
-    // Run shared FSM: handles PATROL / CHASE / ATTACK movement
-    updateFSM(delta);
-
-    const currentState = getCurrentState();
-    const currentHealth = getHealth();
-    const isDead = currentHealth <= 0;
-
-    // --- Death animation + cleanup ---
-    if (isDead) {
-      if (!hasStartedDying.current) {
-        hasStartedDying.current = true;
-        deathTimer.current = 0;
+    // Death handling
+    if (healthRef.current <= 0) {
+      if (!isDyingRef.current) {
+        isDyingRef.current = true;
+        deathTimerRef.current = 0;
         console.log('[Crawler]', enemyId, 'death sequence started');
       }
 
-      deathTimer.current += delta;
-      const t = Math.min(deathTimer.current / DEATH_DURATION, 1);
-      const scale = 1 - t;
+      deathTimerRef.current += delta;
+      const t = Math.min(deathTimerRef.current / DEATH_DURATION, 1);
 
+      const scale = 1 - t;
       enemyRef.current.scale.set(scale, scale, scale);
       enemyRef.current.position.y = initialPosition[1] - t * 0.5;
 
-      if (t >= 1 && !hasFinishedDeath.current) {
-        hasFinishedDeath.current = true;
+      if (t >= 1 && !hasFinishedDeathRef.current) {
+        hasFinishedDeathRef.current = true;
         unregisterEnemy(enemyId);
         incrementEnemiesKilled();
         checkWinCondition();
@@ -177,57 +166,104 @@ export function EnemyCrawler({
       return;
     }
 
-    // Track state transitions purely for logs
-    if (prevStateRef.current !== currentState) {
-      prevStateRef.current = currentState;
-    }
+    // Compute positions
+    const enemyPos = enemyRef.current.position.clone();
+    const playerPos = new THREE.Vector3(...playerPosition);
+    const distanceToPlayer = enemyPos.distanceTo(playerPos);
 
-    // --- Attack damage with cooldown ---
-    if (attackCooldownRef.current > 0) {
-      attackCooldownRef.current -= delta;
-    }
+    const currentState = stateRef.current;
 
-    if (currentState === 'attack' && attackCooldownRef.current <= 0) {
-      applyDamageToPlayer(ATTACK_DAMAGE, 'Crawler');
-      attackCooldownRef.current = ATTACK_COOLDOWN;
-    }
+    // FSM transitions + movement
+    if (currentState === 'patrol') {
+      if (distanceToPlayer <= DETECTION_RADIUS) {
+        setState('chase', `distance: ${distanceToPlayer.toFixed(2)}`);
+      } else if (patrolPoints.length > 0 && !isPausedAtWaypointRef.current) {
+        const target = new THREE.Vector3(...patrolPoints[patrolIndexRef.current]);
+        const dir = target.clone().sub(enemyPos);
+        dir.y = 0;
+        const dist = dir.length();
 
-    // --- Visual animation only (bob/lean) ---
-    animationTime.current += delta;
-    const baseY = initialPosition[1];
-
-    if (enemyRef.current) {
-      const t = animationTime.current;
-
-      if (currentState === 'patrol') {
-        const bob = Math.sin(t * 3.0) * 0.05;
-        enemyRef.current.position.y = baseY + bob;
-        enemyRef.current.rotation.x = 0;
-        enemyRef.current.rotation.z = Math.sin(t * 2.0) * 0.02;
-      } else if (currentState === 'chase') {
-        const bob = Math.sin(t * 4.0) * 0.08;
-        enemyRef.current.position.y = baseY + bob;
-        enemyRef.current.rotation.x = -0.1;
-        enemyRef.current.rotation.z = 0;
-      } else if (currentState === 'attack') {
-        const bob = Math.sin(t * 5.0) * 0.06;
-        const shake = Math.sin(t * 10.0) * 0.05;
-        enemyRef.current.position.y = baseY + bob;
-        enemyRef.current.rotation.x = -0.15 + shake;
-        enemyRef.current.rotation.z = Math.sin(t * 13.0) * 0.025;
+        if (dist < 0.5) {
+          // Reached waypoint
+          patrolPauseTimerRef.current = 0;
+          isPausedAtWaypointRef.current = true;
+          patrolIndexRef.current = (patrolIndexRef.current + 1) % patrolPoints.length;
+          console.log(
+            '[Crawler]',
+            enemyId,
+            'reached waypoint, next index =',
+            patrolIndexRef.current,
+          );
+        } else if (dist > 0.01) {
+          dir.normalize();
+          const movement = dir.multiplyScalar(PATROL_SPEED * delta);
+          enemyRef.current.position.add(movement);
+        }
+      }
+    } else if (currentState === 'chase') {
+      if (distanceToPlayer <= ATTACK_RANGE) {
+        setState('attack', `distance: ${distanceToPlayer.toFixed(2)}`);
+      } else if (distanceToPlayer > DETECTION_RADIUS * 1.5) {
+        if (patrolPoints.length > 0) {
+          // Return to nearest patrol point
+          let nearestIndex = 0;
+          let nearestDist = Infinity;
+          patrolPoints.forEach((p, i) => {
+            const d = enemyPos.distanceTo(new THREE.Vector3(...p));
+            if (d < nearestDist) {
+              nearestDist = d;
+              nearestIndex = i;
+            }
+          });
+          patrolIndexRef.current = nearestIndex;
+          setState('patrol', 'player lost, returning to patrol');
+        } else {
+          setState('idle', 'player lost, no patrol');
+        }
       } else {
-        enemyRef.current.position.y = baseY;
-        enemyRef.current.rotation.x = 0;
-        enemyRef.current.rotation.z = 0;
+        // Move toward player
+        const dir = playerPos.clone().sub(enemyPos);
+        dir.y = 0;
+        const dist = dir.length();
+        if (dist > 0.01) {
+          dir.normalize();
+          const movement = dir.multiplyScalar(CHASE_SPEED * delta);
+          enemyRef.current.position.add(movement);
+        }
+      }
+    } else if (currentState === 'attack') {
+      if (distanceToPlayer > ATTACK_RANGE) {
+        if (distanceToPlayer <= DETECTION_RADIUS) {
+          setState('chase', `distance: ${distanceToPlayer.toFixed(2)}`);
+        } else if (patrolPoints.length > 0) {
+          setState('patrol', 'player left detection, back to patrol');
+        } else {
+          setState('idle', 'player left detection, idle');
+        }
+      }
+    } else if (currentState === 'idle') {
+      if (patrolPoints.length > 0) {
+        setState('patrol', 'patrol points available');
+      } else if (distanceToPlayer <= DETECTION_RADIUS) {
+        setState('chase', `idle->chase distance: ${distanceToPlayer.toFixed(2)}`);
       }
     }
 
-    // --- Hit flash emissive pulse ---
+    // Patrol pause timer
+    if (isPausedAtWaypointRef.current) {
+      patrolPauseTimerRef.current += delta;
+      if (patrolPauseTimerRef.current >= PATROL_PAUSE_DURATION) {
+        isPausedAtWaypointRef.current = false;
+        patrolPauseTimerRef.current = 0;
+      }
+    }
+
+    // Hit flash
     if (wasHitRef.current) {
-      hitFlashTimer.current += delta;
-      if (hitFlashTimer.current > 0.1) {
+      hitFlashTimerRef.current += delta;
+      if (hitFlashTimerRef.current > 0.1) {
         wasHitRef.current = false;
-        hitFlashTimer.current = 0;
+        hitFlashTimerRef.current = 0;
         if (materialRef.current) {
           materialRef.current.emissiveIntensity = 0.3;
         }
@@ -235,13 +271,57 @@ export function EnemyCrawler({
         materialRef.current.emissiveIntensity = 0.8;
       }
     }
+
+    // Simple visual animation based on state
+    animationTimeRef.current += delta;
+    const baseY = initialPosition[1];
+
+    if (currentState === 'patrol') {
+      const bob = Math.sin(animationTimeRef.current * 3) * 0.05;
+      enemyRef.current.position.y = baseY + bob;
+      enemyRef.current.rotation.z = Math.sin(animationTimeRef.current * 2) * 0.02;
+      enemyRef.current.rotation.x = 0;
+    } else if (currentState === 'chase') {
+      const bob = Math.sin(animationTimeRef.current * 4) * 0.08;
+      enemyRef.current.position.y = baseY + bob;
+      enemyRef.current.rotation.x = -0.1;
+      enemyRef.current.rotation.z = 0;
+    } else if (currentState === 'attack') {
+      const bob = Math.sin(animationTimeRef.current * 5) * 0.06;
+      const shake = Math.sin(animationTimeRef.current * 10) * 0.05;
+      enemyRef.current.position.y = baseY + bob;
+      enemyRef.current.rotation.x = -0.15 + shake;
+      enemyRef.current.rotation.z = shake * 0.5;
+    } else {
+      enemyRef.current.position.y = baseY;
+      enemyRef.current.rotation.x = 0;
+      enemyRef.current.rotation.z = 0;
+    }
+
+    // Attack cooldown
+    if (attackCooldownRef.current > 0) {
+      attackCooldownRef.current -= delta;
+    }
+
+    if (stateRef.current === 'attack' && attackCooldownRef.current <= 0) {
+      console.log('[Crawler]', enemyId, 'ATTACK');
+      applyDamageToPlayer(ATTACK_DAMAGE, 'Crawler');
+      attackCooldownRef.current = ATTACK_COOLDOWN;
+    }
+
+    // Track previous state to reset cooldown if needed later
+    prevStateRef.current = stateRef.current;
   });
 
   return (
     <group ref={enemyRef}>
-      <EnemyHealthBar health={health} maxHealth={maxHealth} getHealth={getHealth} />
+      <EnemyHealthBar
+        health={healthRef.current}
+        maxHealth={maxHealth}
+        getHealth={() => healthRef.current}
+      />
 
-      {/* Body */}
+      {/* Placeholder crawler body */}
       <mesh position={[0, 0.3, 0]} castShadow>
         <boxGeometry args={[0.8, 0.4, 1.2]} />
         <meshStandardMaterial
@@ -252,7 +332,6 @@ export function EnemyCrawler({
         />
       </mesh>
 
-      {/* Core / head */}
       <mesh position={[0, 0.4, 0.5]} castShadow>
         <sphereGeometry args={[0.25, 8, 8]} />
         <meshStandardMaterial
@@ -262,7 +341,6 @@ export function EnemyCrawler({
         />
       </mesh>
 
-      {/* Legs */}
       <mesh position={[-0.4, 0.1, -0.3]} castShadow>
         <boxGeometry args={[0.15, 0.2, 0.4]} />
         <meshStandardMaterial color="#1a1a1a" />
