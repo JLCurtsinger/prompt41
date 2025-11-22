@@ -57,6 +57,10 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   const isPausedAtWaypoint = useRef<boolean>(false);
   const lastWaypointIndex = useRef<number>(-1);
   const PATROL_PAUSE_DURATION = 1.5; // seconds to pause at each waypoint
+  
+  // Local FSM state refs - we control our own state machine
+  const fsmStateRef = useRef<EnemyState>('idle');
+  const patrolIndexRef = useRef(0);
 
   // Crawler-specific stats: fast, low health
   // Movement speeds - tuned for visible movement in small level
@@ -69,25 +73,22 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   const moveSpeed = CRAWLER_CHASE_SPEED;
   const patrolSpeed = CRAWLER_PATROL_SPEED;
 
+  const enemyId = `crawler-${initialPosition.join('-')}`;
+  
+  // Use provided patrolPoints or empty array (for crawlers without patrol)
+  const effectivePatrolPoints = patrolPoints || [];
+
   const handleStateChange = (newState: EnemyState, oldState: EnemyState) => {
-    // Debug log state transitions
-    if (newState !== oldState) {
-      console.log('[Crawler]', enemyId, 'state ->', newState);
-    }
-    
     // Reset pause timer when entering patrol
     if (newState === 'patrol' && oldState !== 'patrol') {
       isPausedAtWaypoint.current = false;
       patrolPauseTimer.current = 0;
     }
+    // Note: Debug logging is done in the FSM transition blocks with distance info
   };
-
-  const enemyId = `crawler-${initialPosition.join('-')}`;
   
-  // Use provided patrolPoints or empty array (for crawlers without patrol)
-  const effectivePatrolPoints = patrolPoints || [];
-  
-  const { enemyRef, currentState, health, maxHealth, isDead, takeDamage, getHealth, updateFSM } = useEnemyFSM({
+  // Only use EnemyBase for health/death, not FSM state or movement
+  const { enemyRef, health, maxHealth, isDead, takeDamage, getHealth } = useEnemyFSM({
     initialPosition,
     patrolPoints: effectivePatrolPoints,
     detectionRadius,
@@ -100,6 +101,16 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
     enemyId,
     isPatrolPaused: () => isPausedAtWaypoint.current, // Helper to pause patrol movement
   });
+  
+  // Initialize local FSM state based on patrol points
+  useEffect(() => {
+    if (effectivePatrolPoints.length > 0) {
+      fsmStateRef.current = 'patrol';
+      patrolIndexRef.current = 0;
+    } else {
+      fsmStateRef.current = 'idle';
+    }
+  }, [effectivePatrolPoints.length]);
   
   // Wrap takeDamage to add hit flash and logging
   const wrappedTakeDamage = useRef((amount: number) => {
@@ -140,12 +151,7 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
     };
   }, [enemyId, isDead, getHealth, maxHealth]);
 
-  // Track state changes for logging
-  useEffect(() => {
-    if (prevStateRef.current !== currentState) {
-      prevStateRef.current = currentState;
-    }
-  }, [currentState]);
+  // State tracking is now handled inside useFrame with fsmStateRef
 
   // Set initial position
   useEffect(() => {
@@ -154,12 +160,9 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
     }
   }, [initialPosition, enemyRef]);
 
-  // Handle attack damage with cooldown, patrol pause, and chase return logic
+  // Self-contained FSM and movement logic
   useFrame((_state, delta) => {
     if (!enemyRef.current) return;
-    
-    // Update FSM and movement - this drives patrol/chase/attack state transitions and movement
-    updateFSM(delta);
     
     // Handle death animation
     if (isDead && !hasUnregistered.current) {
@@ -203,6 +206,134 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
     };
     registerEnemy(enemyId, instance);
     
+    // Compute positions for FSM logic
+    const enemyPos = enemyRef.current.position.clone();
+    const playerPos = new THREE.Vector3(...playerPosition);
+    const distanceToPlayer = enemyPos.distanceTo(playerPos);
+    
+    // Track previous state for transitions
+    const oldState = fsmStateRef.current;
+    
+    // FSM state transitions
+    if (fsmStateRef.current === 'patrol') {
+      if (distanceToPlayer <= detectionRadius) {
+        // Player detected, transition to chase
+        fsmStateRef.current = 'chase';
+        handleStateChange('chase', oldState);
+        // Debug log state transition
+        console.log(`[Crawler] ${enemyId} state -> chase (distance: ${distanceToPlayer.toFixed(2)})`);
+      } else {
+        // Continue patrolling
+        if (effectivePatrolPoints.length > 0 && !isPausedAtWaypoint.current) {
+          const targetWaypoint = new THREE.Vector3(...effectivePatrolPoints[patrolIndexRef.current]);
+          const direction = targetWaypoint.clone().sub(enemyPos);
+          direction.y = 0; // Lock Y movement (project onto XZ plane)
+          const distance = direction.length();
+          
+          if (distance < 0.5) {
+            // Reached waypoint, record which one we reached, then advance to next
+            const reachedIndex = patrolIndexRef.current;
+            patrolIndexRef.current = (patrolIndexRef.current + 1) % effectivePatrolPoints.length;
+            isPausedAtWaypoint.current = true;
+            patrolPauseTimer.current = 0;
+            lastWaypointIndex.current = reachedIndex;
+            console.log('[Crawler]', enemyId, 'reached waypoint', reachedIndex);
+          } else if (distance > 0.01) {
+            // Move toward waypoint
+            direction.normalize();
+            const movement = direction.multiplyScalar(patrolSpeed * delta);
+            enemyRef.current.position.add(movement);
+          }
+        }
+      }
+    } else if (fsmStateRef.current === 'chase') {
+      if (distanceToPlayer <= attackRange) {
+        // Player in attack range, transition to attack
+        fsmStateRef.current = 'attack';
+        handleStateChange('attack', oldState);
+        console.log(`[Crawler] ${enemyId} state -> attack (distance: ${distanceToPlayer.toFixed(2)})`);
+      } else if (distanceToPlayer > detectionRadius * 1.5) {
+        // Player ran away, return to patrol
+        if (effectivePatrolPoints.length > 0) {
+          fsmStateRef.current = 'patrol';
+          handleStateChange('patrol', oldState);
+          // Find nearest patrol point
+          let nearestIndex = 0;
+          let nearestDistance = Infinity;
+          effectivePatrolPoints.forEach((point, index) => {
+            const dist = enemyPos.distanceTo(new THREE.Vector3(...point));
+            if (dist < nearestDistance) {
+              nearestDistance = dist;
+              nearestIndex = index;
+            }
+          });
+          patrolIndexRef.current = nearestIndex;
+          console.log(`[Crawler] ${enemyId} state -> patrol (distance: ${distanceToPlayer.toFixed(2)})`);
+        } else {
+          fsmStateRef.current = 'idle';
+          handleStateChange('idle', oldState);
+        }
+      } else {
+        // Continue chasing - move toward player
+        const direction = playerPos.clone().sub(enemyPos);
+        direction.y = 0; // Lock Y movement (project onto XZ plane)
+        const distance = direction.length();
+        if (distance > 0.01) {
+          direction.normalize();
+          const movement = direction.multiplyScalar(moveSpeed * delta);
+          enemyRef.current.position.add(movement);
+        }
+      }
+    } else if (fsmStateRef.current === 'attack') {
+      // Do not move in attack state
+      if (distanceToPlayer > attackRange) {
+        if (distanceToPlayer <= detectionRadius) {
+          // Still in detection range, go back to chase
+          fsmStateRef.current = 'chase';
+          handleStateChange('chase', oldState);
+          console.log(`[Crawler] ${enemyId} state -> chase (distance: ${distanceToPlayer.toFixed(2)})`);
+        } else {
+          // Player left detection radius
+          if (effectivePatrolPoints.length > 0) {
+            fsmStateRef.current = 'patrol';
+            handleStateChange('patrol', oldState);
+            // Find nearest patrol point
+            let nearestIndex = 0;
+            let nearestDistance = Infinity;
+            effectivePatrolPoints.forEach((point, index) => {
+              const dist = enemyPos.distanceTo(new THREE.Vector3(...point));
+              if (dist < nearestDistance) {
+                nearestDistance = dist;
+                nearestIndex = index;
+              }
+            });
+            patrolIndexRef.current = nearestIndex;
+            console.log(`[Crawler] ${enemyId} state -> patrol (distance: ${distanceToPlayer.toFixed(2)})`);
+          } else {
+            fsmStateRef.current = 'idle';
+            handleStateChange('idle', oldState);
+          }
+        }
+      }
+    } else if (fsmStateRef.current === 'idle') {
+      // Idle state - no movement
+      if (effectivePatrolPoints.length > 0) {
+        // Transition to patrol if patrol points are available
+        fsmStateRef.current = 'patrol';
+        handleStateChange('patrol', oldState);
+        patrolIndexRef.current = 0;
+      }
+    }
+    
+    // Handle patrol pause timer
+    if (isPausedAtWaypoint.current) {
+      patrolPauseTimer.current += delta;
+      if (patrolPauseTimer.current >= PATROL_PAUSE_DURATION) {
+        isPausedAtWaypoint.current = false;
+        patrolPauseTimer.current = 0;
+      }
+    }
+    
     // Update animation time for bob/lean effects
     animationTime.current += delta;
     
@@ -221,13 +352,12 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
       }
     }
     
-    // Visual animations only - movement comes from EnemyBase FSM
-    // INTENTIONAL: We only adjust position.y for bob and rotation for visual feedback
-    // We do NOT write to position.x or position.z - those are controlled by EnemyBase
+    // Visual animations only - we only adjust position.y for bob and rotation for visual feedback
+    // We do NOT write to position.x or position.z here - those are controlled by the FSM movement above
     if (enemyRef.current) {
       const baseGroundY = initialPosition[1];
       
-      if (currentState === 'patrol') {
+      if (fsmStateRef.current === 'patrol') {
         // Patrol: slight vertical bob only (no X/Z movement)
         const bobAmount = 0.05;
         const bobSpeed = 3.0;
@@ -239,7 +369,7 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
         const swaySpeed = 2.0;
         enemyRef.current.rotation.z = Math.sin(animationTime.current * swaySpeed) * swayAmount;
         enemyRef.current.rotation.x = 0;
-      } else if (currentState === 'chase') {
+      } else if (fsmStateRef.current === 'chase') {
         // Chase: vertical bob + forward lean (rotation only, no position changes)
         const bobAmount = 0.08;
         const bobSpeed = 4.0;
@@ -249,10 +379,8 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
         // Lean forward (rotation only - additive, doesn't reset transform)
         enemyRef.current.rotation.x = -0.1; // Lean forward
         enemyRef.current.rotation.z = 0;
-      } else if (currentState === 'attack') {
-        // Attack: REMOVED position.copy() and lunge movement
-        // Now only visual feedback: stronger forward lean or shake (rotation only)
-        // Position is NOT modified - EnemyBase FSM controls all movement
+      } else if (fsmStateRef.current === 'attack') {
+        // Attack: visual feedback only - stronger forward lean or shake (rotation only)
         const bobAmount = 0.06;
         const bobSpeed = 5.0;
         const bob = Math.sin(animationTime.current * bobSpeed) * bobAmount;
@@ -271,73 +399,25 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
       }
     }
     
-    // Handle patrol pause logic (only for crawlers with patrol points)
-    // This uses EnemyBase's position to detect waypoint proximity, but does NOT move the enemy
-    if (currentState === 'patrol' && effectivePatrolPoints.length > 0 && enemyRef.current) {
-      // Check if we've reached a waypoint (using the same threshold as EnemyBase)
-      const waypointThreshold = 0.5;
-      let currentWaypointIndex = -1;
-      let minDistance = Infinity;
-      
-      effectivePatrolPoints.forEach((point, index) => {
-        const waypointPos = new THREE.Vector3(...point);
-        const distance = enemyRef.current!.position.distanceTo(waypointPos);
-        if (distance < minDistance) {
-          minDistance = distance;
-          currentWaypointIndex = index;
-        }
-      });
-      
-      // If we're close to a waypoint and not already paused, start pause
-      if (minDistance < waypointThreshold && !isPausedAtWaypoint.current) {
-        if (currentWaypointIndex !== lastWaypointIndex.current) {
-          // Reached a new waypoint
-          isPausedAtWaypoint.current = true;
-          patrolPauseTimer.current = 0;
-          lastWaypointIndex.current = currentWaypointIndex;
-          console.log('[Crawler]', enemyId, 'reached waypoint', currentWaypointIndex);
-        }
-      }
-      
-      // Handle pause timer
-      if (isPausedAtWaypoint.current) {
-        patrolPauseTimer.current += delta;
-        if (patrolPauseTimer.current >= PATROL_PAUSE_DURATION) {
-          // Pause complete, resume patrolling
-          isPausedAtWaypoint.current = false;
-          patrolPauseTimer.current = 0;
-        } else {
-          // Still pausing - prevent movement by not letting EnemyBase move
-          // We can't directly stop EnemyBase's movement, but we can note that we're paused
-          // The EnemyBase will continue to try to move, but we'll override it if needed
-        }
-      }
-    } else {
-      // Not in patrol, reset pause state
-      isPausedAtWaypoint.current = false;
-      patrolPauseTimer.current = 0;
-    }
-    
     // Update cooldown timer
     if (attackCooldownRef.current > 0) {
       attackCooldownRef.current -= delta;
     }
 
     // Apply damage when in attack state and cooldown is ready (only if not dead)
-    if (currentState === 'attack' && attackCooldownRef.current <= 0 && !isDead) {
+    if (fsmStateRef.current === 'attack' && attackCooldownRef.current <= 0 && !isDead) {
       applyDamageToPlayer(ATTACK_DAMAGE, 'Crawler');
       attackCooldownRef.current = ATTACK_COOLDOWN;
-      // Note: attackLungeTimer was referenced but not declared - removed to prevent crash
     }
 
     // Reset cooldown when leaving attack state
-    if (prevStateRef.current === 'attack' && currentState !== 'attack') {
+    if (prevStateRef.current === 'attack' && fsmStateRef.current !== 'attack') {
       attackCooldownRef.current = 0;
     }
     
-    // Track previous state for logging
-    if (prevStateRef.current !== currentState) {
-      prevStateRef.current = currentState;
+    // Track previous state for next frame
+    if (prevStateRef.current !== fsmStateRef.current) {
+      prevStateRef.current = fsmStateRef.current;
     }
   });
 
