@@ -29,6 +29,9 @@ import { ZoneAudioController } from './audio/ZoneAudioController';
 import { useGameState } from '../state/gameState';
 import * as THREE from 'three';
 
+// DEBUG: Toggle world debug helpers visibility
+const DEBUG_SHOW_WORLD_HELPERS = true;
+
 // Loot and pickup positions (easily adjustable for future GLB integration)
 const LOOT_CRATE_ZONE2_POSITION: [number, number, number] = [2, 0, -3]; // Zone 2 (Processing Yard)
 const ENERGY_CELL_ZONE3_POSITION: [number, number, number] = [15, 0.5, -2]; // Zone 3 (Conduit Hall)
@@ -147,6 +150,21 @@ export function GameScene() {
         {/* Camera is controlled by Player component's useFrame hook */}
         <PerspectiveCamera makeDefault position={[0, 2, 5]} fov={75} />
         
+        {/* DEBUG: World origin marker */}
+        {DEBUG_SHOW_WORLD_HELPERS && (
+          <group name="debug_world_origin">
+            <axesHelper args={[2]} />
+            <mesh position={[0, 0, 0]}>
+              <boxGeometry args={[0.2, 0.2, 0.2]} />
+              <meshStandardMaterial
+                color="#ff00ff"
+                emissive="#ff00ff"
+                emissiveIntensity={1}
+              />
+            </mesh>
+          </group>
+        )}
+        
         {/* Level layout with all four zones */}
         <LevelLayout />
         
@@ -159,11 +177,6 @@ export function GameScene() {
         
         {/* Enemy: Crawler Zombot in Zone 2 (Processing Yard) */}
         {/* TODO: This should be the first Crawler encounter from the design doc - add reveal micro-cutscene */}
-        {/*
-          Debug note:
-          - crawlerPatrolPoints defines the intended patrol loop in Zone 2.
-          - We also render small emissive spheres at each point to visualize them.
-        */}
         {(() => {
           const crawlerPatrolPoints: [number, number, number][] = [
             [-3, 0, 2],   // Near machinery block (northwest)
@@ -171,24 +184,11 @@ export function GameScene() {
             [0, 0, -6],   // Near terminal area (south)
           ];
           return (
-            <>
-              <EnemyCrawler
-                initialPosition={[0, 0, 0]}
-                playerPosition={playerPosition}
-                patrolPoints={crawlerPatrolPoints}
-              />
-              {/* DEBUG: visualize Crawler patrol points */}
-              {crawlerPatrolPoints.map((p, index) => (
-                <mesh key={`crawler-patrol-${index}`} position={p}>
-                  <sphereGeometry args={[0.2, 8, 8]} />
-                  <meshStandardMaterial
-                    color="#00ff00"
-                    emissive="#00ff00"
-                    emissiveIntensity={1}
-                  />
-                </mesh>
-              ))}
-            </>
+            <EnemyCrawler
+              initialPosition={[0, 0, 0]}
+              playerPosition={playerPosition}
+              patrolPoints={crawlerPatrolPoints}
+            />
           );
         })()}
         
@@ -347,6 +347,37 @@ export function GameScene() {
         
         {/* Simple grid helper for reference */}
         <gridHelper args={[100, 50, '#333', '#222']} />
+        
+        {/* DEBUG: Zone 2 patrol area visualization */}
+        {DEBUG_SHOW_WORLD_HELPERS && (
+          <group name="debug_zone2_patrol_area">
+            {/* Zone 2 approximate bounds (roughly -10 to 10 on X, -10 to 5 on Z) */}
+            <mesh
+              position={[0, 0.01, -2]}
+              rotation={[-Math.PI / 2, 0, 0]}
+              receiveShadow={false}
+            >
+              <planeGeometry args={[20, 15]} />
+              <meshStandardMaterial
+                color="#00ff00"
+                emissive="#00ff00"
+                emissiveIntensity={0.1}
+                transparent
+                opacity={0.2}
+                side={THREE.DoubleSide}
+              />
+            </mesh>
+            {/* Player spawn position marker */}
+            <mesh position={[...PLAYER_SPAWN_POSITION]}>
+              <boxGeometry args={[0.3, 0.3, 0.3]} />
+              <meshStandardMaterial
+                color="#0000ff"
+                emissive="#0000ff"
+                emissiveIntensity={0.8}
+              />
+            </mesh>
+          </group>
+        )}
       </Suspense>
     </Canvas>
     </>
