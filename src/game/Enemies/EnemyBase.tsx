@@ -16,7 +16,6 @@
 //    - Should transition to patrol if player leaves detection radius
 
 import { useRef, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 export type EnemyState = 'idle' | 'patrol' | 'chase' | 'attack';
@@ -93,8 +92,8 @@ export function useEnemyFSM({
     return enemyPos.distanceTo(playerPos);
   };
 
-  // State transition logic
-  useFrame((_state, delta) => {
+  // FSM update function - runs all FSM logic and movement updates
+  const updateFSM = (delta: number): void => {
     if (!enemyRef.current) return;
     
     // Early return if dead - stop all AI behavior
@@ -147,7 +146,7 @@ export function useEnemyFSM({
         }
         break;
 
-      case 'chase':
+      case 'chase': {
         // Check if player is within attack range (with small buffer for hysteresis)
         // Use slightly smaller threshold when entering attack to prevent rapid bouncing
         const attackThreshold = attackRange * 0.95; // 5% buffer
@@ -193,6 +192,7 @@ export function useEnemyFSM({
           }
         }
         break;
+      }
 
       case 'attack':
         // Check if player moved out of attack range (use full range when leaving to prevent rapid re-entry)
@@ -232,7 +232,7 @@ export function useEnemyFSM({
         onStateChange(newState, oldState);
       }
     }
-  });
+  };
 
   // Return state getter function to ensure we always get current value
   return {
@@ -244,6 +244,7 @@ export function useEnemyFSM({
     maxHealth,
     isDead: isDead.current,
     takeDamage,
+    updateFSM, // Expose updateFSM function for per-enemy useFrame calls
   };
 }
 

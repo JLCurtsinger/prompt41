@@ -83,7 +83,7 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
     }
   };
   
-  const { enemyRef, getCurrentState, health, maxHealth, isDead, takeDamage, getHealth } = useEnemyFSM({
+  const { enemyRef, getCurrentState, health, maxHealth, isDead, takeDamage, getHealth, updateFSM } = useEnemyFSM({
     initialPosition,
     patrolPoints: isActivated ? patrolPoints : [], // Only patrol if activated
     detectionRadius,
@@ -147,6 +147,9 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
   // Handle attack wind-up and damage
   useFrame((_state, delta) => {
     if (!enemyRef.current || !isActivated) return;
+    
+    // Update FSM and movement - this drives patrol/chase/attack state transitions and movement
+    updateFSM(delta);
     
     // Stop all behavior if dead
     if (isDead) return;

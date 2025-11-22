@@ -134,7 +134,7 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
 
   const enemyId = `shambler-${initialPosition.join('-')}`;
   
-  const { enemyRef, getCurrentState, health, maxHealth, isDead, takeDamage, getHealth } = useEnemyFSM({
+  const { enemyRef, getCurrentState, health, maxHealth, isDead, takeDamage, getHealth, updateFSM } = useEnemyFSM({
     initialPosition,
     patrolPoints: isActivated ? patrolPoints : [], // Only patrol if activated
     detectionRadius,
@@ -190,6 +190,9 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
   // NOTE: Movement during chase/patrol is handled by the base FSM (EnemyBase.tsx)
   useFrame((_state, delta) => {
     if (!enemyRef.current || !isActivated) return;
+    
+    // Update FSM and movement - this drives patrol/chase/attack state transitions and movement
+    updateFSM(delta);
     
     // Handle death animation
     if (isDead && !hasUnregistered.current) {

@@ -87,7 +87,7 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   // Use provided patrolPoints or empty array (for crawlers without patrol)
   const effectivePatrolPoints = patrolPoints || [];
   
-  const { enemyRef, currentState, health, maxHealth, isDead, takeDamage, getHealth } = useEnemyFSM({
+  const { enemyRef, currentState, health, maxHealth, isDead, takeDamage, getHealth, updateFSM } = useEnemyFSM({
     initialPosition,
     patrolPoints: effectivePatrolPoints,
     detectionRadius,
@@ -157,6 +157,9 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
   // Handle attack damage with cooldown, patrol pause, and chase return logic
   useFrame((_state, delta) => {
     if (!enemyRef.current) return;
+    
+    // Update FSM and movement - this drives patrol/chase/attack state transitions and movement
+    updateFSM(delta);
     
     // Handle death animation
     if (isDead && !hasUnregistered.current) {
@@ -324,7 +327,7 @@ export function EnemyCrawler({ initialPosition, playerPosition, patrolPoints }: 
     if (currentState === 'attack' && attackCooldownRef.current <= 0 && !isDead) {
       applyDamageToPlayer(ATTACK_DAMAGE, 'Crawler');
       attackCooldownRef.current = ATTACK_COOLDOWN;
-      attackLungeTimer.current = 0; // Start lunge animation
+      // Note: attackLungeTimer was referenced but not declared - removed to prevent crash
     }
 
     // Reset cooldown when leaving attack state
