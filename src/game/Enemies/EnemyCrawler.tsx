@@ -51,6 +51,8 @@ export function EnemyCrawler({
   const animationTimeRef = useRef(0);
   const wasHitRef = useRef(false);
   const hitFlashTimerRef = useRef(0);
+  // Debug logging timer (logs once per second)
+  const debugLogTimerRef = useRef(0);
 
   const enemyId = `crawler-${initialPosition.join('-')}`;
 
@@ -172,6 +174,35 @@ export function EnemyCrawler({
     const distanceToPlayer = enemyPos.distanceTo(playerPos);
 
     const currentState = stateRef.current;
+
+    // Debug: log state, position, distance, and patrol target once per second
+    debugLogTimerRef.current += delta;
+    if (debugLogTimerRef.current >= 1) {
+      debugLogTimerRef.current = 0;
+      // Compute current patrol target if any
+      let patrolTarget: THREE.Vector3 | null = null;
+      if (patrolPoints.length > 0) {
+        const idx = patrolIndexRef.current;
+        const clampedIdx = Math.min(Math.max(idx, 0), patrolPoints.length - 1);
+        patrolTarget = new THREE.Vector3(...patrolPoints[clampedIdx]);
+      }
+      const pos = enemyRef.current.position;
+      console.log(
+        '[Crawler DEBUG]',
+        enemyId,
+        '| state =',
+        currentState,
+        '| pos =',
+        pos.x.toFixed(2),
+        pos.y.toFixed(2),
+        pos.z.toFixed(2),
+        '| playerDist =',
+        distanceToPlayer.toFixed(2),
+        patrolTarget
+          ? `| target = ${patrolTarget.x.toFixed(2)}, ${patrolTarget.y.toFixed(2)}, ${patrolTarget.z.toFixed(2)}`
+          : '| target = none',
+      );
+    }
 
     // FSM transitions + movement
     if (currentState === 'patrol') {

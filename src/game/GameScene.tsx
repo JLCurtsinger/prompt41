@@ -159,15 +159,38 @@ export function GameScene() {
         
         {/* Enemy: Crawler Zombot in Zone 2 (Processing Yard) */}
         {/* TODO: This should be the first Crawler encounter from the design doc - add reveal micro-cutscene */}
-        <EnemyCrawler 
-          initialPosition={[0, 0, 0]} 
-          playerPosition={playerPosition}
-          patrolPoints={[
+        {/*
+          Debug note:
+          - crawlerPatrolPoints defines the intended patrol loop in Zone 2.
+          - We also render small emissive spheres at each point to visualize them.
+        */}
+        {(() => {
+          const crawlerPatrolPoints: [number, number, number][] = [
             [-3, 0, 2],   // Near machinery block (northwest)
             [3, 0, -2],   // Near another machinery block (southeast)
             [0, 0, -6],   // Near terminal area (south)
-          ]}
-        />
+          ];
+          return (
+            <>
+              <EnemyCrawler
+                initialPosition={[0, 0, 0]}
+                playerPosition={playerPosition}
+                patrolPoints={crawlerPatrolPoints}
+              />
+              {/* DEBUG: visualize Crawler patrol points */}
+              {crawlerPatrolPoints.map((p, index) => (
+                <mesh key={`crawler-patrol-${index}`} position={p}>
+                  <sphereGeometry args={[0.2, 8, 8]} />
+                  <meshStandardMaterial
+                    color="#00ff00"
+                    emissive="#00ff00"
+                    emissiveIntensity={1}
+                  />
+                </mesh>
+              ))}
+            </>
+          );
+        })()}
         
         {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}
         {/* Shambler starts idle until activated by trigger volume */}
