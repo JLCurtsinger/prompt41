@@ -183,6 +183,16 @@ export function EnemyCrawler({
 
     const currentState = stateRef.current;
 
+    // DEBUG: Force linear motion test
+    const DEBUG_FORCE_LINEAR_MOTION = false;
+    if (DEBUG_FORCE_LINEAR_MOTION) {
+      // Force obviously visible motion in +X regardless of FSM
+      if (enemyRef.current) {
+        enemyRef.current.position.x += 2 * delta;
+      }
+      return;
+    }
+
     // DEBUG: Update chase target for visualization (only show when chasing)
     if (DEBUG_SHOW_CRAWLER_HELPERS) {
       if (currentState === 'chase') {
@@ -235,6 +245,13 @@ export function EnemyCrawler({
         } else if (dist > 0.01) {
           dir.normalize();
           const movement = dir.multiplyScalar(PATROL_SPEED * delta);
+          if (movement.lengthSq() > 0.000001) {
+            console.log('[Crawler MOVE] patrol step', {
+              posBefore: enemyRef.current.position.clone(),
+              movement: movement.clone(),
+              posAfter: enemyRef.current.position.clone().add(movement),
+            });
+          }
           enemyRef.current.position.add(movement);
         }
       }
@@ -266,6 +283,13 @@ export function EnemyCrawler({
         if (dist > 0.01) {
           dir.normalize();
           const movement = dir.multiplyScalar(CHASE_SPEED * delta);
+          if (movement.lengthSq() > 0.000001) {
+            console.log('[Crawler MOVE] chase step', {
+              posBefore: enemyRef.current.position.clone(),
+              movement: movement.clone(),
+              posAfter: enemyRef.current.position.clone().add(movement),
+            });
+          }
           enemyRef.current.position.add(movement);
         }
       }
