@@ -243,16 +243,48 @@ export function EnemyCrawler({
             patrolIndexRef.current,
           );
         } else if (dist > 0.01) {
-          dir.normalize();
-          const movement = dir.multiplyScalar(PATROL_SPEED * delta);
-          if (movement.lengthSq() > 0.000001) {
+          // --- PATROL MOVEMENT (simplified and explicit) ---
+          const position = enemyRef.current.position;
+          const posBefore = position.clone();
+          const patrolTarget = new THREE.Vector3(...patrolPoints[patrolIndexRef.current]);
+          // Direction from current position to patrol target
+          const direction = new THREE.Vector3().subVectors(patrolTarget, position);
+          direction.y = 0;
+          const distance = direction.length();
+          if (distance > 0.01) {
+            direction.normalize();
+            const maxStep = PATROL_SPEED * delta;
+            const step = Math.min(maxStep, distance);
+            const movement = direction.multiplyScalar(step);
+            position.add(movement);
+            const worldAfter = new THREE.Vector3();
+            enemyRef.current.getWorldPosition(worldAfter);
             console.log('[Crawler MOVE] patrol step', {
-              posBefore: enemyRef.current.position.clone(),
-              movement: movement.clone(),
-              posAfter: enemyRef.current.position.clone().add(movement),
+              local: {
+                before: {
+                  x: posBefore.x.toFixed(2),
+                  y: posBefore.y.toFixed(2),
+                  z: posBefore.z.toFixed(2),
+                },
+                movement: {
+                  x: movement.x.toFixed(4),
+                  y: movement.y.toFixed(4),
+                  z: movement.z.toFixed(4),
+                },
+                after: {
+                  x: position.x.toFixed(2),
+                  y: position.y.toFixed(2),
+                  z: position.z.toFixed(2),
+                },
+              },
+              worldAfter: {
+                x: worldAfter.x.toFixed(2),
+                y: worldAfter.y.toFixed(2),
+                z: worldAfter.z.toFixed(2),
+              },
             });
           }
-          enemyRef.current.position.add(movement);
+          // --- END PATROL MOVEMENT ---
         }
       }
     } else if (currentState === 'chase') {
@@ -276,45 +308,47 @@ export function EnemyCrawler({
           setState('idle', 'player lost, no patrol');
         }
       } else {
-        // Move toward player
-        const dir = playerPos.clone().sub(enemyPos);
-        dir.y = 0;
-        const dist = dir.length();
-        if (dist > 0.01) {
-          dir.normalize();
-          const movement = dir.multiplyScalar(CHASE_SPEED * delta);
-          if (movement.lengthSq() > 0.000001) {
-            const posBefore = enemyRef.current.position.clone();
-            const posAfter = posBefore.clone().add(movement);
-            const worldPosBefore = new THREE.Vector3();
-            enemyRef.current.getWorldPosition(worldPosBefore);
-            console.log('[Crawler MOVE] chase step', {
-              local: {
-                before: {
-                  x: posBefore.x.toFixed(2),
-                  y: posBefore.y.toFixed(2),
-                  z: posBefore.z.toFixed(2),
-                },
-                movement: {
-                  x: movement.x.toFixed(4),
-                  y: movement.y.toFixed(4),
-                  z: movement.z.toFixed(4),
-                },
-                after: {
-                  x: posAfter.x.toFixed(2),
-                  y: posAfter.y.toFixed(2),
-                  z: posAfter.z.toFixed(2),
-                },
+        // --- CHASE MOVEMENT (simplified and explicit) ---
+        const position = enemyRef.current.position;
+        const posBefore = position.clone();
+        // playerPos should already be computed earlier in the update; if not, use getPlayerPosition()
+        const direction = new THREE.Vector3().subVectors(playerPos, position);
+        direction.y = 0;
+        const distance = direction.length();
+        if (distance > 0.01) {
+          direction.normalize();
+          const maxStep = CHASE_SPEED * delta;
+          const step = Math.min(maxStep, distance);
+          const movement = direction.multiplyScalar(step);
+          position.add(movement);
+          const worldAfter = new THREE.Vector3();
+          enemyRef.current.getWorldPosition(worldAfter);
+          console.log('[Crawler MOVE] chase step', {
+            local: {
+              before: {
+                x: posBefore.x.toFixed(2),
+                y: posBefore.y.toFixed(2),
+                z: posBefore.z.toFixed(2),
               },
-              worldBefore: {
-                x: worldPosBefore.x.toFixed(2),
-                y: worldPosBefore.y.toFixed(2),
-                z: worldPosBefore.z.toFixed(2),
+              movement: {
+                x: movement.x.toFixed(4),
+                y: movement.y.toFixed(4),
+                z: movement.z.toFixed(4),
               },
-            });
-          }
-          enemyRef.current.position.add(movement);
+              after: {
+                x: position.x.toFixed(2),
+                y: position.y.toFixed(2),
+                z: position.z.toFixed(2),
+              },
+            },
+            worldAfter: {
+              x: worldAfter.x.toFixed(2),
+              y: worldAfter.y.toFixed(2),
+              z: worldAfter.z.toFixed(2),
+            },
+          });
         }
+        // --- END CHASE MOVEMENT ---
       }
     } else if (currentState === 'attack') {
       if (distanceToPlayer > ATTACK_RANGE) {
