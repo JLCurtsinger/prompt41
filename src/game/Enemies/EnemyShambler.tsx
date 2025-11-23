@@ -316,28 +316,33 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       }
     }
 
+    // Calculate distance to player (same pattern as SimpleCrawler)
+    const enemyWorldPos = new THREE.Vector3();
+    enemyRef.current.getWorldPosition(enemyWorldPos);
+    const playerPosVec = new THREE.Vector3(playerPosition[0], playerPosition[1], playerPosition[2]);
+    const distanceToPlayer = enemyWorldPos.distanceTo(playerPosVec);
+
+    // Attack cooldown timer (runs every frame, same pattern as SimpleCrawler)
+    if (attackCooldownRef.current > 0) {
+      attackCooldownRef.current -= delta;
+    }
+
     // Handle attack wind-up delay and damage
     // IMPORTANT: In attack state, enemy should NOT move (base FSM already stops movement)
     // Only attack if not dead
     if (currentState === 'attack' && !isDead) {
       attackWindUpTimer.current += delta;
       
-      // Update attack cooldown
-      if (attackCooldownRef.current > 0) {
-        attackCooldownRef.current -= delta;
-      }
-      
       if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME && !hasLoggedAttack.current) {
         hasLoggedAttack.current = true;
         console.log('[Shambler] HEAVY ATTACK');
       }
       
-      // Apply damage when wind-up completes and cooldown allows
-      if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME && attackCooldownRef.current <= 0) {
-        const distanceToPlayer = enemyRef.current.position.distanceTo(new THREE.Vector3(...playerPosition));
-        console.log('[Shambler] attackTriggered: distance=', distanceToPlayer.toFixed(2), 'range=', attackRange);
-        
-        if (distanceToPlayer <= attackRange) {
+      // Check distance + range before attacking (same pattern as SimpleCrawler)
+      if (distanceToPlayer <= attackRange && attackCooldownRef.current <= 0) {
+        // Apply damage when wind-up completes
+        if (attackWindUpTimer.current >= ATTACK_WIND_UP_TIME) {
+          console.log('[Shambler] attackTriggered: distance=', distanceToPlayer.toFixed(2), 'range=', attackRange);
           applyDamageToPlayer(ATTACK_DAMAGE, 'Shambler');
           attackCooldownRef.current = ATTACK_COOLDOWN;
           attackLungeTimer.current = 0; // Start lunge animation
