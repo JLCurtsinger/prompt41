@@ -4,7 +4,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { TriggerVolume } from './Interactables/TriggerVolume';
 import { HackingTerminal } from './Interactables/HackingTerminal';
 import { Door } from './Interactables/Door';
-import { EnemySentinel } from './Enemies/EnemySentinel';
+// TODO: Deprecated - EnemySentinel replaced by Simple enemy architecture
+// import { EnemySentinel } from './Enemies/EnemySentinel';
 import hostLinesData from '../assets/data/hostLines.json';
 
 // TODO: Wire this layout to match Zones 1–4 from CoreGameDetails.md (perimeter → yard → conduit → core chamber)
@@ -326,12 +327,13 @@ export function LevelLayout() {
         }}
       />
       
+      {/* Deprecated enemy (replaced by Simple enemies) */}
       {/* Sentinel spawn in Zone 4 */}
-      <EnemySentinel
+      {/* <EnemySentinel
         initialPosition={[40, 0, 5]}
         playerPosition={playerPosition}
         isActivated={isSentinelActivated}
-      />
+      /> */}
       
       {/* Final Terminal in Zone 4 (locked until Sentinel is defeated) */}
       <HackingTerminal

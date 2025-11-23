@@ -25,7 +25,8 @@ import { SimpleCrawler } from './Enemies/SimpleCrawler';
 import { SimpleDrone } from './Enemies/SimpleDrone';
 // import { SimpleShambler } from './Enemies/SimpleShambler';
 import { EnemyShambler } from './Enemies/EnemyShambler';
-import { EnemySentinel } from './Enemies/EnemySentinel';
+// TODO: Deprecated - EnemySentinel replaced by Simple enemy architecture
+// import { EnemySentinel } from './Enemies/EnemySentinel';
 import { ScreenFade } from './Effects/ScreenFade';
 import { LootCrate } from './Interactables/LootCrate';
 import { EnergyCell } from './Pickups/EnergyCell';
