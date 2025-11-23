@@ -56,10 +56,17 @@ export function EnemyCrawler({
   const animationTimeRef = useRef(0);
   const wasHitRef = useRef(false);
   const hitFlashTimerRef = useRef(0);
-  // DEBUG: Throttled logging timer
-  const logTimerRef = useRef(0);
+  // DEBUG: Throttled logging timer (not used with simple movement)
+  // const logTimerRef = useRef(0);
   // DEBUG: Chase target position for visualization
   const chaseTargetRef = useRef<THREE.Vector3 | null>(null);
+  
+  // SIMPLE MOVEMENT: TestCrawler-style ping-pong between two points
+  const dirRef = useRef<1 | -1>(1);
+  const startVec = useRef<THREE.Vector3>(new THREE.Vector3());
+  const endVec = useRef<THREE.Vector3>(new THREE.Vector3());
+  const tmpDir = useRef<THREE.Vector3>(new THREE.Vector3());
+  const lastSimpleLogTimeRef = useRef(0);
 
   const enemyId = `crawler-${initialPosition.join('-')}`;
 
@@ -69,14 +76,14 @@ export function EnemyCrawler({
   const DETECTION_RADIUS = 8;
   const ATTACK_RANGE = 2;
   const PATROL_SPEED = DEBUG_EXAGGERATE_CRAWLER_SPEED ? 1.5 * 3 : 1.5;
-  const CHASE_SPEED = DEBUG_EXAGGERATE_CRAWLER_SPEED ? 3.0 * 3 : 3.0;
+  // const CHASE_SPEED = DEBUG_EXAGGERATE_CRAWLER_SPEED ? 3.0 * 3 : 3.0; // Not used with simple movement
   const ATTACK_COOLDOWN = 0.8;
   const ATTACK_DAMAGE = 5;
-  const PATROL_PAUSE_DURATION = 1.5;
+  // const PATROL_PAUSE_DURATION = 1.5; // Not used with simple movement
   const DEATH_DURATION = 0.5;
 
-  const patrolPauseTimerRef = useRef(0);
-  const isPausedAtWaypointRef = useRef(false);
+  // const patrolPauseTimerRef = useRef(0); // Not used with simple movement
+  // const isPausedAtWaypointRef = useRef(false); // Not used with simple movement
 
   // Initial state based on whether patrol points exist
   useEffect(() => {
@@ -89,6 +96,26 @@ export function EnemyCrawler({
       console.log('[Crawler]', enemyId, 'state -> idle (no patrol points)');
     }
   }, [enemyId, patrolPoints.length]);
+
+  // SIMPLE MOVEMENT: Initialize start/end points from patrol waypoints or fallback
+  useEffect(() => {
+    if (patrolPoints.length >= 2) {
+      // Use first two patrol waypoints
+      startVec.current.set(...patrolPoints[0]);
+      endVec.current.set(...patrolPoints[1]);
+      console.log('[Crawler SIMPLE]', enemyId, 'movement points:', patrolPoints[0], '->', patrolPoints[1]);
+    } else if (patrolPoints.length === 1) {
+      // Use first waypoint and initial position
+      startVec.current.set(...initialPosition);
+      endVec.current.set(...patrolPoints[0]);
+      console.log('[Crawler SIMPLE]', enemyId, 'movement points:', initialPosition, '->', patrolPoints[0]);
+    } else {
+      // Fallback: use initial position and offset
+      startVec.current.set(...initialPosition);
+      endVec.current.set(initialPosition[0] + 5, initialPosition[1], initialPosition[2]);
+      console.log('[Crawler SIMPLE]', enemyId, 'movement points (fallback):', initialPosition, '->', [initialPosition[0] + 5, initialPosition[1], initialPosition[2]]);
+    }
+  }, [enemyId, initialPosition, patrolPoints]);
 
   // DEBUG: Initial position is set once in useEffect; do not reset each frame
   // Set initial position (only runs on mount or when initialPosition prop changes)
@@ -176,22 +203,28 @@ export function EnemyCrawler({
       return;
     }
 
-    // Compute positions
-    const enemyPos = enemyRef.current.position.clone();
-    const playerPos = new THREE.Vector3(...playerPosition);
-    const distanceToPlayer = enemyPos.distanceTo(playerPos);
-
     const currentState = stateRef.current;
+    const playerPos = new THREE.Vector3(...playerPosition);
 
-    // DEBUG: Force linear motion test
-    const DEBUG_FORCE_LINEAR_MOTION = false;
-    if (DEBUG_FORCE_LINEAR_MOTION) {
-      // Force obviously visible motion in +X regardless of FSM
-      if (enemyRef.current) {
-        enemyRef.current.position.x += 2 * delta;
-      }
-      return;
+    // SIMPLE MOVEMENT: TestCrawler-style ping-pong between start and end
+    // This replaces the old FSM-based movement system
+    const target = dirRef.current === 1 ? endVec.current : startVec.current;
+    tmpDir.current.copy(target).sub(enemyRef.current.position);
+    const dist = tmpDir.current.length();
+
+    if (dist < 0.1) {
+      // Reached target, reverse direction
+      dirRef.current = dirRef.current === 1 ? -1 : 1;
+    } else {
+      // Move toward target
+      tmpDir.current.normalize();
+      const speed = PATROL_SPEED; // Use patrol speed for simple movement
+      enemyRef.current.position.addScaledVector(tmpDir.current, speed * delta);
     }
+
+    // Compute player distance using the updated position
+    const enemyPos = enemyRef.current.position.clone();
+    const distanceToPlayer = enemyPos.distanceTo(playerPos);
 
     // DEBUG: Update chase target for visualization (only show when chasing)
     if (DEBUG_SHOW_CRAWLER_HELPERS) {
@@ -202,153 +235,31 @@ export function EnemyCrawler({
       }
     }
 
-    // DEBUG: Throttled logging (once per 0.5 seconds)
-    if (DEBUG_SHOW_CRAWLER_HELPERS) {
-      logTimerRef.current += delta;
-      if (logTimerRef.current >= 0.5) {
-        logTimerRef.current = 0;
-        const pos = enemyRef.current.position;
-        const worldPos = new THREE.Vector3();
-        if (enemyRef.current) {
-          enemyRef.current.getWorldPosition(worldPos);
-        }
-        console.log(
-          `[Crawler DEBUG] ${enemyId} | state = ${currentState}` +
-            ` | localPos = (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})` +
-            ` | worldPos = (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)}, ${worldPos.z.toFixed(2)})` +
-            ` | playerDist = ${distanceToPlayer.toFixed(2)}`,
-        );
-      }
+    // DEBUG: Throttled logging for simple movement (once per second)
+    const now = performance.now() / 1000; // Convert to seconds
+    if (now - lastSimpleLogTimeRef.current >= 1.0) {
+      lastSimpleLogTimeRef.current = now;
+      const worldPos = new THREE.Vector3();
+      enemyRef.current.getWorldPosition(worldPos);
+      console.log(
+        `[Crawler SIMPLE] ${enemyId} worldPos = (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)}, ${worldPos.z.toFixed(2)}) playerDist = ${distanceToPlayer.toFixed(2)}`,
+      );
     }
 
-    // FSM transitions + movement
+    // FSM state transitions (keep existing logic, but movement is now handled above)
     if (currentState === 'patrol') {
       if (distanceToPlayer <= DETECTION_RADIUS) {
         setState('chase', `distance: ${distanceToPlayer.toFixed(2)}`);
-      } else if (patrolPoints.length > 0 && !isPausedAtWaypointRef.current) {
-        const target = new THREE.Vector3(...patrolPoints[patrolIndexRef.current]);
-        const dir = target.clone().sub(enemyPos);
-        dir.y = 0;
-        const dist = dir.length();
-
-        if (dist < 0.5) {
-          // Reached waypoint
-          patrolPauseTimerRef.current = 0;
-          isPausedAtWaypointRef.current = true;
-          patrolIndexRef.current = (patrolIndexRef.current + 1) % patrolPoints.length;
-          console.log(
-            '[Crawler]',
-            enemyId,
-            'reached waypoint, next index =',
-            patrolIndexRef.current,
-          );
-        } else if (dist > 0.01) {
-          // --- PATROL MOVEMENT (simplified and explicit) ---
-          const position = enemyRef.current.position;
-          const posBefore = position.clone();
-          const patrolTarget = new THREE.Vector3(...patrolPoints[patrolIndexRef.current]);
-          // Direction from current position to patrol target
-          const direction = new THREE.Vector3().subVectors(patrolTarget, position);
-          direction.y = 0;
-          const distance = direction.length();
-          if (distance > 0.01) {
-            direction.normalize();
-            const maxStep = PATROL_SPEED * delta;
-            const step = Math.min(maxStep, distance);
-            const movement = direction.multiplyScalar(step);
-            position.add(movement);
-            const worldAfter = new THREE.Vector3();
-            enemyRef.current.getWorldPosition(worldAfter);
-            console.log('[Crawler MOVE] patrol step', {
-              local: {
-                before: {
-                  x: posBefore.x.toFixed(2),
-                  y: posBefore.y.toFixed(2),
-                  z: posBefore.z.toFixed(2),
-                },
-                movement: {
-                  x: movement.x.toFixed(4),
-                  y: movement.y.toFixed(4),
-                  z: movement.z.toFixed(4),
-                },
-                after: {
-                  x: position.x.toFixed(2),
-                  y: position.y.toFixed(2),
-                  z: position.z.toFixed(2),
-                },
-              },
-              worldAfter: {
-                x: worldAfter.x.toFixed(2),
-                y: worldAfter.y.toFixed(2),
-                z: worldAfter.z.toFixed(2),
-              },
-            });
-          }
-          // --- END PATROL MOVEMENT ---
-        }
       }
     } else if (currentState === 'chase') {
       if (distanceToPlayer <= ATTACK_RANGE) {
         setState('attack', `distance: ${distanceToPlayer.toFixed(2)}`);
       } else if (distanceToPlayer > DETECTION_RADIUS * 1.5) {
         if (patrolPoints.length > 0) {
-          // Return to nearest patrol point
-          let nearestIndex = 0;
-          let nearestDist = Infinity;
-          patrolPoints.forEach((p, i) => {
-            const d = enemyPos.distanceTo(new THREE.Vector3(...p));
-            if (d < nearestDist) {
-              nearestDist = d;
-              nearestIndex = i;
-            }
-          });
-          patrolIndexRef.current = nearestIndex;
           setState('patrol', 'player lost, returning to patrol');
         } else {
           setState('idle', 'player lost, no patrol');
         }
-      } else {
-        // --- CHASE MOVEMENT (simplified and explicit) ---
-        const position = enemyRef.current.position;
-        const posBefore = position.clone();
-        // playerPos should already be computed earlier in the update; if not, use getPlayerPosition()
-        const direction = new THREE.Vector3().subVectors(playerPos, position);
-        direction.y = 0;
-        const distance = direction.length();
-        if (distance > 0.01) {
-          direction.normalize();
-          const maxStep = CHASE_SPEED * delta;
-          const step = Math.min(maxStep, distance);
-          const movement = direction.multiplyScalar(step);
-          position.add(movement);
-          const worldAfter = new THREE.Vector3();
-          enemyRef.current.getWorldPosition(worldAfter);
-          console.log('[Crawler MOVE] chase step', {
-            local: {
-              before: {
-                x: posBefore.x.toFixed(2),
-                y: posBefore.y.toFixed(2),
-                z: posBefore.z.toFixed(2),
-              },
-              movement: {
-                x: movement.x.toFixed(4),
-                y: movement.y.toFixed(4),
-                z: movement.z.toFixed(4),
-              },
-              after: {
-                x: position.x.toFixed(2),
-                y: position.y.toFixed(2),
-                z: position.z.toFixed(2),
-              },
-            },
-            worldAfter: {
-              x: worldAfter.x.toFixed(2),
-              y: worldAfter.y.toFixed(2),
-              z: worldAfter.z.toFixed(2),
-            },
-          });
-        }
-        // --- END CHASE MOVEMENT ---
       }
     } else if (currentState === 'attack') {
       if (distanceToPlayer > ATTACK_RANGE) {
@@ -368,14 +279,14 @@ export function EnemyCrawler({
       }
     }
 
-    // Patrol pause timer
-    if (isPausedAtWaypointRef.current) {
-      patrolPauseTimerRef.current += delta;
-      if (patrolPauseTimerRef.current >= PATROL_PAUSE_DURATION) {
-        isPausedAtWaypointRef.current = false;
-        patrolPauseTimerRef.current = 0;
-      }
-    }
+    // Patrol pause timer (kept for compatibility, but not used with simple movement)
+    // if (isPausedAtWaypointRef.current) {
+    //   patrolPauseTimerRef.current += delta;
+    //   if (patrolPauseTimerRef.current >= PATROL_PAUSE_DURATION) {
+    //     isPausedAtWaypointRef.current = false;
+    //     patrolPauseTimerRef.current = 0;
+    //   }
+    // }
 
     // Hit flash
     if (wasHitRef.current) {
@@ -393,7 +304,8 @@ export function EnemyCrawler({
 
     // Simple visual animation based on state
     animationTimeRef.current += delta;
-    const baseY = initialPosition[1];
+    // Use Y from start point (movement preserves Y from start/end points)
+    const baseY = startVec.current.y;
 
     if (currentState === 'patrol') {
       const bob = Math.sin(animationTimeRef.current * 3) * 0.05;
