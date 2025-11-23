@@ -20,9 +20,49 @@ type SimpleCrawlerProps = {
 
   end: [number, number, number];
 
+  maxHealth?: number;
+
+  attackRange?: number;
+
+  attackCooldown?: number;
+
+  attackDamage?: number;
+
+  deathDuration?: number;
+
+  speed?: number;
+
+  color?: string;
+
+  enemyName?: string;
+
 };
 
-export function SimpleCrawler({ id, start, end }: SimpleCrawlerProps) {
+export function SimpleCrawler({
+
+  id,
+
+  start,
+
+  end,
+
+  maxHealth = 50,
+
+  attackRange = 2,
+
+  attackCooldown = 0.8,
+
+  attackDamage = 5,
+
+  deathDuration = 0.5,
+
+  speed = 0.35,
+
+  color = "red",
+
+  enemyName = "Crawler",
+
+}: SimpleCrawlerProps) {
 
   const enemyRef = useRef<Group>(null);
 
@@ -36,9 +76,7 @@ export function SimpleCrawler({ id, start, end }: SimpleCrawlerProps) {
 
   // Health and combat refs
 
-  const healthRef = useRef(50);
-
-  const maxHealth = 50;
+  const healthRef = useRef(maxHealth);
 
   const attackCooldownRef = useRef(0);
 
@@ -55,16 +93,6 @@ export function SimpleCrawler({ id, start, end }: SimpleCrawlerProps) {
   const { scene } = useThree();
 
   const { incrementEnemiesKilled, checkWinCondition } = useGameState();
-
-  // Combat constants (matching EnemyCrawler)
-
-  const ATTACK_RANGE = 2;
-
-  const ATTACK_COOLDOWN = 0.8;
-
-  const ATTACK_DAMAGE = 5;
-
-  const DEATH_DURATION = 0.5;
 
   // Register with enemyRegistry for baton hits / HUD
 
@@ -96,7 +124,9 @@ export function SimpleCrawler({ id, start, end }: SimpleCrawlerProps) {
 
         console.log(
 
-          "[Combat] Baton hit Crawler",
+          "[Combat] Baton hit",
+
+          enemyName,
 
           enemyId,
 
@@ -122,7 +152,7 @@ export function SimpleCrawler({ id, start, end }: SimpleCrawlerProps) {
 
       getMaxHealth: () => maxHealth,
 
-      getEnemyName: () => "Crawler",
+      getEnemyName: () => enemyName,
 
     };
 
@@ -134,7 +164,7 @@ export function SimpleCrawler({ id, start, end }: SimpleCrawlerProps) {
 
     };
 
-  }, [enemyId, maxHealth]);
+  }, [enemyId, maxHealth, enemyName]);
 
   useFrame((_state, delta) => {
 
@@ -158,7 +188,7 @@ export function SimpleCrawler({ id, start, end }: SimpleCrawlerProps) {
 
       deathTimerRef.current += delta;
 
-      const t = Math.min(deathTimerRef.current / DEATH_DURATION, 1);
+      const t = Math.min(deathTimerRef.current / deathDuration, 1);
 
       const scale = 1 - t;
 
@@ -187,8 +217,6 @@ export function SimpleCrawler({ id, start, end }: SimpleCrawlerProps) {
     }
 
     // Movement code (keep exactly as-is)
-
-    const speed = 0.35;
 
     tRef.current += dirRef.current * speed * delta;
 
@@ -258,13 +286,13 @@ export function SimpleCrawler({ id, start, end }: SimpleCrawlerProps) {
 
       // Attack if in range and cooldown is ready
 
-      if (distanceToPlayer <= ATTACK_RANGE && attackCooldownRef.current <= 0) {
+      if (distanceToPlayer <= attackRange && attackCooldownRef.current <= 0) {
 
         console.log("[Crawler]", enemyId, "ATTACK");
 
-        applyDamageToPlayer(ATTACK_DAMAGE, "Crawler");
+        applyDamageToPlayer(attackDamage, enemyName);
 
-        attackCooldownRef.current = ATTACK_COOLDOWN;
+        attackCooldownRef.current = attackCooldown;
 
       }
 
@@ -280,7 +308,7 @@ export function SimpleCrawler({ id, start, end }: SimpleCrawlerProps) {
 
         <boxGeometry args={[1, 0.6, 1]} />
 
-        <meshStandardMaterial color="red" />
+        <meshStandardMaterial color={color} />
 
       </mesh>
 

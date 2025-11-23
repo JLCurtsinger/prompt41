@@ -184,6 +184,14 @@ export function GameScene() {
           id="crawler-0-0-0"
           start={[-3, 0, 2]}
           end={[3, 0, -2]}
+          maxHealth={50}
+          attackRange={2}
+          attackCooldown={0.8}
+          attackDamage={5}
+          deathDuration={0.5}
+          speed={0.35}
+          color="red"
+          enemyName="Crawler"
         />
         
         {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}
