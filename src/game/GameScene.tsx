@@ -222,6 +222,9 @@ export function GameScene() {
           followHeight={3}
           followRadius={4}
           orbitSpeed={0.8}
+          orbitCenter={[0, 4, -2]}
+          aggroRadius={6}
+          attackSpeed={1.5}
           color="cyan"
           enemyName="Drone"
         />

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { Group, Vector3 } from "three";
+import { Group } from "three";
 
 import { useFrame } from "@react-three/fiber";
 
@@ -23,10 +23,12 @@ type SimpleDroneProps = {
   attackCooldown?: number;
   attackDamage?: number;
   deathDuration?: number;
-  followHeight?: number;   // Y height to hover at
-  followRadius?: number;   // Distance from player (horizontal)
-  moveSpeed?: number;      // How fast the drone moves
-  orbitSpeed?: number;     // How fast it orbits around the player
+  followHeight?: number;   // Y height to hover at (for idle orbit)
+  followRadius?: number;   // Orbit radius around orbitCenter
+  orbitSpeed?: number;     // How fast it orbits around the center
+  orbitCenter?: [number, number, number]; // Fixed world-space center for idle orbit
+  aggroRadius?: number;    // Distance to player that triggers attack mode
+  attackSpeed?: number;    // Speed when moving toward player in attack mode
   color?: string;
   enemyName?: string;
 };
@@ -41,14 +43,17 @@ export function SimpleDrone({
   deathDuration = 0.5,
   followHeight = 3,
   followRadius = 4,
-  moveSpeed = 2.0,
   orbitSpeed = 0.8,
+  orbitCenter = [0, 3, 0],
+  aggroRadius = 6,
+  attackSpeed = 1.5,
   color = "cyan",
   enemyName = "Drone",
 }: SimpleDroneProps) {
   const enemyRef = useRef<Group>(null);
 
   const orbitAngleRef = useRef(0);
+  const modeRef = useRef<'idle' | 'attack'>('idle');
 
   // Health and combat refs
   const healthRef = useRef(maxHealth);
@@ -61,6 +66,18 @@ export function SimpleDrone({
   const enemyId = id || `drone-${Math.random().toString(36).slice(2, 8)}`;
 
   const { incrementEnemiesKilled, checkWinCondition } = useGameState();
+
+  // Initialize position at orbit center
+  useEffect(() => {
+    if (enemyRef.current) {
+      const orbitHeight = orbitCenter[1] + followHeight;
+      enemyRef.current.position.set(
+        orbitCenter[0] + followRadius, // Start at one point on the orbit circle
+        orbitHeight,
+        orbitCenter[2]
+      );
+    }
+  }, []); // Only run once on mount
 
   // Register with enemyRegistry for baton hits / HUD
   useEffect(() => {
@@ -132,21 +149,7 @@ export function SimpleDrone({
       return;
     }
 
-    // Movement: orbit around player at fixed height
-    orbitAngleRef.current += orbitSpeed * delta;
-
-    const targetX = playerPosition[0] + Math.cos(orbitAngleRef.current) * followRadius;
-    const targetZ = playerPosition[2] + Math.sin(orbitAngleRef.current) * followRadius;
-    const targetY = followHeight;
-
-    // Smoothly move towards the target orbit position
-    const currentPos = root.position;
-    const targetPos = new THREE.Vector3(targetX, targetY, targetZ);
-
-    // Lerp towards target
-    currentPos.lerp(targetPos, Math.min(moveSpeed * delta, 1));
-
-    // Combat logic (after movement)
+    // Compute distance to player once per frame
     const enemyWorldPos = new THREE.Vector3();
     root.getWorldPosition(enemyWorldPos);
 
@@ -157,6 +160,47 @@ export function SimpleDrone({
     );
 
     const distanceToPlayer = enemyWorldPos.distanceTo(playerPosVec);
+
+    // Mode transitions based on distance
+    const previousMode = modeRef.current;
+    if (modeRef.current === 'idle' && distanceToPlayer <= aggroRadius) {
+      modeRef.current = 'attack';
+      console.log(`[Drone] mode idle → attack (distance: ${distanceToPlayer.toFixed(2)})`);
+    } else if (modeRef.current === 'attack' && distanceToPlayer > aggroRadius * 1.3) {
+      modeRef.current = 'idle';
+      console.log(`[Drone] mode attack → idle (distance: ${distanceToPlayer.toFixed(2)})`);
+    }
+
+    // Movement based on mode
+    const currentPos = root.position;
+    let targetPos: THREE.Vector3;
+
+    if (modeRef.current === 'idle') {
+      // Idle orbit mode: orbit around fixed orbitCenter
+      orbitAngleRef.current += orbitSpeed * delta;
+      
+      // Height is orbitCenter.y plus followHeight offset
+      const orbitHeight = orbitCenter[1] + followHeight;
+      const targetX = orbitCenter[0] + Math.cos(orbitAngleRef.current) * followRadius;
+      const targetZ = orbitCenter[2] + Math.sin(orbitAngleRef.current) * followRadius;
+      const targetY = orbitHeight;
+      
+      targetPos = new THREE.Vector3(targetX, targetY, targetZ);
+      
+      // Lerp towards orbit target (use orbitSpeed for smoothness)
+      currentPos.lerp(targetPos, Math.min(orbitSpeed * delta * 2, 1));
+    } else {
+      // Attack mode: move toward player, swooping down slightly
+      const attackTargetY = playerPosition[1] + 1.5; // Swoop down lower than idle
+      targetPos = new THREE.Vector3(
+        playerPosition[0],
+        attackTargetY,
+        playerPosition[2]
+      );
+      
+      // Lerp toward player using attackSpeed
+      currentPos.lerp(targetPos, Math.min(attackSpeed * delta, 1));
+    }
 
     // Attack cooldown
     if (attackCooldownRef.current > 0) {
