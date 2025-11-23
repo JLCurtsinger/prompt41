@@ -288,7 +288,23 @@ export function SimpleShambler({
 
       if (distanceToPlayer <= attackRange && attackCooldownRef.current <= 0) {
 
-        console.log("[Shambler]", enemyId, "ATTACK");
+        console.log(
+
+          "[ATTACK]",
+
+          enemyName,
+
+          enemyId,
+
+          "distanceToPlayer =",
+
+          distanceToPlayer.toFixed(2),
+
+          "attackRange =",
+
+          attackRange
+
+        );
 
         applyDamageToPlayer(attackDamage, enemyName);
 
