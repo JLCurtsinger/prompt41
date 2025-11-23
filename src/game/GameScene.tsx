@@ -81,6 +81,14 @@ export function GameScene() {
   const playHostLine = useGameState((state) => state.playHostLine);
   const setCurrentZone = useGameState((state) => state.setCurrentZone);
   
+  // Debug: TestCrawler position near player spawn
+  const playerSpawn: [number, number, number] = PLAYER_SPAWN_POSITION;
+  const testCrawlerPosition: [number, number, number] = [
+    playerSpawn[0] + 2,
+    playerSpawn[1] + 1,
+    playerSpawn[2] - 2,
+  ];
+  
   return (
     <>
       <ZoneAudioController />
@@ -173,6 +181,14 @@ export function GameScene() {
         {/* Player spawns at Zone 1 position defined in LevelLayout */}
         <Player initialPosition={PLAYER_SPAWN_POSITION} />
         
+        {/* Debug: TestCrawler - always visible red cube near player spawn */}
+        {process.env.NODE_ENV === "development" && (
+          <>
+            {console.log("[GameScene] Rendering TestCrawler at", testCrawlerPosition)}
+            <TestCrawler position={testCrawlerPosition} />
+          </>
+        )}
+        
         {/* Track player position for enemies */}
         <PlayerPositionTracker onPositionUpdate={setPlayerPosition} />
         
@@ -192,11 +208,6 @@ export function GameScene() {
               patrolPoints={crawlerPatrolPoints}
             /> */
         })()}
-        <TestCrawler
-          id="test-crawler-0"
-          start={[0, 0, 0]}
-          end={[5, 0, 0]}
-        />
         
         {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}
         {/* Shambler starts idle until activated by trigger volume */}

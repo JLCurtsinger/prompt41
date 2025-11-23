@@ -1,90 +1,49 @@
-import React, { useRef } from "react";
-
-import * as THREE from "three";
+import React, { useRef, useEffect } from "react";
 
 import { useFrame } from "@react-three/fiber";
 
+import type { Mesh } from "three";
+
 type TestCrawlerProps = {
 
-  id?: string;
-
-  start?: [number, number, number];
-
-  end?: [number, number, number];
+  position?: [number, number, number];
 
 };
 
-const startDefault: [number, number, number] = [0, 0, 0];
+export const TestCrawler: React.FC<TestCrawlerProps> = ({ position = [0, 1, 0] }) => {
 
-const endDefault: [number, number, number] = [5, 0, 0];
+  const meshRef = useRef<Mesh | null>(null);
 
-export function TestCrawler({
+  useEffect(() => {
 
-  id = "test-crawler-0",
+    console.log("[TestCrawler] mounted at", position);
 
-  start = startDefault,
-
-  end = endDefault,
-
-}: TestCrawlerProps) {
-
-  const groupRef = useRef<THREE.Group>(null);
-
-  const dirRef = useRef<1 | -1>(1);
-
-  const startVec = new THREE.Vector3(...start);
-
-  const endVec = new THREE.Vector3(...end);
-
-  const tmpDir = new THREE.Vector3();
+  }, [position]);
 
   useFrame((_, delta) => {
 
-    const g = groupRef.current;
+    if (!meshRef.current) return;
 
-    if (!g) return;
+    // Simple idle animation: hover + slow rotation
 
-    // Simple ping-pong between start and end
+    meshRef.current.rotation.y += delta;
 
-    const target = dirRef.current === 1 ? endVec : startVec;
-
-    tmpDir.copy(target).sub(g.position);
-
-    const dist = tmpDir.length();
-
-    if (dist < 0.1) {
-
-      dirRef.current = dirRef.current === 1 ? -1 : 1;
-
-      return;
-
-    }
-
-    tmpDir.normalize();
-
-    const speed = 1.5; // units per second
-
-    g.position.addScaledVector(tmpDir, speed * delta);
+    meshRef.current.position.y = position[1] + Math.sin(performance.now() / 500) * 0.2;
 
   });
 
   return (
 
-    <group ref={groupRef} position={start}>
+    <mesh ref={meshRef} position={position}>
 
-      <mesh castShadow receiveShadow>
+      <boxGeometry args={[1, 1, 1]} />
 
-        <boxGeometry args={[0.6, 0.6, 0.6]} />
+      {/* Basic material so it's always visible, unaffected by lights */}
 
-        <meshStandardMaterial color={"red"} />
+      <meshBasicMaterial color="red" />
 
-      </mesh>
-
-    </group>
+    </mesh>
 
   );
 
-}
-
-export default TestCrawler;
-
+};
