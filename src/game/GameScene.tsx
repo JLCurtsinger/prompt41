@@ -184,7 +184,6 @@ export function GameScene() {
           id="crawler-0-0-0"
           start={[-3, 0, 2]}
           end={[3, 0, -2]}
-          playerPosition={playerPosition}
         />
         
         {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}
