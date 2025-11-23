@@ -208,15 +208,15 @@ export function EnemyCrawler({
       if (logTimerRef.current >= 0.5) {
         logTimerRef.current = 0;
         const pos = enemyRef.current.position;
+        const worldPos = new THREE.Vector3();
+        if (enemyRef.current) {
+          enemyRef.current.getWorldPosition(worldPos);
+        }
         console.log(
-          '[Crawler DEBUG]',
-          enemyId,
-          '| state =',
-          currentState,
-          '| pos =',
-          `(${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`,
-          '| playerDist =',
-          distanceToPlayer.toFixed(2),
+          `[Crawler DEBUG] ${enemyId} | state = ${currentState}` +
+            ` | localPos = (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})` +
+            ` | worldPos = (${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)}, ${worldPos.z.toFixed(2)})` +
+            ` | playerDist = ${distanceToPlayer.toFixed(2)}`,
         );
       }
     }
@@ -284,10 +284,33 @@ export function EnemyCrawler({
           dir.normalize();
           const movement = dir.multiplyScalar(CHASE_SPEED * delta);
           if (movement.lengthSq() > 0.000001) {
+            const posBefore = enemyRef.current.position.clone();
+            const posAfter = posBefore.clone().add(movement);
+            const worldPosBefore = new THREE.Vector3();
+            enemyRef.current.getWorldPosition(worldPosBefore);
             console.log('[Crawler MOVE] chase step', {
-              posBefore: enemyRef.current.position.clone(),
-              movement: movement.clone(),
-              posAfter: enemyRef.current.position.clone().add(movement),
+              local: {
+                before: {
+                  x: posBefore.x.toFixed(2),
+                  y: posBefore.y.toFixed(2),
+                  z: posBefore.z.toFixed(2),
+                },
+                movement: {
+                  x: movement.x.toFixed(4),
+                  y: movement.y.toFixed(4),
+                  z: movement.z.toFixed(4),
+                },
+                after: {
+                  x: posAfter.x.toFixed(2),
+                  y: posAfter.y.toFixed(2),
+                  z: posAfter.z.toFixed(2),
+                },
+              },
+              worldBefore: {
+                x: worldPosBefore.x.toFixed(2),
+                y: worldPosBefore.y.toFixed(2),
+                z: worldPosBefore.z.toFixed(2),
+              },
             });
           }
           enemyRef.current.position.add(movement);
@@ -376,25 +399,24 @@ export function EnemyCrawler({
   });
 
   return (
-    <>
-      <group ref={enemyRef}>
-        {/* DEBUG: Root position marker - shows the logical position we are moving */}
-        {DEBUG_SHOW_CRAWLER_HELPERS && (
-          <mesh position={[0, 1, 0]}>
-            <sphereGeometry args={[0.15, 8, 8]} />
-            <meshStandardMaterial
-              color="#00ff00"
-              emissive="#00ff00"
-              emissiveIntensity={1.5}
-            />
-          </mesh>
-        )}
+    <group ref={enemyRef}>
+      {/* DEBUG: Root position marker - shows the logical position we are moving */}
+      {DEBUG_SHOW_CRAWLER_HELPERS && (
+        <mesh position={[0, 1, 0]}>
+          <sphereGeometry args={[0.15, 8, 8]} />
+          <meshStandardMaterial
+            color="#00ff00"
+            emissive="#00ff00"
+            emissiveIntensity={1.5}
+          />
+        </mesh>
+      )}
 
-        <EnemyHealthBar
-          health={healthRef.current}
-          maxHealth={maxHealth}
-          getHealth={() => healthRef.current}
-        />
+      <EnemyHealthBar
+        health={healthRef.current}
+        maxHealth={maxHealth}
+        getHealth={() => healthRef.current}
+      />
 
       {/* Placeholder crawler body */}
       <mesh position={[0, 0.3, 0]} castShadow>
@@ -432,32 +454,6 @@ export function EnemyCrawler({
         <boxGeometry args={[0.15, 0.2, 0.4]} />
         <meshStandardMaterial color="#1a1a1a" />
       </mesh>
-      </group>
-
-      {/* DEBUG: Patrol waypoint markers */}
-      {DEBUG_SHOW_CRAWLER_HELPERS &&
-        patrolPoints.map((p, i) => (
-          <mesh key={`crawler-waypoint-${i}`} position={p}>
-            <cylinderGeometry args={[0.15, 0.15, 0.5, 8]} />
-            <meshStandardMaterial
-              color="#00ff88"
-              emissive="#00ff88"
-              emissiveIntensity={0.6}
-            />
-          </mesh>
-        ))}
-
-      {/* DEBUG: Chase target marker */}
-      {DEBUG_SHOW_CRAWLER_HELPERS && chaseTargetRef.current && (
-        <mesh position={chaseTargetRef.current}>
-          <boxGeometry args={[0.2, 0.2, 0.2]} />
-          <meshStandardMaterial
-            color="#ffff00"
-            emissive="#ffff00"
-            emissiveIntensity={0.8}
-          />
-        </mesh>
-      )}
-    </>
+    </group>
   );
 }
