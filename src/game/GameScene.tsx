@@ -11,7 +11,7 @@
 //    - Red/orange point light should create atmospheric glow
 //    - Core chamber should feel distinct from other zones
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import { Player } from './Player';
@@ -32,6 +32,7 @@ import { LootCrate } from './Interactables/LootCrate';
 import { EnergyCell } from './Pickups/EnergyCell';
 import { ZoneAudioController } from './audio/ZoneAudioController';
 import { useGameState } from '../state/gameState';
+import { getAllEnemies } from './Enemies/enemyRegistry';
 import * as THREE from 'three';
 
 // DEBUG: Toggle world debug helpers visibility
@@ -46,6 +47,12 @@ const ENERGY_CELL_ZONE3_POSITION: [number, number, number] = [15, 0.5, -2]; // Z
 const ZONE_TRANSITION_1_TO_2: [number, number, number] = [-5, -0.05, 0]; // Between Zone 1 and Zone 2
 const ZONE_TRANSITION_2_TO_3: [number, number, number] = [10, -0.05, 0]; // Between Zone 2 and Zone 3
 const ZONE_TRANSITION_3_TO_4: [number, number, number] = [32, -0.05, 0]; // Between Zone 3 and Zone 4
+
+// Enemy difficulty tuning - centralized configuration
+const ENEMY_TUNING = {
+  crawler: { maxHealth: 50, speed: 0.35, attackDamage: 5, attackCooldown: 0.8, attackRange: 2 },
+  drone:   { maxHealth: 40, moveSpeed: 0.4, attackDamage: 8, attackCooldown: 1.0, attackRange: 2.5 }
+};
 
 // Component to track player position and provide it to enemies
 function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [number, number, number]) => void }) {
@@ -84,6 +91,20 @@ export function GameScene() {
   
   const playHostLine = useGameState((state) => state.playHostLine);
   const setCurrentZone = useGameState((state) => state.setCurrentZone);
+  const setTotalEnemiesForLevelStart = useGameState((state) => state.setTotalEnemiesForLevelStart);
+  
+  // Count enemies after they spawn and set total for win condition
+  useEffect(() => {
+    // Wait a frame for all enemies to register
+    const timeoutId = setTimeout(() => {
+      const allEnemies = getAllEnemies();
+      const totalCount = allEnemies.length;
+      setTotalEnemiesForLevelStart(totalCount);
+      console.log(`[GameScene] Counted ${totalCount} active enemies at level start`);
+    }, 100); // Small delay to ensure all enemies have registered
+    
+    return () => clearTimeout(timeoutId);
+  }, [setTotalEnemiesForLevelStart]);
   
   return (
     <>
@@ -184,30 +205,22 @@ export function GameScene() {
         {/* TODO: This should be the first Crawler encounter from the design doc - add reveal micro-cutscene */}
         {/* Replaced EnemyCrawler with SimpleCrawler for reliable movement */}
         <SimpleCrawler
+          {...ENEMY_TUNING.crawler}
           id="crawler-0-0-0"
           start={[-3, 0, 2]}
           end={[3, 0, -2]}
-          maxHealth={50}
-          attackRange={2}
-          attackCooldown={0.8}
-          attackDamage={5}
           deathDuration={0.5}
-          speed={0.35}
           color="red"
           enemyName="Crawler"
         />
         
         <SimpleDrone
+          {...ENEMY_TUNING.drone}
           id="drone-0"
           playerPosition={playerPosition}
-          maxHealth={60}
-          attackRange={2.5}
-          attackCooldown={1.0}
-          attackDamage={10}
           deathDuration={0.5}
           followHeight={3}
           followRadius={4}
-          moveSpeed={2.0}
           orbitSpeed={0.8}
           color="cyan"
           enemyName="Drone"

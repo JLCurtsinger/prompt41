@@ -142,6 +142,7 @@ interface GameState {
   
   // Enemy kill tracking
   enemiesKilled: number;
+  totalEnemiesForLevelStart: number;
   
   // Host message bus
   hostMessages: HostMessage[];
@@ -239,6 +240,7 @@ interface GameState {
   // Enemy kill tracking
   incrementEnemiesKilled: () => void;
   checkWinCondition: () => boolean;
+  setTotalEnemiesForLevelStart: (count: number) => void;
   
   // Baton SFX actions
   setBatonSfxRef: (ref: React.RefObject<BatonSFXHandle | null>) => void;
@@ -286,6 +288,7 @@ export const useGameState = create<GameState>((set, get) => ({
   
   // Enemy kill tracking initial state
   enemiesKilled: 0,
+  totalEnemiesForLevelStart: 0,
   
   // Host message bus initial state
   hostMessages: [],
@@ -389,6 +392,7 @@ export const useGameState = create<GameState>((set, get) => ({
       isEnding: false,
       // Reset enemy kills
       enemiesKilled: 0,
+      totalEnemiesForLevelStart: 0,
       isPaused: false,
       // Reset host messages
       hostMessages: [],
@@ -690,17 +694,22 @@ export const useGameState = create<GameState>((set, get) => ({
     });
   },
   
-  // Win condition check: enemiesKilled >= 3 OR all enemies dead
+  // Win condition check: all active enemies killed
   checkWinCondition: () => {
     const state = get();
-    // For now, simple win condition: kill 3+ enemies
-    // Can be extended to check for all enemies dead or other objectives
-    const hasWon = state.enemiesKilled >= 3;
+    // Dynamic win condition: check if all enemies at level start are killed
+    const hasWon = state.totalEnemiesForLevelStart > 0 && 
+                   state.enemiesKilled >= state.totalEnemiesForLevelStart;
     if (hasWon && !state.hasCompletedLevel) {
       set({ hasCompletedLevel: true, isEnding: true });
-      console.log('[Game] Win condition met!');
+      console.log(`[Game] Win condition met! Killed ${state.enemiesKilled}/${state.totalEnemiesForLevelStart} enemies`);
     }
     return hasWon;
+  },
+  
+  setTotalEnemiesForLevelStart: (count) => {
+    set({ totalEnemiesForLevelStart: count });
+    console.log(`[Game] Total enemies for level start set to: ${count}`);
   },
   
   // Baton SFX actions
