@@ -23,8 +23,8 @@ import { Door } from './Interactables/Door';
 // import { TestCrawler } from './Enemies/TestCrawler'; // Kept for future debugging, not used
 import { SimpleCrawler } from './Enemies/SimpleCrawler';
 import { SimpleDrone } from './Enemies/SimpleDrone';
-// import { SimpleShambler } from './Enemies/SimpleShambler';
-import { EnemyShambler } from './Enemies/EnemyShambler';
+import { SimpleShambler } from './Enemies/SimpleShambler';
+// import { EnemyShambler } from './Enemies/EnemyShambler';
 // TODO: Deprecated - EnemySentinel replaced by Simple enemy architecture
 // import { EnemySentinel } from './Enemies/EnemySentinel';
 import { ScreenFade } from './Effects/ScreenFade';
@@ -82,7 +82,7 @@ function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [
 
 export function GameScene() {
   const [playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
-  const [isShamblerActivated, setIsShamblerActivated] = useState(false);
+  const [_isShamblerActivated, setIsShamblerActivated] = useState(false);
   const [_isSentinelActivated, _setIsSentinelActivated] = useState(false);
   const [zone1Entered, setZone1Entered] = useState(false);
   const [zone2Entered, setZone2Entered] = useState(false);
@@ -246,10 +246,15 @@ export function GameScene() {
         
         {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}
         {/* Shambler starts idle until activated by trigger volume */}
-        <EnemyShambler
+        {/* <EnemyShambler
           initialPosition={[18, 0, 0]}
           playerPosition={playerPosition}
           isActivated={isShamblerActivated}
+        /> */}
+        <SimpleShambler
+          id="shambler-18-0-0"
+          start={[18, 0, 0]}
+          end={[24, 0, -3]}
         />
         
         {/* Sentinel is now in LevelLayout.tsx */}
