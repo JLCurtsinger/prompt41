@@ -82,7 +82,6 @@ function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [
 
 export function GameScene() {
   const [playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
-  const [_isShamblerActivated, setIsShamblerActivated] = useState(false);
   const [_isSentinelActivated, _setIsSentinelActivated] = useState(false);
   const [zone1Entered, setZone1Entered] = useState(false);
   const [zone2Entered, setZone2Entered] = useState(false);
@@ -92,6 +91,9 @@ export function GameScene() {
   const playHostLine = useGameState((state) => state.playHostLine);
   const setCurrentZone = useGameState((state) => state.setCurrentZone);
   const setTotalEnemiesForLevelStart = useGameState((state) => state.setTotalEnemiesForLevelStart);
+  const zone = useGameState((state) => state.currentZone);
+  
+  const isShamblerActivated = zone === 'zone3';
   
   // Count enemies after they spawn and set total for win condition
   useEffect(() => {
@@ -255,6 +257,7 @@ export function GameScene() {
           id="shambler-18-0-0"
           start={[18, 0, 0]}
           end={[24, 0, -3]}
+          isActivated={isShamblerActivated}
         />
         
         {/* Sentinel is now in LevelLayout.tsx */}
@@ -324,7 +327,6 @@ export function GameScene() {
           size={[4, 4, 6]}
           onEnter={() => {
             console.log('Zone 3 Shambler activation trigger fired');
-            setIsShamblerActivated(true);
           }}
           name="Zone3_ShamblerActivation"
         />

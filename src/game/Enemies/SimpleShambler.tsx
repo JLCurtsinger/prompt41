@@ -20,6 +20,8 @@ type SimpleShamblerProps = {
 
   end: [number, number, number];
 
+  isActivated?: boolean;
+
   maxHealth?: number;
 
   attackRange?: number;
@@ -45,6 +47,8 @@ export function SimpleShambler({
   start,
 
   end,
+
+  isActivated,
 
   maxHealth = 100,
 
@@ -85,6 +89,14 @@ export function SimpleShambler({
   const isDyingRef = useRef(false);
 
   const hasFinishedDeathRef = useRef(false);
+
+  const isActivatedRef = useRef(isActivated ?? false);
+
+  useEffect(() => {
+
+    isActivatedRef.current = isActivated ?? false;
+
+  }, [isActivated]);
 
   // Generate enemy ID if not provided
 
@@ -170,6 +182,12 @@ export function SimpleShambler({
 
     if (!root || hasFinishedDeathRef.current) return;
 
+    if (!isActivatedRef.current) {
+
+      return;
+
+    }
+
     // Death handling
 
     if (healthRef.current <= 0) {
@@ -236,9 +254,17 @@ export function SimpleShambler({
 
     // Combat logic (after movement)
 
+    // Update attack cooldown
+
+    if (attackCooldownRef.current > 0) {
+
+      attackCooldownRef.current -= delta;
+
+    }
+
     // Find player position from scene
 
-    let playerPos: THREE.Vector3 | null = null;
+    let playerGroup: THREE.Group | null = null;
 
     scene.traverse((object) => {
 
@@ -258,7 +284,7 @@ export function SimpleShambler({
 
         if (hasCapsule) {
 
-          playerPos = object.position.clone();
+          playerGroup = object;
 
         }
 
@@ -266,31 +292,23 @@ export function SimpleShambler({
 
     });
 
-    if (playerPos) {
+    if (playerGroup && enemyRef.current) {
+
+      const playerWorldPos = new THREE.Vector3();
 
       const enemyWorldPos = new THREE.Vector3();
 
-      root.getWorldPosition(enemyWorldPos);
+      playerGroup.getWorldPosition(playerWorldPos);
 
-      const distanceToPlayer = enemyWorldPos.distanceTo(playerPos);
+      enemyRef.current.getWorldPosition(enemyWorldPos);
 
-      // Attack cooldown
-
-      if (attackCooldownRef.current > 0) {
-
-        attackCooldownRef.current -= delta;
-
-      }
-
-      // Attack if in range and cooldown is ready
+      const distanceToPlayer = enemyWorldPos.distanceTo(playerWorldPos);
 
       if (distanceToPlayer <= attackRange && attackCooldownRef.current <= 0) {
 
         console.log(
 
-          "[ATTACK]",
-
-          enemyName,
+          "[ATTACK] Shambler",
 
           enemyId,
 
