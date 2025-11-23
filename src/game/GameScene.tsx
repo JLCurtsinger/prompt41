@@ -50,8 +50,8 @@ const ZONE_TRANSITION_3_TO_4: [number, number, number] = [32, -0.05, 0]; // Betw
 
 // Enemy difficulty tuning - centralized configuration
 const ENEMY_TUNING = {
-  crawler: { maxHealth: 50, speed: 0.35, attackDamage: 5, attackCooldown: 0.8, attackRange: 2 },
-  drone:   { maxHealth: 40, moveSpeed: 0.4, attackDamage: 8, attackCooldown: 1.0, attackRange: 2.5 }
+  crawler: { maxHealth: 60, speed: 0.35, attackDamage: 6, attackCooldown: 1.0, attackRange: 2.2 },
+  drone:   { maxHealth: 45, moveSpeed: 0.45, attackDamage: 4, attackCooldown: 1.1, attackRange: 2.6 }
 };
 
 // Component to track player position and provide it to enemies
