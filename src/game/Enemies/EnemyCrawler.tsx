@@ -226,6 +226,11 @@ export function EnemyCrawler({
     const enemyPos = enemyRef.current.position.clone();
     const distanceToPlayer = enemyPos.distanceTo(playerPos);
 
+    // TEST LOGGING: Log when close to player
+    if (distanceToPlayer < ATTACK_RANGE) {
+      console.log("[Crawler TEST] close to player", enemyId, "dist =", distanceToPlayer.toFixed(2));
+    }
+
     // DEBUG: Update chase target for visualization (only show when chasing)
     if (DEBUG_SHOW_CRAWLER_HELPERS) {
       if (currentState === 'chase') {
@@ -304,7 +309,8 @@ export function EnemyCrawler({
 
     // Simple visual animation based on state
     animationTimeRef.current += delta;
-    // Use Y from start point (movement preserves Y from start/end points)
+    // Use Y from start point (movement points have same Y, so this is the base for bobbing)
+    // The movement handles X/Z, and we add bobbing to Y for visual effect
     const baseY = startVec.current.y;
 
     if (currentState === 'patrol') {
@@ -336,6 +342,7 @@ export function EnemyCrawler({
 
     if (stateRef.current === 'attack' && attackCooldownRef.current <= 0) {
       console.log('[Crawler]', enemyId, 'ATTACK');
+      console.log("[Crawler TEST] ATTACK TRIGGERED", enemyId, "dist =", distanceToPlayer.toFixed(2));
       applyDamageToPlayer(ATTACK_DAMAGE, 'Crawler');
       attackCooldownRef.current = ATTACK_COOLDOWN;
     }

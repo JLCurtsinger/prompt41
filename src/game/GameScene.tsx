@@ -19,8 +19,8 @@ import { LevelLayout, PLAYER_SPAWN_POSITION } from './LevelLayout';
 import { TriggerVolume } from './Interactables/TriggerVolume';
 import { HackingTerminal } from './Interactables/HackingTerminal';
 import { Door } from './Interactables/Door';
-// import { EnemyCrawler } from './Enemies/EnemyCrawler'; // Temporarily disabled for movement debugging
-import { TestCrawler } from './Enemies/TestCrawler';
+import { EnemyCrawler } from './Enemies/EnemyCrawler';
+// import { TestCrawler } from './Enemies/TestCrawler'; // Kept for future debugging, not used
 import { EnemyShambler } from './Enemies/EnemyShambler';
 import { EnemySentinel } from './Enemies/EnemySentinel';
 import { ScreenFade } from './Effects/ScreenFade';
@@ -178,12 +178,20 @@ export function GameScene() {
         
         {/* Enemy: Crawler Zombot in Zone 2 (Processing Yard) */}
         {/* TODO: This should be the first Crawler encounter from the design doc - add reveal micro-cutscene */}
-        {/* Temporarily replacing EnemyCrawler with TestCrawler for movement debugging */}
-        {/* Original EnemyCrawler had initialPosition={[0, 0, 0]} and patrolPoints: [[-3, 0, 2], [3, 0, -2], [0, 0, -6]] */}
-        <TestCrawler
-          start={[-3, 0.5, 2]}
-          end={[3, 0.5, -2]}
-        />
+        {(() => {
+          const crawlerPatrolPoints: [number, number, number][] = [
+            [-3, 0, 2],   // Near machinery block (northwest)
+            [3, 0, -2],   // Near another machinery block (southeast)
+            [0, 0, -6],   // Near terminal area (south)
+          ];
+          return (
+            <EnemyCrawler
+              initialPosition={[0, 0, 0]}
+              playerPosition={playerPosition}
+              patrolPoints={crawlerPatrolPoints}
+            />
+          );
+        })()}
         
         {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}
         {/* Shambler starts idle until activated by trigger volume */}
