@@ -2,47 +2,115 @@ import React, { useRef, useEffect } from "react";
 
 import { useFrame } from "@react-three/fiber";
 
-import type { Mesh } from "three";
+import * as THREE from "three";
 
 type TestCrawlerProps = {
 
-  position?: [number, number, number];
+  start?: [number, number, number];
+
+  end?: [number, number, number];
 
 };
 
-export const TestCrawler: React.FC<TestCrawlerProps> = ({ position = [0, 1, 0] }) => {
+const startDefault: [number, number, number] = [0, 0.5, 0];
 
-  const meshRef = useRef<Mesh | null>(null);
+const endDefault: [number, number, number] = [5, 0.5, 0];
+
+export const TestCrawler: React.FC<TestCrawlerProps> = ({
+
+  start = startDefault,
+
+  end = endDefault,
+
+}) => {
+
+  const groupRef = useRef<THREE.Group>(null);
+
+  const dirRef = useRef<1 | -1>(1);
+
+  const startVec = new THREE.Vector3(...start);
+
+  const endVec = new THREE.Vector3(...end);
+
+  const tmpDir = new THREE.Vector3();
+
+  const lastLogTimeRef = useRef(0);
 
   useEffect(() => {
 
-    console.log("[TestCrawler] mounted at", position);
+    console.log("[TestCrawler] mounted, start:", start, "end:", end);
 
-  }, [position]);
+  }, [start, end]);
 
   useFrame((_, delta) => {
 
-    if (!meshRef.current) return;
+    const g = groupRef.current;
 
-    // Simple idle animation: hover + slow rotation
+    if (!g) return;
 
-    meshRef.current.rotation.y += delta;
+    // Simple ping-pong between start and end
 
-    meshRef.current.position.y = position[1] + Math.sin(performance.now() / 500) * 0.2;
+    const target = dirRef.current === 1 ? endVec : startVec;
+
+    tmpDir.copy(target).sub(g.position);
+
+    const dist = tmpDir.length();
+
+    if (dist < 0.1) {
+
+      dirRef.current = dirRef.current === 1 ? -1 : 1;
+
+      return;
+
+    }
+
+    tmpDir.normalize();
+
+    const speed = 1.5; // units per second
+
+    g.position.addScaledVector(tmpDir, speed * delta);
+
+    // Debug log every second (throttled)
+
+    const now = performance.now() / 1000; // Convert to seconds
+
+    if (now - lastLogTimeRef.current >= 1.0) {
+
+      lastLogTimeRef.current = now;
+
+      const worldPos = new THREE.Vector3();
+
+      g.getWorldPosition(worldPos);
+
+      console.log(
+
+        "[TestCrawler] world position:",
+
+        `(${worldPos.x.toFixed(2)}, ${worldPos.y.toFixed(2)}, ${worldPos.z.toFixed(2)})`,
+
+        "| local:",
+
+        `(${g.position.x.toFixed(2)}, ${g.position.y.toFixed(2)}, ${g.position.z.toFixed(2)})`,
+
+      );
+
+    }
 
   });
 
   return (
 
-    <mesh ref={meshRef} position={position}>
+    <group ref={groupRef} position={start}>
 
-      <boxGeometry args={[1, 1, 1]} />
+      <mesh castShadow receiveShadow>
 
-      {/* Basic material so it's always visible, unaffected by lights */}
+        <boxGeometry args={[0.6, 0.6, 0.6]} />
 
-      <meshBasicMaterial color="red" />
+        <meshBasicMaterial color="red" />
 
-    </mesh>
+      </mesh>
+
+    </group>
 
   );
 
