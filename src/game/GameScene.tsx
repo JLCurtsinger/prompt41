@@ -22,6 +22,7 @@ import { Door } from './Interactables/Door';
 // import { EnemyCrawler } from './Enemies/EnemyCrawler'; // Replaced with SimpleCrawler
 // import { TestCrawler } from './Enemies/TestCrawler'; // Kept for future debugging, not used
 import { SimpleCrawler } from './Enemies/SimpleCrawler';
+import { SimpleDrone } from './Enemies/SimpleDrone';
 // import { SimpleShambler } from './Enemies/SimpleShambler';
 import { EnemyShambler } from './Enemies/EnemyShambler';
 import { EnemySentinel } from './Enemies/EnemySentinel';
@@ -193,6 +194,22 @@ export function GameScene() {
           speed={0.35}
           color="red"
           enemyName="Crawler"
+        />
+        
+        <SimpleDrone
+          id="drone-0"
+          playerPosition={playerPosition}
+          maxHealth={60}
+          attackRange={2.5}
+          attackCooldown={1.0}
+          attackDamage={10}
+          deathDuration={0.5}
+          followHeight={3}
+          followRadius={4}
+          moveSpeed={2.0}
+          orbitSpeed={0.8}
+          color="cyan"
+          enemyName="Drone"
         />
         
         {/* SimpleShambler prototype in Zone 3 */}
