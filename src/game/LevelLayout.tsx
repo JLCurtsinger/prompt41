@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { useRef, useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { TriggerVolume } from './Interactables/TriggerVolume';
 import { HackingTerminal } from './Interactables/HackingTerminal';
@@ -234,8 +234,8 @@ function CoreAccessChamberZone() {
 // Main level layout component combining all zones
 export function LevelLayout() {
   const { scene } = useThree();
-  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([-15, 0, 0]);
-  const [isSentinelActivated, setIsSentinelActivated] = useState(false);
+  const [_playerPosition, setPlayerPosition] = useState<[number, number, number]>([-15, 0, 0]);
+  const [_isSentinelActivated, setIsSentinelActivated] = useState(false);
   
   // Track player position for enemies
   useFrame(() => {

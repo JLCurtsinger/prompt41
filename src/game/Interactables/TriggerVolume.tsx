@@ -7,7 +7,7 @@
 // - Blue area crash fix: onEnter callback should be safely called even if it throws
 // - Step on blue floor areas -> should not crash, should handle missing/invalid callbacks gracefully
 
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -45,7 +45,8 @@ export function TriggerVolume({
           }
         });
         if (hasCapsule) {
-          playerPosition = object.position.clone();
+          const objPos = object.position;
+          playerPosition = new THREE.Vector3().copy(objPos);
         }
       }
     });
@@ -57,7 +58,7 @@ export function TriggerVolume({
     const halfSize = new THREE.Vector3(size[0] / 2, size[1] / 2, size[2] / 2);
     
     // Check if player is inside the bounding box
-    const playerLocal = playerPosition.clone().sub(triggerCenter);
+    const playerLocal = new THREE.Vector3().copy(playerPosition).sub(triggerCenter);
     const isInside = 
       Math.abs(playerLocal.x) <= halfSize.x &&
       Math.abs(playerLocal.y) <= halfSize.y &&

@@ -16,7 +16,7 @@
 //    - Should close overlay and resume game
 
 import { useEffect, useCallback, useMemo } from 'react';
-import { useGameState, getTerminalState } from '../../state/gameState';
+import { useGameState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
 import directivesData from '../../assets/data/directives.json';
 import hostLinesData from '../../assets/data/hostLines.json';
@@ -32,12 +32,8 @@ export function HackingOverlay() {
   const hackingOverlay = useGameState((state) => state.hackingOverlay);
   const isDead = useGameState((state) => state.isDead);
   const isShuttingDown = useGameState((state) => state.isShuttingDown);
-  const terminalStates = useGameState((state) => state.terminalStates);
-  const sentinelDefeated = useGameState((state) => state.sentinelDefeated);
   const closeHackingOverlay = useGameState((state) => state.closeHackingOverlay);
   const setTerminalState = useGameState((state) => state.setTerminalState);
-  const setDoorState = useGameState((state) => state.setDoorState);
-  const setIsShuttingDown = useGameState((state) => state.setIsShuttingDown);
   const playHostLine = useGameState((state) => state.playHostLine);
   const setHackingOverlayMode = useGameState((state) => state.setHackingOverlayMode);
   const unlockZone2Door = useGameState((state) => state.unlockZone2Door);

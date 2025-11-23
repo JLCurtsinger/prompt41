@@ -62,7 +62,6 @@ class AudioManagerClass {
   private readonly SFX_SHUTDOWN_START_PATH = '/audio/sfx_shutdown_start.ogg';
 
   private readonly FADE_DURATION = 0.9; // seconds
-  private readonly FADE_STEP = 0.05; // volume change per frame (60fps = ~0.016s per step)
 
   /**
    * Initialize the audio manager (called once on game start)
@@ -120,7 +119,7 @@ class AudioManagerClass {
   /**
    * Create a zone ambient layer
    */
-  private createZoneLayer(zoneId: ZoneId, path: string): AmbientLayer | null {
+  private createZoneLayer(_zoneId: ZoneId, path: string): AmbientLayer | null {
     const audio = this.createAudio(path, true);
     if (!audio) return null;
 

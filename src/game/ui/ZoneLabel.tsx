@@ -34,7 +34,6 @@ const ZONE_LABELS: Record<'zone1' | 'zone2' | 'zone3' | 'zone4', string> = {
 const FADE_IN_DURATION = 300; // milliseconds
 const VISIBLE_DURATION = 2500; // milliseconds
 const FADE_OUT_DURATION = 700; // milliseconds
-const TOTAL_DURATION = FADE_IN_DURATION + VISIBLE_DURATION + FADE_OUT_DURATION;
 
 export function ZoneLabel() {
   const currentZone = useGameState((state) => state.currentZone);

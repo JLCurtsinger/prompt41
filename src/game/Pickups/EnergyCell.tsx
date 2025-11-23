@@ -16,7 +16,7 @@
 //    - Verify count increments correctly each time
 //    - Verify HOST line appears for each pickup
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';

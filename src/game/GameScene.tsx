@@ -17,7 +17,7 @@ import { PerspectiveCamera } from '@react-three/drei';
 import { Player } from './Player';
 import { LevelLayout, PLAYER_SPAWN_POSITION } from './LevelLayout';
 import { TriggerVolume } from './Interactables/TriggerVolume';
-import { HackingTerminal } from './Interactables/HackingTerminal';
+// import { HackingTerminal } from './Interactables/HackingTerminal'; // Unused - terminals are in LevelLayout
 import { Door } from './Interactables/Door';
 // import { EnemyCrawler } from './Enemies/EnemyCrawler'; // Replaced with SimpleCrawler
 // import { TestCrawler } from './Enemies/TestCrawler'; // Kept for future debugging, not used
@@ -83,7 +83,7 @@ function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [
 export function GameScene() {
   const [playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
   const [isShamblerActivated, setIsShamblerActivated] = useState(false);
-  const [isSentinelActivated, setIsSentinelActivated] = useState(false);
+  const [_isSentinelActivated, _setIsSentinelActivated] = useState(false);
   const [zone1Entered, setZone1Entered] = useState(false);
   const [zone2Entered, setZone2Entered] = useState(false);
   const [zone3Entered, setZone3Entered] = useState(false);

@@ -40,12 +40,15 @@ interface EnemyShamblerProps {
 // Animation mapping for future GLTF animations
 type ShamblerState = 'idle' | 'patrol' | 'chase' | 'attack';
 
+// Placeholder for future GLTF animation integration
 const animationByState: Record<ShamblerState, string> = {
   idle: 'Idle',
   patrol: 'Walk',
   chase: 'Run',
   attack: 'Attack',
 };
+// Mark as intentionally unused (will be used when GLTF animations are integrated)
+void animationByState;
 
   // Animation hook for future GLTF integration
   // NOTE: This handles GLTF-based visual animations (walk/run/idle/attack clips), NOT movement logic.
@@ -62,8 +65,8 @@ function playShamblerAnimation(
 ) {
   if (state === previousState) return; // Only play animation on state change
   
-  const animationName = animationByState[state];
   // TODO: Once GLTF model and mixer are available, wire this up:
+  // const animationName = animationByState[state];
   // if (mixer) {
   //   const clips = mixer.getRoot().animations || [];
   //   const clip = clips.find(c => c.name === animationName);

@@ -140,7 +140,7 @@ export function LootCrate({ id, position }: LootCrateProps) {
           // Show brief "Crate empty" message using the same overlay
           showInteractionPrompt({
             message: 'Crate empty',
-            actionKey: null,
+            actionKey: undefined,
             sourceId: `crate-${id}-empty`,
           });
           setTimeout(() => {

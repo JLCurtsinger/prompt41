@@ -27,7 +27,7 @@ export function ScanlineOverlay() {
   const isPaused = useGameState((state) => state.isPaused);
   
   const [offset, setOffset] = useState(0);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   
   // Base opacity
   const baseOpacity = 0.15;

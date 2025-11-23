@@ -31,8 +31,6 @@ import hostLinesData from '../../assets/data/hostLines.json';
 
 export function ScreenFade() {
   const hasCompletedLevel = useGameState((state) => state.hasCompletedLevel);
-  const isEnding = useGameState((state) => state.isEnding);
-  const resetPlayer = useGameState((state) => state.resetPlayer);
   
   const [opacity, setOpacity] = useState(0);
   const [showText, setShowText] = useState(false);

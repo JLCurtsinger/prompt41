@@ -45,7 +45,7 @@ export function ScreenGlitch() {
   const [intensity, setIntensity] = useState<GlitchIntensity>('idle');
   const [bandPositions, setBandPositions] = useState<number[]>([]);
   const [bandOpacities, setBandOpacities] = useState<number[]>([]);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   
   // Memoize params based on intensity
   const params = useMemo(() => intensityParams[intensity], [intensity]);

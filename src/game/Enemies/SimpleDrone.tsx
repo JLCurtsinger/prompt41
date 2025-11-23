@@ -162,7 +162,6 @@ export function SimpleDrone({
     const distanceToPlayer = enemyWorldPos.distanceTo(playerPosVec);
 
     // Mode transitions based on distance
-    const previousMode = modeRef.current;
     if (modeRef.current === 'idle' && distanceToPlayer <= aggroRadius) {
       modeRef.current = 'attack';
       console.log(`[Drone] mode idle → attack (distance: ${distanceToPlayer.toFixed(2)})`);
