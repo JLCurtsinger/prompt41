@@ -22,6 +22,7 @@ import { Door } from './Interactables/Door';
 // import { EnemyCrawler } from './Enemies/EnemyCrawler'; // Replaced with SimpleCrawler
 // import { TestCrawler } from './Enemies/TestCrawler'; // Kept for future debugging, not used
 import { SimpleCrawler } from './Enemies/SimpleCrawler';
+import { SimpleShambler } from './Enemies/SimpleShambler';
 import { EnemyShambler } from './Enemies/EnemyShambler';
 import { EnemySentinel } from './Enemies/EnemySentinel';
 import { ScreenFade } from './Effects/ScreenFade';
@@ -192,6 +193,21 @@ export function GameScene() {
           speed={0.35}
           color="red"
           enemyName="Crawler"
+        />
+        
+        {/* SimpleShambler prototype in Zone 3 */}
+        <SimpleShambler
+          id="shambler-prototype-0"
+          start={[18, 0, 0]}
+          end={[25, 0, -3]}
+          maxHealth={120}
+          attackRange={2.8}
+          attackCooldown={1.4}
+          attackDamage={15}
+          deathDuration={0.6}
+          speed={0.15}
+          color="purple"
+          enemyName="Shambler"
         />
         
         {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}
