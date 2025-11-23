@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { Group, Vector3 } from "three";
+import { Vector3 } from "three";
 
 import { useFrame, useThree } from "@react-three/fiber";
 
@@ -68,7 +68,7 @@ export function SimpleShambler({
 
 }: SimpleShamblerProps) {
 
-  const enemyRef = useRef<Group>(null);
+  const enemyRef = useRef<THREE.Group | THREE.Object3D | null>(null);
 
   const startVec = useRef(new Vector3(...start));
 
@@ -294,13 +294,17 @@ export function SimpleShambler({
 
     if (playerGroup && enemyRef.current) {
 
+      const currentPlayerGroup: THREE.Group = playerGroup;
+
+      const currentEnemyRef: THREE.Group | THREE.Object3D = enemyRef.current;
+
       const playerWorldPos = new THREE.Vector3();
 
       const enemyWorldPos = new THREE.Vector3();
 
-      playerGroup.getWorldPosition(playerWorldPos);
+      currentPlayerGroup.getWorldPosition(playerWorldPos);
 
-      enemyRef.current.getWorldPosition(enemyWorldPos);
+      currentEnemyRef.getWorldPosition(enemyWorldPos);
 
       const distanceToPlayer = enemyWorldPos.distanceTo(playerWorldPos);
 
