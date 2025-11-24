@@ -12,6 +12,9 @@ import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 
 import { useGameState } from "../../state/gameState";
 
+// TEMP: Completely disable crawler attacks while we debug the spawn damage issue
+const CRAWLER_ATTACKS_ENABLED = false;
+
 type SimpleCrawlerProps = {
 
   id?: string;
@@ -286,7 +289,11 @@ export function SimpleCrawler({
 
       // Attack if in range and cooldown is ready
 
-      if (distanceToPlayer <= attackRange && attackCooldownRef.current <= 0) {
+      if (
+        CRAWLER_ATTACKS_ENABLED &&
+        distanceToPlayer <= attackRange &&
+        attackCooldownRef.current <= 0
+      ) {
 
         console.log(
 
