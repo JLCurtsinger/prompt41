@@ -350,6 +350,20 @@ export const useGameState = create<GameState>((set, get) => {
   applyDamage: (amount, source = 'unknown') => {
     const state = get();
     const now = Date.now();
+    
+    // Ignore damage if player is already dead or at 0 HP
+    if (state.isDead || state.playerHealth <= 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[DMG-IGNORED:ALREADY_DEAD]', {
+          source,
+          health: state.playerHealth,
+          isDead: state.isDead,
+        });
+      }
+      return;
+    }
+    
+    // Existing invulnerability window check
     if (state.playerInvulnerableUntil && now < state.playerInvulnerableUntil) {
       // TEMP: ignore all damage during spawn invulnerability window
       return;
