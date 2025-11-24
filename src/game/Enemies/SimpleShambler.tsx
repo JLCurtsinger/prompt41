@@ -14,6 +14,8 @@ import { useGameState } from "../../state/gameState";
 
 // Attack constants - ensure melee range is tight and reasonable
 const SHAMBLER_MELEE_ATTACK_RANGE = 2.5; // Tight melee range - must be very close
+const SHAMBLER_ATTACK_WARMUP_MS = 2000;
+const SHAMBLER_ATTACK_COOLDOWN = 1.3;
 
 type SimpleShamblerProps = {
 
@@ -86,6 +88,7 @@ export function SimpleShambler({
   const healthRef = useRef(maxHealth);
 
   const attackCooldownRef = useRef(0);
+  const spawnedAtRef = useRef(Date.now());
 
   const deathTimerRef = useRef(0);
 
@@ -258,12 +261,7 @@ export function SimpleShambler({
     // Combat logic (after movement)
 
     // Update attack cooldown
-
-    if (attackCooldownRef.current > 0) {
-
-      attackCooldownRef.current -= delta;
-
-    }
+    attackCooldownRef.current = Math.max(attackCooldownRef.current - delta, 0);
 
     // Find player position from scene
 
@@ -311,12 +309,16 @@ export function SimpleShambler({
 
       const distanceToPlayer = enemyWorldPos.distanceTo(playerWorldPos);
 
-      // Attack if in melee range and cooldown is ready
-      // Use tighter melee range check - must be very close for melee attack
-      const isInMeleeRange = distanceToPlayer <= SHAMBLER_MELEE_ATTACK_RANGE;
-      const canAttack = isInMeleeRange && attackCooldownRef.current <= 0;
+      // Check if shambler has finished warmup period
+      const now = Date.now();
+      const timeSinceSpawn = now - spawnedAtRef.current;
+      const canAttackByTime = timeSinceSpawn >= SHAMBLER_ATTACK_WARMUP_MS;
 
-      if (canAttack) {
+      // Check attack conditions
+      const isInMeleeRange = distanceToPlayer <= SHAMBLER_MELEE_ATTACK_RANGE;
+      const cooldownReady = attackCooldownRef.current <= 0;
+
+      if (canAttackByTime && cooldownReady && isInMeleeRange) {
         console.log(
           "[SHAMBLER-ATTACK]",
           {
@@ -325,13 +327,14 @@ export function SimpleShambler({
             distanceToPlayer: distanceToPlayer.toFixed(2),
             meleeRange: SHAMBLER_MELEE_ATTACK_RANGE,
             attackCooldown: attackCooldownRef.current.toFixed(2),
+            timeSinceSpawn: Math.round(timeSinceSpawn),
             attackDamage
           }
         );
 
         applyDamageToPlayer(attackDamage, 'SimpleShambler-attack');
 
-        attackCooldownRef.current = attackCooldown;
+        attackCooldownRef.current = SHAMBLER_ATTACK_COOLDOWN;
 
       }
 

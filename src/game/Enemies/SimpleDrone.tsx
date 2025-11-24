@@ -12,6 +12,9 @@ import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 
 import { useGameState } from "../../state/gameState";
 
+const DRONE_ATTACK_WARMUP_MS = 2000;
+const DRONE_ATTACK_COOLDOWN = 1.0;
+
 type SimpleDroneProps = {
   id?: string;
   // Player position in world space, from GameScene's PlayerPositionTracker
@@ -58,6 +61,7 @@ export function SimpleDrone({
   // Health and combat refs
   const healthRef = useRef(maxHealth);
   const attackCooldownRef = useRef(0);
+  const spawnedAtRef = useRef(Date.now());
   const deathTimerRef = useRef(0);
   const isDyingRef = useRef(false);
   const hasFinishedDeathRef = useRef(false);
@@ -201,13 +205,19 @@ export function SimpleDrone({
       currentPos.lerp(targetPos, Math.min(attackSpeed * delta, 1));
     }
 
-    // Attack cooldown
-    if (attackCooldownRef.current > 0) {
-      attackCooldownRef.current -= delta;
-    }
+    // Update attack cooldown
+    attackCooldownRef.current = Math.max(attackCooldownRef.current - delta, 0);
 
-    // Attack if in range and cooldown is ready
-    if (distanceToPlayer <= attackRange && attackCooldownRef.current <= 0) {
+    // Check if drone has finished warmup period
+    const now = Date.now();
+    const timeSinceSpawn = now - spawnedAtRef.current;
+    const canAttackByTime = timeSinceSpawn >= DRONE_ATTACK_WARMUP_MS;
+
+    // Check attack conditions
+    const cooldownReady = attackCooldownRef.current <= 0;
+    const inRange = distanceToPlayer <= attackRange;
+
+    if (canAttackByTime && cooldownReady && inRange) {
       console.log(
         "[ATTACK]",
         enemyName,
@@ -215,11 +225,14 @@ export function SimpleDrone({
         "distanceToPlayer =",
         distanceToPlayer.toFixed(2),
         "attackRange =",
-        attackRange
+        attackRange,
+        "timeSinceSpawn =",
+        Math.round(timeSinceSpawn),
+        "ms"
       );
 
       applyDamageToPlayer(attackDamage, enemyName);
-      attackCooldownRef.current = attackCooldown;
+      attackCooldownRef.current = DRONE_ATTACK_COOLDOWN;
     }
   });
 

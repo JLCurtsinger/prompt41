@@ -84,7 +84,7 @@ export function SimpleCrawler({
   const healthRef = useRef(maxHealth);
 
   const attackCooldownRef = useRef(0); // in seconds
-  const spawnedAtRef = useRef(performance.now()); // Track when crawler spawned
+  const spawnedAtRef = useRef(Date.now()); // Track when crawler spawned
 
   const deathTimerRef = useRef(0);
 
@@ -286,7 +286,7 @@ export function SimpleCrawler({
       attackCooldownRef.current = Math.max(attackCooldownRef.current - delta, 0);
 
       // Check if crawler has finished warmup period
-      const now = performance.now();
+      const now = Date.now();
       const timeSinceSpawn = now - spawnedAtRef.current;
       const canAttackByTime = timeSinceSpawn >= CRAWLER_ATTACK_WARMUP_MS;
 
