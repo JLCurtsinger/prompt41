@@ -390,6 +390,9 @@ export const useGameState = create<GameState>((set, get) => {
   },
   
   resetPlayer: () => {
+    const now = Date.now();
+    console.log('[RESET-PLAYER]', { now });
+    
     set({
       playerHealth: get().playerMaxHealth,
       isDead: false,
@@ -444,7 +447,6 @@ export const useGameState = create<GameState>((set, get) => {
     hostLineCooldowns.clear();
     
     // Align spawn protection: use a single timestamp for both mechanisms
-    const now = Date.now();
     setPlayerSpawnTime(now);
     // Set invulnerability using the same timestamp and duration constant
     set({

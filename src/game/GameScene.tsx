@@ -91,9 +91,15 @@ export function GameScene() {
   const playHostLine = useGameState((state) => state.playHostLine);
   const setCurrentZone = useGameState((state) => state.setCurrentZone);
   const setTotalEnemiesForLevelStart = useGameState((state) => state.setTotalEnemiesForLevelStart);
+  const resetPlayer = useGameState((state) => state.resetPlayer);
   const zone = useGameState((state) => state.currentZone);
   
   const isShamblerActivated = zone === 'zone3';
+  
+  // Initialize player state on game start
+  useEffect(() => {
+    resetPlayer();
+  }, [resetPlayer]);
   
   // Count enemies after they spawn and set total for win condition
   useEffect(() => {
