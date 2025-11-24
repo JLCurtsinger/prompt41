@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { Group, Vector3 } from "three";
 
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 
 import * as THREE from "three";
 
@@ -96,9 +96,7 @@ export function SimpleCrawler({
 
   const enemyId = id || `crawler-${start.join("-")}-${end.join("-")}`;
 
-  const { scene } = useThree();
-
-  const { incrementEnemiesKilled, checkWinCondition } = useGameState();
+  const { incrementEnemiesKilled, checkWinCondition, playerPosition } = useGameState();
 
   // Register with enemyRegistry for baton hits / HUD
 
@@ -244,108 +242,58 @@ export function SimpleCrawler({
 
     // Combat logic (after movement)
 
-    // Find player position from scene
+    // Compute enemy and player world positions
+    const enemyWorldPos = new THREE.Vector3();
+    root.getWorldPosition(enemyWorldPos);
 
-    let playerGroup: THREE.Group | null = null;
+    const playerWorldPos = new THREE.Vector3(
+      playerPosition.x,
+      playerPosition.y,
+      playerPosition.z
+    );
 
-    scene.traverse((object) => {
+    const distanceToPlayer = enemyWorldPos.distanceTo(playerWorldPos);
 
-      if (object instanceof THREE.Group) {
-
-        let hasCapsule = false;
-
-        object.traverse((child) => {
-
-          if (child instanceof THREE.Mesh && child.geometry instanceof THREE.CapsuleGeometry) {
-
-            hasCapsule = true;
-
-          }
-
-        });
-
-        if (hasCapsule) {
-
-          playerGroup = object as THREE.Group;
-
-        }
-
-      }
-
+    // Debug logging of positions and distance
+    console.log('[CRAWLER-DISTANCE-DEBUG]', {
+      enemyId,
+      enemyName,
+      enemyWorldPos: {
+        x: enemyWorldPos.x,
+        y: enemyWorldPos.y,
+        z: enemyWorldPos.z,
+      },
+      playerWorldPos: {
+        x: playerWorldPos.x,
+        y: playerWorldPos.y,
+        z: playerWorldPos.z,
+      },
+      distanceToPlayer,
     });
 
-    if (playerGroup) {
+    // Update attack cooldown (delta is in seconds)
+    attackCooldownRef.current = Math.max(attackCooldownRef.current - delta, 0);
 
-      const enemyWorldPos = new THREE.Vector3();
+    // Warmup / cooldown / range checks
+    const now = Date.now();
+    const timeSinceSpawn = now - spawnedAtRef.current;
+    const canAttackByTime = timeSinceSpawn >= CRAWLER_ATTACK_WARMUP_MS;
+    const distanceOk = distanceToPlayer <= CRAWLER_MELEE_RANGE;
+    const cooldownReady = attackCooldownRef.current <= 0;
+    const canAttackByState = true; // future hook for stun, etc
 
-      root.getWorldPosition(enemyWorldPos);
-
-      const playerWorldPos = new THREE.Vector3();
-
-      const currentPlayerGroup: THREE.Group = playerGroup;
-
-      currentPlayerGroup.getWorldPosition(playerWorldPos);
-
-      const distanceToPlayer = enemyWorldPos.distanceTo(playerWorldPos);
-
-      // Debug logging of positions and distance
-
-      console.log('[CRAWLER-DISTANCE-DEBUG]', {
-
-        enemyId,
-
+    if (canAttackByTime && canAttackByState && distanceOk && cooldownReady) {
+      console.log('[CRAWLER-ATTACK]', {
         enemyName,
-
-        enemyWorldPos: {
-
-          x: enemyWorldPos.x,
-
-          y: enemyWorldPos.y,
-
-          z: enemyWorldPos.z,
-
-        },
-
-        playerWorldPos: {
-
-          x: playerWorldPos.x,
-
-          y: playerWorldPos.y,
-
-          z: playerWorldPos.z,
-
-        },
-
-        distanceToPlayer,
-
+        enemyId,
+        distanceToPlayer: distanceToPlayer.toFixed(2),
+        meleeRange: CRAWLER_MELEE_RANGE,
+        attackCooldown: attackCooldownRef.current.toFixed(2),
       });
 
-      // Update attack cooldown (delta is in seconds)
-      attackCooldownRef.current = Math.max(attackCooldownRef.current - delta, 0);
+      applyDamageToPlayer(attackDamage, 'SimpleCrawler-bite');
 
-      // Existing warmup / cooldown / in-range checks
-      const now = Date.now();
-      const timeSinceSpawn = now - spawnedAtRef.current;
-      const canAttackByTime = timeSinceSpawn >= CRAWLER_ATTACK_WARMUP_MS;
-      const distanceOk = distanceToPlayer <= CRAWLER_MELEE_RANGE;
-      const cooldownReady = attackCooldownRef.current <= 0;
-      const canAttackByState = true; // SimpleCrawler doesn't have state machine, always ready
-
-      if (canAttackByTime && canAttackByState && distanceOk && cooldownReady) {
-        console.log('[CRAWLER-ATTACK]', {
-          enemyName,
-          enemyId,
-          distanceToPlayer: distanceToPlayer.toFixed(2),
-          meleeRange: CRAWLER_MELEE_RANGE,
-          attackCooldown: attackCooldownRef.current.toFixed(2),
-        });
-
-        applyDamageToPlayer(attackDamage, 'SimpleCrawler-bite');
-
-        attackCooldownRef.current = CRAWLER_ATTACK_COOLDOWN;
-
-      }
-
+      attackCooldownRef.current = CRAWLER_ATTACK_COOLDOWN;
     }
 
   });

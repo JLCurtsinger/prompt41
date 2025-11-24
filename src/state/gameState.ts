@@ -128,6 +128,7 @@ interface GameState {
   recentlyHit: boolean;
   isDead: boolean;
   playerInvulnerableUntil: number | null;
+  playerPosition: { x: number; y: number; z: number };
   
   // Door and terminal state
   doorStates: Record<string, 'closed' | 'open'>;
@@ -195,6 +196,7 @@ interface GameState {
   resetPlayer: () => void;
   setRecentlyHit: (hit: boolean) => void;
   setIsDead: (dead: boolean) => void;
+  setPlayerPosition: (pos: { x: number; y: number; z: number }) => void;
   
   // Door and terminal actions
   setDoorState: (id: string, state: 'closed' | 'open') => void;
@@ -278,6 +280,7 @@ export const useGameState = create<GameState>((set, get) => {
   recentlyHit: false,
   isDead: false,
   playerInvulnerableUntil: null,
+  playerPosition: { x: -15, y: 0, z: 0 }, // match initial spawn from LevelLayout
   
   // Door and terminal initial state
   doorStates: {
@@ -412,6 +415,8 @@ export const useGameState = create<GameState>((set, get) => {
       isDead: false,
       recentlyHit: false,
       isSwinging: false,
+      // Reset player position to spawn
+      playerPosition: { x: -15, y: 0, z: 0 },
       // Reset door and terminal states
       doorStates: {
         'zone1-zone2-main': 'closed'
@@ -470,6 +475,9 @@ export const useGameState = create<GameState>((set, get) => {
   
   setRecentlyHit: (hit) => set({ recentlyHit: hit }),
   setIsDead: (dead) => set({ isDead: dead }),
+  setPlayerPosition: (pos) => {
+    set({ playerPosition: pos });
+  },
   
   // Door and terminal actions
   setDoorState: (id, state) => {

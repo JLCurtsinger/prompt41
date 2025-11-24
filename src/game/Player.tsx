@@ -51,7 +51,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const verticalVelocity = useRef(0);
   
   const { camera } = useThree();
-  const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding, setBatonSfxRef } = useGameState();
+  const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding, setBatonSfxRef, setPlayerPosition } = useGameState();
   
   // Baton swing animation state
   const batonSwingTimeRef = useRef(0);
@@ -480,6 +480,17 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     const deltaMovement = horizontalVelocity.clone().multiplyScalar(delta);
     player.position.x += deltaMovement.x;
     player.position.z += deltaMovement.z;
+    
+    // Write player world position to state
+    if (playerRef.current) {
+      const worldPos = new THREE.Vector3();
+      playerRef.current.getWorldPosition(worldPos);
+      setPlayerPosition({
+        x: worldPos.x,
+        y: worldPos.y,
+        z: worldPos.z,
+      });
+    }
     
     // Rotate player to face movement direction
     // Keep player upright (no roll or pitch)
