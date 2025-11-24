@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { Vector3 } from "three";
 
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 
 import * as THREE from "three";
 
@@ -104,79 +104,53 @@ export function SimpleShambler({
 
   const enemyId = id || `shambler-${start.join("-")}-${end.join("-")}`;
 
-  const { scene } = useThree();
-
-  const { incrementEnemiesKilled, checkWinCondition } = useGameState();
+  const { incrementEnemiesKilled, checkWinCondition, playerPosition } = useGameState();
 
   // Register with enemyRegistry for baton hits / HUD
-
+  // Only register when activated
   useEffect(() => {
+    if (!isActivatedRef.current) {
+      // Unregister if not activated
+      unregisterEnemy(enemyId);
+      return;
+    }
 
     const instance = {
-
       id: enemyId,
-
       getPosition: () => {
-
         const pos = new THREE.Vector3();
-
         if (enemyRef.current) {
-
           enemyRef.current.getWorldPosition(pos);
-
         }
-
         return pos;
-
       },
-
       takeDamage: (amount: number) => {
-
         const before = healthRef.current;
-
         healthRef.current = Math.max(0, before - amount);
-
         console.log(
-
           "[Combat] Baton hit Shambler",
-
           enemyId,
-
           "for",
-
           amount,
-
           "=> hp:",
-
           healthRef.current,
-
           "/",
-
           maxHealth,
-
         );
-
       },
-
       isDead: () => healthRef.current <= 0,
-
+      isActive: () => isActivatedRef.current, // Only active when activated
       getHealth: () => healthRef.current,
-
       getMaxHealth: () => maxHealth,
-
       getEnemyName: () => enemyName,
-
     };
 
     registerEnemy(enemyId, instance);
 
     return () => {
-
       unregisterEnemy(enemyId);
-
     };
-
-  }, [enemyId, maxHealth, enemyName]);
+  }, [enemyId, maxHealth, enemyName, isActivated]);
 
   useFrame((_state, delta) => {
 
@@ -254,56 +228,56 @@ export function SimpleShambler({
 
     root.position.lerpVectors(startVec.current, endVec.current, tRef.current);
 
+    // Update registry instance when active (keep position fresh)
+    if (isActivatedRef.current) {
+      const instance = {
+        id: enemyId,
+        getPosition: () => {
+          const pos = new THREE.Vector3();
+          if (enemyRef.current) {
+            enemyRef.current.getWorldPosition(pos);
+          }
+          return pos;
+        },
+        takeDamage: (amount: number) => {
+          const before = healthRef.current;
+          healthRef.current = Math.max(0, before - amount);
+          console.log(
+            "[Combat] Baton hit Shambler",
+            enemyId,
+            "for",
+            amount,
+            "=> hp:",
+            healthRef.current,
+            "/",
+            maxHealth,
+          );
+        },
+        isDead: () => healthRef.current <= 0,
+        isActive: () => isActivatedRef.current,
+        getHealth: () => healthRef.current,
+        getMaxHealth: () => maxHealth,
+        getEnemyName: () => enemyName,
+      };
+      registerEnemy(enemyId, instance);
+    }
+
     // Combat logic (after movement)
 
     // Update attack cooldown
     attackCooldownRef.current = Math.max(attackCooldownRef.current - delta, 0);
 
-    // Find player position from scene
+    // Compute enemy and player world positions (same pattern as SimpleCrawler)
+    const enemyWorldPos = new THREE.Vector3();
+    root.getWorldPosition(enemyWorldPos);
 
-    let playerGroup: THREE.Group | null = null;
+    const playerWorldPos = new THREE.Vector3(
+      playerPosition.x,
+      playerPosition.y,
+      playerPosition.z
+    );
 
-    scene.traverse((object) => {
-
-      if (object instanceof THREE.Group) {
-
-        let hasCapsule = false;
-
-        object.traverse((child) => {
-
-          if (child instanceof THREE.Mesh && child.geometry instanceof THREE.CapsuleGeometry) {
-
-            hasCapsule = true;
-
-          }
-
-        });
-
-        if (hasCapsule) {
-
-          playerGroup = object;
-
-        }
-
-      }
-
-    });
-
-    if (playerGroup && enemyRef.current) {
-
-      const currentPlayerGroup: THREE.Group = playerGroup;
-
-      const currentEnemyRef: THREE.Group | THREE.Object3D = enemyRef.current;
-
-      const playerWorldPos = new THREE.Vector3();
-
-      const enemyWorldPos = new THREE.Vector3();
-
-      currentPlayerGroup.getWorldPosition(playerWorldPos);
-
-      currentEnemyRef.getWorldPosition(enemyWorldPos);
-
-      const distanceToPlayer = enemyWorldPos.distanceTo(playerWorldPos);
+    const distanceToPlayer = enemyWorldPos.distanceTo(playerWorldPos);
 
       // Check if shambler has finished warmup period
       const now = Date.now();
@@ -331,9 +305,7 @@ export function SimpleShambler({
         applyDamageToPlayer(attackDamage, 'SimpleShambler-attack');
 
         attackCooldownRef.current = SHAMBLER_ATTACK_COOLDOWN;
-
       }
-
     }
 
   });
