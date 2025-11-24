@@ -4,16 +4,17 @@
 import { useGameState } from '../../state/gameState';
 
 const LOG_PLAYER_DAMAGE = true;
-const SPAWN_PROTECTION_MS = 3000;
+export const SPAWN_PROTECTION_MS = 3000;
 
 // Track when player spawns/respawns - set by gameState resetPlayer
 let playerSpawnedAt: number | null = null;
 
 /**
  * Set the player spawn time (called by gameState on spawn/respawn)
+ * @param timestamp - Optional timestamp to use (defaults to Date.now())
  */
-export function setPlayerSpawnTime(): void {
-  playerSpawnedAt = Date.now();
+export function setPlayerSpawnTime(timestamp?: number): void {
+  playerSpawnedAt = timestamp ?? Date.now();
   if (LOG_PLAYER_DAMAGE) {
     console.log('[SPAWN] Player spawn time set:', playerSpawnedAt);
   }
@@ -26,6 +27,15 @@ export function setPlayerSpawnTime(): void {
  */
 export function applyDamageToPlayer(amount: number, source: string) {
   const now = Date.now();
+  
+  // Debug logging
+  console.log('[DMG-DEBUG]', {
+    source,
+    now,
+    playerSpawnedAt,
+    timeSinceSpawn: playerSpawnedAt !== null ? now - playerSpawnedAt : null,
+    SPAWN_PROTECTION_MS,
+  });
   
   // Defensive guard: if playerSpawnedAt is null, treat as protected
   if (playerSpawnedAt === null) {

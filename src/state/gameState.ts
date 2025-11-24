@@ -112,7 +112,7 @@ import { create } from 'zustand';
 import hostLinesData from '../assets/data/hostLines.json';
 import { AudioManager } from '../game/audio/AudioManager';
 import type { BatonSFXHandle } from '../game/audio/BatonSFX';
-import { setPlayerSpawnTime } from '../game/Enemies/enemyDamage';
+import { setPlayerSpawnTime, SPAWN_PROTECTION_MS } from '../game/Enemies/enemyDamage';
 
 interface HostMessage {
   id: string;
@@ -267,8 +267,8 @@ const COOLDOWN_DURATION = 5000; // 5 seconds
 const MAX_MESSAGES = 5;
 
 export const useGameState = create<GameState>((set, get) => {
-  // Set initial spawn time when game state is created
-  setPlayerSpawnTime();
+  // NOTE: Do not set spawn time here - it will be set when resetPlayer() is called
+  // This ensures spawn protection starts at the actual spawn/reset moment, not store creation
   
   return {
   // Initial state
@@ -442,10 +442,14 @@ export const useGameState = create<GameState>((set, get) => {
     });
     // Clear cooldowns
     hostLineCooldowns.clear();
-    // Give the player a short invulnerability window at spawn
-    get().setPlayerInvulnerableFor(2000); // 2 seconds
-    // Set spawn time for damage protection
-    setPlayerSpawnTime();
+    
+    // Align spawn protection: use a single timestamp for both mechanisms
+    const now = Date.now();
+    setPlayerSpawnTime(now);
+    // Set invulnerability using the same timestamp and duration constant
+    set({
+      playerInvulnerableUntil: now + SPAWN_PROTECTION_MS,
+    });
   },
   
   setRecentlyHit: (hit) => set({ recentlyHit: hit }),
