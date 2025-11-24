@@ -12,10 +12,14 @@ import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 
 import { useGameState } from "../../state/gameState";
 
+// Type declaration for process.env (Vite provides NODE_ENV)
+declare const process: { env: { NODE_ENV: string } };
+
 // Attack constants - ensure melee range is tight and reasonable
 const CRAWLER_MELEE_RANGE = 1.25; // Tighter melee range - must be very close for melee hit
 const CRAWLER_ATTACK_COOLDOWN = 1.0; // seconds between attacks
 const CRAWLER_ATTACK_WARMUP_MS = 2000; // ms after spawn before crawler can attack
+const DEBUG_CRAWLER_LOGS = false;
 
 type SimpleCrawlerProps = {
 
@@ -255,21 +259,23 @@ export function SimpleCrawler({
     const distanceToPlayer = enemyWorldPos.distanceTo(playerWorldPos);
 
     // Debug logging of positions and distance
-    console.log('[CRAWLER-DISTANCE-DEBUG]', {
-      enemyId,
-      enemyName,
-      enemyWorldPos: {
-        x: enemyWorldPos.x,
-        y: enemyWorldPos.y,
-        z: enemyWorldPos.z,
-      },
-      playerWorldPos: {
-        x: playerWorldPos.x,
-        y: playerWorldPos.y,
-        z: playerWorldPos.z,
-      },
-      distanceToPlayer,
-    });
+    if (process.env.NODE_ENV === 'development' && DEBUG_CRAWLER_LOGS) {
+      console.log('[CRAWLER-DISTANCE-DEBUG]', {
+        enemyId,
+        enemyName,
+        enemyWorldPos: {
+          x: enemyWorldPos.x,
+          y: enemyWorldPos.y,
+          z: enemyWorldPos.z,
+        },
+        playerWorldPos: {
+          x: playerWorldPos.x,
+          y: playerWorldPos.y,
+          z: playerWorldPos.z,
+        },
+        distanceToPlayer,
+      });
+    }
 
     // Update attack cooldown (delta is in seconds)
     attackCooldownRef.current = Math.max(attackCooldownRef.current - delta, 0);
@@ -283,13 +289,15 @@ export function SimpleCrawler({
     const canAttackByState = true; // future hook for stun, etc
 
     if (canAttackByTime && canAttackByState && distanceOk && cooldownReady) {
-      console.log('[CRAWLER-ATTACK]', {
-        enemyName,
-        enemyId,
-        distanceToPlayer: distanceToPlayer.toFixed(2),
-        meleeRange: CRAWLER_MELEE_RANGE,
-        attackCooldown: attackCooldownRef.current.toFixed(2),
-      });
+      if (process.env.NODE_ENV === 'development' && DEBUG_CRAWLER_LOGS) {
+        console.log('[CRAWLER-ATTACK]', {
+          enemyName,
+          enemyId,
+          distanceToPlayer: distanceToPlayer.toFixed(2),
+          meleeRange: CRAWLER_MELEE_RANGE,
+          attackCooldown: attackCooldownRef.current.toFixed(2),
+        });
+      }
 
       applyDamageToPlayer(attackDamage, 'SimpleCrawler-bite');
 

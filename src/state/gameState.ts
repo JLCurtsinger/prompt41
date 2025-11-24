@@ -114,6 +114,8 @@ import { AudioManager } from '../game/audio/AudioManager';
 import type { BatonSFXHandle } from '../game/audio/BatonSFX';
 import { setPlayerSpawnTime, SPAWN_PROTECTION_MS } from '../game/Enemies/enemyDamage';
 
+const DEBUG_DAMAGE_LOGS = false;
+
 interface HostMessage {
   id: string;
   text: string;
@@ -356,7 +358,7 @@ export const useGameState = create<GameState>((set, get) => {
     
     // Ignore damage if player is already dead or at 0 HP
     if (state.isDead || state.playerHealth <= 0) {
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === 'development' && DEBUG_DAMAGE_LOGS) {
         console.log('[DMG-IGNORED:ALREADY_DEAD]', {
           source,
           health: state.playerHealth,

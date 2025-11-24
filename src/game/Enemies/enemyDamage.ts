@@ -4,6 +4,7 @@
 import { useGameState } from '../../state/gameState';
 
 const LOG_PLAYER_DAMAGE = true;
+const DEBUG_DAMAGE_LOGS = false;
 export const SPAWN_PROTECTION_MS = 3000;
 
 // Track when player spawns/respawns - set by gameState resetPlayer
@@ -29,13 +30,15 @@ export function applyDamageToPlayer(amount: number, source: string) {
   const now = Date.now();
   
   // Debug logging
-  console.log('[DMG-DEBUG]', {
-    source,
-    now,
-    playerSpawnedAt,
-    timeSinceSpawn: playerSpawnedAt !== null ? now - playerSpawnedAt : null,
-    SPAWN_PROTECTION_MS,
-  });
+  if (process.env.NODE_ENV === 'development' && DEBUG_DAMAGE_LOGS) {
+    console.log('[DMG-DEBUG]', {
+      source,
+      now,
+      playerSpawnedAt,
+      timeSinceSpawn: playerSpawnedAt !== null ? now - playerSpawnedAt : null,
+      SPAWN_PROTECTION_MS,
+    });
+  }
   
   // Defensive guard: if playerSpawnedAt is null, treat as protected
   if (playerSpawnedAt === null) {
@@ -46,7 +49,7 @@ export function applyDamageToPlayer(amount: number, source: string) {
   // Check spawn protection window
   const timeSinceSpawn = now - playerSpawnedAt;
   if (timeSinceSpawn < SPAWN_PROTECTION_MS) {
-    if (LOG_PLAYER_DAMAGE) {
+    if (process.env.NODE_ENV === 'development' && DEBUG_DAMAGE_LOGS) {
       console.log('[DMG-IGNORED:SPAWN_PROTECTION]', { source, timeSinceSpawn });
     }
     return;
@@ -55,7 +58,7 @@ export function applyDamageToPlayer(amount: number, source: string) {
   const state = useGameState.getState();
   const { applyDamage, playerHealth } = state;
   
-  if (LOG_PLAYER_DAMAGE) {
+  if (process.env.NODE_ENV === 'development' && DEBUG_DAMAGE_LOGS) {
     const healthAfter = Math.max(0, playerHealth - amount);
     console.log('[DMG-APPLY]', { source, timeSinceSpawn });
     console.log(
