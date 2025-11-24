@@ -58,8 +58,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const batonIsSwingingRef = useRef(false);
   
   // Movement constants
-  const WALK_SPEED = 3;
-  const SPRINT_SPEED = 7;
+  const WALK_SPEED = 4;
+  const SPRINT_SPEED = 8;
   const ACCELERATION = 15;
   const DECELERATION = 20;
   const ROTATION_SPEED = 8;
@@ -71,7 +71,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const GROUND_Y = 0; // Ground level
   
   // Combat constants
-  const BATON_RANGE = 3; // meters
+  const BATON_RANGE = 4; // meters
   const BATON_DAMAGE = 25; // damage per hit
   const ATTACK_COOLDOWN = 0.4; // seconds between attacks
   
