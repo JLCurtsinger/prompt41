@@ -112,6 +112,7 @@ import { create } from 'zustand';
 import hostLinesData from '../assets/data/hostLines.json';
 import { AudioManager } from '../game/audio/AudioManager';
 import type { BatonSFXHandle } from '../game/audio/BatonSFX';
+import { setPlayerSpawnTime } from '../game/Enemies/enemyDamage';
 
 interface HostMessage {
   id: string;
@@ -265,7 +266,11 @@ const hostLineCooldowns = new Map<string, number>();
 const COOLDOWN_DURATION = 5000; // 5 seconds
 const MAX_MESSAGES = 5;
 
-export const useGameState = create<GameState>((set, get) => ({
+export const useGameState = create<GameState>((set, get) => {
+  // Set initial spawn time when game state is created
+  setPlayerSpawnTime();
+  
+  return {
   // Initial state
   playerHealth: 100,
   playerMaxHealth: 100,
@@ -439,6 +444,8 @@ export const useGameState = create<GameState>((set, get) => ({
     hostLineCooldowns.clear();
     // Give the player a short invulnerability window at spawn
     get().setPlayerInvulnerableFor(2000); // 2 seconds
+    // Set spawn time for damage protection
+    setPlayerSpawnTime();
   },
   
   setRecentlyHit: (hit) => set({ recentlyHit: hit }),
@@ -739,5 +746,6 @@ export const useGameState = create<GameState>((set, get) => ({
     set({
       playerInvulnerableUntil: null,
     }),
-}));
+  };
+});
 

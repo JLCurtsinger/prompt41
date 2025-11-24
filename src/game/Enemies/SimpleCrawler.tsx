@@ -12,8 +12,8 @@ import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 
 import { useGameState } from "../../state/gameState";
 
-// TEMP flag (currently enabled); keep in case we need to toggle crawler attacks quickly
-const CRAWLER_ATTACKS_ENABLED = true;
+// Attack constants - ensure melee range is tight and reasonable
+const CRAWLER_MELEE_ATTACK_RANGE = 2.0; // Tight melee range - must be very close
 
 type SimpleCrawlerProps = {
 
@@ -51,7 +51,7 @@ export function SimpleCrawler({
 
   maxHealth = 50,
 
-  attackRange = 2,
+  attackRange: _attackRange = 2, // Keep for interface compatibility, but use CRAWLER_MELEE_ATTACK_RANGE instead
 
   attackCooldown = 0.8,
 
@@ -287,33 +287,25 @@ export function SimpleCrawler({
 
       }
 
-      // Attack if in range and cooldown is ready
+      // Attack if in melee range and cooldown is ready
+      // Use tighter melee range check - must be very close for melee attack
+      const isInMeleeRange = distanceToPlayer <= CRAWLER_MELEE_ATTACK_RANGE;
+      const canAttack = isInMeleeRange && attackCooldownRef.current <= 0;
 
-      if (
-        CRAWLER_ATTACKS_ENABLED &&
-        distanceToPlayer <= attackRange &&
-        attackCooldownRef.current <= 0
-      ) {
-
+      if (canAttack) {
         console.log(
-
-          "[ATTACK]",
-
-          enemyName,
-
-          enemyId,
-
-          "distanceToPlayer =",
-
-          distanceToPlayer.toFixed(2),
-
-          "attackRange =",
-
-          attackRange
-
+          "[CRAWLER-ATTACK]",
+          {
+            enemyName,
+            enemyId,
+            distanceToPlayer: distanceToPlayer.toFixed(2),
+            meleeRange: CRAWLER_MELEE_ATTACK_RANGE,
+            attackCooldown: attackCooldownRef.current.toFixed(2),
+            attackDamage
+          }
         );
 
-        applyDamageToPlayer(attackDamage, enemyName);
+        applyDamageToPlayer(attackDamage, 'SimpleCrawler-bite');
 
         attackCooldownRef.current = attackCooldown;
 

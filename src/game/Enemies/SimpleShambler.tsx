@@ -12,6 +12,9 @@ import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 
 import { useGameState } from "../../state/gameState";
 
+// Attack constants - ensure melee range is tight and reasonable
+const SHAMBLER_MELEE_ATTACK_RANGE = 2.5; // Tight melee range - must be very close
+
 type SimpleShamblerProps = {
 
   id?: string;
@@ -52,7 +55,7 @@ export function SimpleShambler({
 
   maxHealth = 100,
 
-  attackRange = 2.5,
+  attackRange: _attackRange = 2.5, // Keep for interface compatibility, but use SHAMBLER_MELEE_ATTACK_RANGE instead
 
   attackCooldown = 1.3,
 
@@ -308,25 +311,25 @@ export function SimpleShambler({
 
       const distanceToPlayer = enemyWorldPos.distanceTo(playerWorldPos);
 
-      if (distanceToPlayer <= attackRange && attackCooldownRef.current <= 0) {
+      // Attack if in melee range and cooldown is ready
+      // Use tighter melee range check - must be very close for melee attack
+      const isInMeleeRange = distanceToPlayer <= SHAMBLER_MELEE_ATTACK_RANGE;
+      const canAttack = isInMeleeRange && attackCooldownRef.current <= 0;
 
+      if (canAttack) {
         console.log(
-
-          "[ATTACK] Shambler",
-
-          enemyId,
-
-          "distanceToPlayer =",
-
-          distanceToPlayer.toFixed(2),
-
-          "attackRange =",
-
-          attackRange
-
+          "[SHAMBLER-ATTACK]",
+          {
+            enemyName,
+            enemyId,
+            distanceToPlayer: distanceToPlayer.toFixed(2),
+            meleeRange: SHAMBLER_MELEE_ATTACK_RANGE,
+            attackCooldown: attackCooldownRef.current.toFixed(2),
+            attackDamage
+          }
         );
 
-        applyDamageToPlayer(attackDamage, enemyName);
+        applyDamageToPlayer(attackDamage, 'SimpleShambler-attack');
 
         attackCooldownRef.current = attackCooldown;
 
