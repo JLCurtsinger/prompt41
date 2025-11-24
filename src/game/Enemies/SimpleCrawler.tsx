@@ -13,7 +13,9 @@ import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 import { useGameState } from "../../state/gameState";
 
 // Attack constants - ensure melee range is tight and reasonable
-const CRAWLER_MELEE_ATTACK_RANGE = 2.0; // Tight melee range - must be very close
+const CRAWLER_MELEE_RANGE = 1.25; // Tighter melee range - must be very close for melee hit
+const CRAWLER_ATTACK_COOLDOWN = 1.0; // seconds between attacks
+const CRAWLER_ATTACK_WARMUP_MS = 2000; // ms after spawn before crawler can attack
 
 type SimpleCrawlerProps = {
 
@@ -51,9 +53,9 @@ export function SimpleCrawler({
 
   maxHealth = 50,
 
-  attackRange: _attackRange = 2, // Keep for interface compatibility, but use CRAWLER_MELEE_ATTACK_RANGE instead
+  attackRange: _attackRange = 2, // Keep for interface compatibility, but use CRAWLER_MELEE_RANGE instead
 
-  attackCooldown = 0.8,
+  attackCooldown: _attackCooldown = 0.8, // Keep for interface compatibility, but use CRAWLER_ATTACK_COOLDOWN instead
 
   attackDamage = 5,
 
@@ -81,7 +83,8 @@ export function SimpleCrawler({
 
   const healthRef = useRef(maxHealth);
 
-  const attackCooldownRef = useRef(0);
+  const attackCooldownRef = useRef(0); // in seconds
+  const spawnedAtRef = useRef(performance.now()); // Track when crawler spawned
 
   const deathTimerRef = useRef(0);
 
@@ -279,35 +282,36 @@ export function SimpleCrawler({
 
       const distanceToPlayer = enemyWorldPos.distanceTo(playerPos);
 
-      // Attack cooldown
+      // Update attack cooldown (delta is in seconds)
+      attackCooldownRef.current = Math.max(attackCooldownRef.current - delta, 0);
 
-      if (attackCooldownRef.current > 0) {
+      // Check if crawler has finished warmup period
+      const now = performance.now();
+      const timeSinceSpawn = now - spawnedAtRef.current;
+      const canAttackByTime = timeSinceSpawn >= CRAWLER_ATTACK_WARMUP_MS;
 
-        attackCooldownRef.current -= delta;
+      // Check attack conditions
+      const distanceOk = distanceToPlayer <= CRAWLER_MELEE_RANGE;
+      const cooldownReady = attackCooldownRef.current <= 0;
+      const canAttackByState = true; // SimpleCrawler doesn't have state machine, always ready
 
-      }
-
-      // Attack if in melee range and cooldown is ready
-      // Use tighter melee range check - must be very close for melee attack
-      const isInMeleeRange = distanceToPlayer <= CRAWLER_MELEE_ATTACK_RANGE;
-      const canAttack = isInMeleeRange && attackCooldownRef.current <= 0;
-
-      if (canAttack) {
+      if (canAttackByTime && canAttackByState && distanceOk && cooldownReady) {
         console.log(
           "[CRAWLER-ATTACK]",
           {
             enemyName,
             enemyId,
             distanceToPlayer: distanceToPlayer.toFixed(2),
-            meleeRange: CRAWLER_MELEE_ATTACK_RANGE,
+            meleeRange: CRAWLER_MELEE_RANGE,
             attackCooldown: attackCooldownRef.current.toFixed(2),
+            timeSinceSpawn: Math.round(timeSinceSpawn),
             attackDamage
           }
         );
 
         applyDamageToPlayer(attackDamage, 'SimpleCrawler-bite');
 
-        attackCooldownRef.current = attackCooldown;
+        attackCooldownRef.current = CRAWLER_ATTACK_COOLDOWN;
 
       }
 
