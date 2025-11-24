@@ -17,8 +17,6 @@ const DRONE_ATTACK_COOLDOWN = 1.0;
 
 type SimpleDroneProps = {
   id?: string;
-  // Player position in world space, from GameScene's PlayerPositionTracker
-  playerPosition: [number, number, number];
 
   // Movement/combat tuning
   maxHealth?: number;
@@ -37,7 +35,6 @@ type SimpleDroneProps = {
 
 export function SimpleDrone({
   id,
-  playerPosition,
   maxHealth = 60,
   attackRange = 2.5,
   attackDamage = 10,
@@ -67,7 +64,7 @@ export function SimpleDrone({
   // Generate enemy ID if not provided
   const enemyId = id || `drone-${Math.random().toString(36).slice(2, 8)}`;
 
-  const { incrementEnemiesKilled, checkWinCondition } = useGameState();
+  const { incrementEnemiesKilled, checkWinCondition, playerPosition } = useGameState();
 
   // Initialize position at orbit center
   useEffect(() => {
@@ -156,9 +153,9 @@ export function SimpleDrone({
     root.getWorldPosition(enemyWorldPos);
 
     const playerPosVec = new THREE.Vector3(
-      playerPosition[0],
-      playerPosition[1],
-      playerPosition[2]
+      playerPosition.x,
+      playerPosition.y,
+      playerPosition.z
     );
 
     const distanceToPlayer = enemyWorldPos.distanceTo(playerPosVec);
@@ -192,11 +189,11 @@ export function SimpleDrone({
       currentPos.lerp(targetPos, Math.min(orbitSpeed * delta * 2, 1));
     } else {
       // Attack mode: move toward player, swooping down slightly
-      const attackTargetY = playerPosition[1] + 1.5; // Swoop down lower than idle
+      const attackTargetY = playerPosition.y + 1.5; // Swoop down lower than idle
       targetPos = new THREE.Vector3(
-        playerPosition[0],
+        playerPosition.x,
         attackTargetY,
-        playerPosition[2]
+        playerPosition.z
       );
       
       // Lerp toward player using attackSpeed
