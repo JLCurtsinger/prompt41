@@ -12,8 +12,8 @@ import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 
 import { useGameState } from "../../state/gameState";
 
-// TEMP: Completely disable crawler attacks while we debug the spawn damage issue
-const CRAWLER_ATTACKS_ENABLED = false;
+// TEMP flag (currently enabled); keep in case we need to toggle crawler attacks quickly
+const CRAWLER_ATTACKS_ENABLED = true;
 
 type SimpleCrawlerProps = {
 

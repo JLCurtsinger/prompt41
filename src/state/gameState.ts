@@ -126,6 +126,7 @@ interface GameState {
   isSwinging: boolean;
   recentlyHit: boolean;
   isDead: boolean;
+  playerInvulnerableUntil: number | null;
   
   // Door and terminal state
   doorStates: Record<string, 'closed' | 'open'>;
@@ -244,6 +245,10 @@ interface GameState {
   
   // Baton SFX actions
   setBatonSfxRef: (ref: React.RefObject<BatonSFXHandle | null>) => void;
+  
+  // Invulnerability actions
+  setPlayerInvulnerableFor: (milliseconds: number) => void;
+  clearPlayerInvulnerability: () => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -267,6 +272,7 @@ export const useGameState = create<GameState>((set, get) => ({
   isSwinging: false,
   recentlyHit: false,
   isDead: false,
+  playerInvulnerableUntil: null,
   
   // Door and terminal initial state
   doorStates: {
@@ -337,8 +343,15 @@ export const useGameState = create<GameState>((set, get) => ({
   resetCombatState: () => set({ isSwinging: false }),
   
   applyDamage: (amount, source = 'unknown') => {
-    const currentHealth = get().playerHealth;
-    const maxHealth = get().playerMaxHealth;
+    const state = get();
+    const now = Date.now();
+    if (state.playerInvulnerableUntil && now < state.playerInvulnerableUntil) {
+      // TEMP: ignore all damage during spawn invulnerability window
+      return;
+    }
+    
+    const currentHealth = state.playerHealth;
+    const maxHealth = state.playerMaxHealth;
     const newHealth = Math.max(0, currentHealth - amount);
     const healthRatio = newHealth / maxHealth;
     const wasLowHealth = currentHealth / maxHealth < 0.3;
@@ -424,6 +437,8 @@ export const useGameState = create<GameState>((set, get) => ({
     });
     // Clear cooldowns
     hostLineCooldowns.clear();
+    // Give the player a short invulnerability window at spawn
+    get().setPlayerInvulnerableFor(2000); // 2 seconds
   },
   
   setRecentlyHit: (hit) => set({ recentlyHit: hit }),
@@ -714,5 +729,15 @@ export const useGameState = create<GameState>((set, get) => ({
   
   // Baton SFX actions
   setBatonSfxRef: (ref) => set({ batonSfxRef: ref }),
+  
+  // Invulnerability actions
+  setPlayerInvulnerableFor: (milliseconds) =>
+    set({
+      playerInvulnerableUntil: Date.now() + milliseconds,
+    }),
+  clearPlayerInvulnerability: () =>
+    set({
+      playerInvulnerableUntil: null,
+    }),
 }));
 
