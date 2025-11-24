@@ -31,8 +31,6 @@ type SimpleShamblerProps = {
 
   attackRange?: number;
 
-  attackCooldown?: number;
-
   attackDamage?: number;
 
   deathDuration?: number;
@@ -58,8 +56,6 @@ export function SimpleShambler({
   maxHealth = 100,
 
   attackRange: _attackRange = 2.5, // Keep for interface compatibility, but use SHAMBLER_MELEE_ATTACK_RANGE instead
-
-  attackCooldown = 1.3,
 
   attackDamage = 18,
 

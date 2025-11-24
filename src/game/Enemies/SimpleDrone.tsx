@@ -23,7 +23,6 @@ type SimpleDroneProps = {
   // Movement/combat tuning
   maxHealth?: number;
   attackRange?: number;
-  attackCooldown?: number;
   attackDamage?: number;
   deathDuration?: number;
   followHeight?: number;   // Y height to hover at (for idle orbit)
@@ -41,7 +40,6 @@ export function SimpleDrone({
   playerPosition,
   maxHealth = 60,
   attackRange = 2.5,
-  attackCooldown = 1.0,
   attackDamage = 10,
   deathDuration = 0.5,
   followHeight = 3,
