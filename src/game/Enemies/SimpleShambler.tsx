@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { Vector3 } from "three";
+import { Group, Vector3 } from "three";
 
 import { useFrame } from "@react-three/fiber";
 
@@ -16,6 +16,7 @@ import { useGameState } from "../../state/gameState";
 const SHAMBLER_MELEE_ATTACK_RANGE = 2.5; // Tight melee range - must be very close
 const SHAMBLER_ATTACK_WARMUP_MS = 2000;
 const SHAMBLER_ATTACK_COOLDOWN = 1.3;
+const DEBUG_SHAMBLER_LOGS = false;
 
 type SimpleShamblerProps = {
 
@@ -24,8 +25,6 @@ type SimpleShamblerProps = {
   start: [number, number, number];
 
   end: [number, number, number];
-
-  isActivated?: boolean;
 
   maxHealth?: number;
 
@@ -51,8 +50,6 @@ export function SimpleShambler({
 
   end,
 
-  isActivated,
-
   maxHealth = 100,
 
   attackRange: _attackRange = 2.5, // Keep for interface compatibility, but use SHAMBLER_MELEE_ATTACK_RANGE instead
@@ -69,7 +66,7 @@ export function SimpleShambler({
 
 }: SimpleShamblerProps) {
 
-  const enemyRef = useRef<THREE.Group | THREE.Object3D | null>(null);
+  const enemyRef = useRef<Group>(null);
 
   const startVec = useRef(new Vector3(...start));
 
@@ -92,13 +89,11 @@ export function SimpleShambler({
 
   const hasFinishedDeathRef = useRef(false);
 
-  const isActivatedRef = useRef(isActivated ?? false);
+  // Generate enemy ID if not provided
 
-  useEffect(() => {
+  const enemyId = id || `shambler-${start.join("-")}-${end.join("-")}`;
 
-    isActivatedRef.current = isActivated ?? false;
-
-  }, [isActivated]);
+  const { incrementEnemiesKilled, checkWinCondition, playerPosition } = useGameState();
 
   // Set initial position on mount so the Shambler spawns at the correct location
   useEffect(() => {
@@ -107,7 +102,7 @@ export function SimpleShambler({
 
     root.position.set(startVec.current.x, startVec.current.y, startVec.current.z);
 
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && DEBUG_SHAMBLER_LOGS) {
       console.log("[SimpleShambler] initial position", {
         enemyId,
         start: {
@@ -117,23 +112,11 @@ export function SimpleShambler({
         },
       });
     }
-  }, []);
-
-  // Generate enemy ID if not provided
-
-  const enemyId = id || `shambler-${start.join("-")}-${end.join("-")}`;
-
-  const { incrementEnemiesKilled, checkWinCondition, playerPosition } = useGameState();
+  }, [enemyId]);
 
   // Register with enemyRegistry for baton hits / HUD
-  // Only register when activated
+  // Always register on mount (like SimpleCrawler)
   useEffect(() => {
-    if (!isActivatedRef.current) {
-      // Unregister if not activated
-      unregisterEnemy(enemyId);
-      return;
-    }
-
     const instance = {
       id: enemyId,
       getPosition: () => {
@@ -158,7 +141,6 @@ export function SimpleShambler({
         );
       },
       isDead: () => healthRef.current <= 0,
-      isActive: () => isActivatedRef.current, // Only active when activated
       getHealth: () => healthRef.current,
       getMaxHealth: () => maxHealth,
       getEnemyName: () => enemyName,
@@ -169,19 +151,13 @@ export function SimpleShambler({
     return () => {
       unregisterEnemy(enemyId);
     };
-  }, [enemyId, maxHealth, enemyName, isActivated]);
+  }, [enemyId, maxHealth, enemyName]);
 
   useFrame((_state, delta) => {
 
     const root = enemyRef.current;
 
     if (!root || hasFinishedDeathRef.current) return;
-
-    if (!isActivatedRef.current) {
-
-      return;
-
-    }
 
     // Death handling
 
@@ -247,40 +223,6 @@ export function SimpleShambler({
 
     root.position.lerpVectors(startVec.current, endVec.current, tRef.current);
 
-    // Update registry instance when active (keep position fresh)
-    if (isActivatedRef.current) {
-      const instance = {
-        id: enemyId,
-        getPosition: () => {
-          const pos = new THREE.Vector3();
-          if (enemyRef.current) {
-            enemyRef.current.getWorldPosition(pos);
-          }
-          return pos;
-        },
-        takeDamage: (amount: number) => {
-          const before = healthRef.current;
-          healthRef.current = Math.max(0, before - amount);
-          console.log(
-            "[Combat] Baton hit Shambler",
-            enemyId,
-            "for",
-            amount,
-            "=> hp:",
-            healthRef.current,
-            "/",
-            maxHealth,
-          );
-        },
-        isDead: () => healthRef.current <= 0,
-        isActive: () => isActivatedRef.current,
-        getHealth: () => healthRef.current,
-        getMaxHealth: () => maxHealth,
-        getEnemyName: () => enemyName,
-      };
-      registerEnemy(enemyId, instance);
-    }
-
     // Combat logic (after movement)
 
     // Update attack cooldown
@@ -298,16 +240,17 @@ export function SimpleShambler({
 
     const distanceToPlayer = enemyWorldPos.distanceTo(playerWorldPos);
 
-      // Check if shambler has finished warmup period
-      const now = Date.now();
-      const timeSinceSpawn = now - spawnedAtRef.current;
-      const canAttackByTime = timeSinceSpawn >= SHAMBLER_ATTACK_WARMUP_MS;
+    // Check if shambler has finished warmup period
+    const now = Date.now();
+    const timeSinceSpawn = now - spawnedAtRef.current;
+    const canAttackByTime = timeSinceSpawn >= SHAMBLER_ATTACK_WARMUP_MS;
 
-      // Check attack conditions
-      const isInMeleeRange = distanceToPlayer <= SHAMBLER_MELEE_ATTACK_RANGE;
-      const cooldownReady = attackCooldownRef.current <= 0;
+    // Check attack conditions
+    const isInMeleeRange = distanceToPlayer <= SHAMBLER_MELEE_ATTACK_RANGE;
+    const cooldownReady = attackCooldownRef.current <= 0;
 
-      if (canAttackByTime && cooldownReady && isInMeleeRange) {
+    if (canAttackByTime && cooldownReady && isInMeleeRange) {
+      if (import.meta.env.DEV && DEBUG_SHAMBLER_LOGS) {
         console.log(
           "[SHAMBLER-ATTACK]",
           {
@@ -320,11 +263,12 @@ export function SimpleShambler({
             attackDamage
           }
         );
-
-        applyDamageToPlayer(attackDamage, 'SimpleShambler-attack');
-
-        attackCooldownRef.current = SHAMBLER_ATTACK_COOLDOWN;
       }
+
+      applyDamageToPlayer(attackDamage, 'SimpleShambler-attack');
+
+      attackCooldownRef.current = SHAMBLER_ATTACK_COOLDOWN;
+    }
   });
 
   return (

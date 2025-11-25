@@ -92,9 +92,6 @@ export function GameScene() {
   const setCurrentZone = useGameState((state) => state.setCurrentZone);
   const setTotalEnemiesForLevelStart = useGameState((state) => state.setTotalEnemiesForLevelStart);
   const resetPlayer = useGameState((state) => state.resetPlayer);
-  const zone = useGameState((state) => state.currentZone);
-  
-  const isShamblerActivated = zone === 'zone3';
   
   // Initialize player state on game start
   useEffect(() => {
@@ -252,17 +249,15 @@ export function GameScene() {
         /> */}
         
         {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}
-        {/* Shambler starts idle until activated by trigger volume */}
+        {/* Shambler is always active from level start (like Crawler and Drone) */}
         {/* DEBUG: Shambler spawn coordinates confirmed:
             - Zone 3 ground plane is at x=15, spans x=5 to x=25
             - start=[18, 1.4, 0] is inside Zone 3 corridor, Y=1.4 places capsule bottom at ground
-            - end=[22, 1.4, 0] patrols along corridor center
-            - isActivated tied to zone === 'zone3' */}
+            - end=[22, 1.4, 0] patrols along corridor center */}
         <SimpleShambler
           id="shambler-zone3"
           start={[18, 1.4, 0]}
           end={[22, 1.4, 0]}
-          isActivated={isShamblerActivated}
         />
         
         {/* Sentinel is now in LevelLayout.tsx */}
