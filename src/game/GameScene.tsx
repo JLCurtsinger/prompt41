@@ -81,7 +81,7 @@ function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [
 }
 
 export function GameScene() {
-  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
+  const [_playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
   const [_isSentinelActivated, _setIsSentinelActivated] = useState(false);
   const [zone1Entered, setZone1Entered] = useState(false);
   const [zone2Entered, setZone2Entered] = useState(false);
@@ -225,7 +225,6 @@ export function GameScene() {
         <SimpleDrone
           {...ENEMY_TUNING.drone}
           id="drone-0"
-          playerPosition={playerPosition}
           deathDuration={0.5}
           followHeight={3}
           followRadius={4}
@@ -256,7 +255,7 @@ export function GameScene() {
         {/* Shambler starts idle until activated by trigger volume */}
         {/* <EnemyShambler
           initialPosition={[18, 0, 0]}
-          playerPosition={playerPosition}
+          playerPosition={_playerPosition}
           isActivated={isShamblerActivated}
         /> */}
         <SimpleShambler

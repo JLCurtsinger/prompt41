@@ -358,7 +358,7 @@ export const useGameState = create<GameState>((set, get) => {
     
     // Ignore damage if player is already dead or at 0 HP
     if (state.isDead || state.playerHealth <= 0) {
-      if (process.env.NODE_ENV === 'development' && DEBUG_DAMAGE_LOGS) {
+      if (import.meta.env.DEV && DEBUG_DAMAGE_LOGS) {
         console.log('[DMG-IGNORED:ALREADY_DEAD]', {
           source,
           health: state.playerHealth,

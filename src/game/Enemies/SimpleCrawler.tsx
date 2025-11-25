@@ -259,7 +259,7 @@ export function SimpleCrawler({
     const distanceToPlayer = enemyWorldPos.distanceTo(playerWorldPos);
 
     // Debug logging of positions and distance
-    if (process.env.NODE_ENV === 'development' && DEBUG_CRAWLER_LOGS) {
+    if (import.meta.env.DEV && DEBUG_CRAWLER_LOGS) {
       console.log('[CRAWLER-DISTANCE-DEBUG]', {
         enemyId,
         enemyName,
@@ -289,7 +289,7 @@ export function SimpleCrawler({
     const canAttackByState = true; // future hook for stun, etc
 
     if (canAttackByTime && canAttackByState && distanceOk && cooldownReady) {
-      if (process.env.NODE_ENV === 'development' && DEBUG_CRAWLER_LOGS) {
+      if (import.meta.env.DEV && DEBUG_CRAWLER_LOGS) {
         console.log('[CRAWLER-ATTACK]', {
           enemyName,
           enemyId,

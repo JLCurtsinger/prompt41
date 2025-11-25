@@ -30,7 +30,7 @@ export function applyDamageToPlayer(amount: number, source: string) {
   const now = Date.now();
   
   // Debug logging
-  if (process.env.NODE_ENV === 'development' && DEBUG_DAMAGE_LOGS) {
+  if (import.meta.env.DEV && DEBUG_DAMAGE_LOGS) {
     console.log('[DMG-DEBUG]', {
       source,
       now,
@@ -49,7 +49,7 @@ export function applyDamageToPlayer(amount: number, source: string) {
   // Check spawn protection window
   const timeSinceSpawn = now - playerSpawnedAt;
   if (timeSinceSpawn < SPAWN_PROTECTION_MS) {
-    if (process.env.NODE_ENV === 'development' && DEBUG_DAMAGE_LOGS) {
+    if (import.meta.env.DEV && DEBUG_DAMAGE_LOGS) {
       console.log('[DMG-IGNORED:SPAWN_PROTECTION]', { source, timeSinceSpawn });
     }
     return;
@@ -58,7 +58,7 @@ export function applyDamageToPlayer(amount: number, source: string) {
   const state = useGameState.getState();
   const { applyDamage, playerHealth } = state;
   
-  if (process.env.NODE_ENV === 'development' && DEBUG_DAMAGE_LOGS) {
+  if (import.meta.env.DEV && DEBUG_DAMAGE_LOGS) {
     const healthAfter = Math.max(0, playerHealth - amount);
     console.log('[DMG-APPLY]', { source, timeSinceSpawn });
     console.log(
