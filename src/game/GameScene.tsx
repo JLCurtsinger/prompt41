@@ -255,13 +255,13 @@ export function GameScene() {
         {/* Shambler starts idle until activated by trigger volume */}
         {/* DEBUG: Shambler spawn coordinates confirmed:
             - Zone 3 ground plane is at x=15, spans x=5 to x=25
-            - start=[18, 0, 0] is inside Zone 3 corridor
-            - end=[24, 0, -3] patrols toward the side room entrance
+            - start=[18, 1.4, 0] is inside Zone 3 corridor, Y=1.4 places capsule bottom at ground
+            - end=[22, 1.4, 0] patrols along corridor center
             - isActivated tied to zone === 'zone3' */}
         <SimpleShambler
-          id="shambler-18-0-0"
-          start={[18, 0, 0]}
-          end={[24, 0, -3]}
+          id="shambler-zone3"
+          start={[18, 1.4, 0]}
+          end={[22, 1.4, 0]}
           isActivated={isShamblerActivated}
         />
         

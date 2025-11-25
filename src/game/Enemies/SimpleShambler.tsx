@@ -103,14 +103,19 @@ export function SimpleShambler({
   // Set initial position on mount so the Shambler spawns at the correct location
   useEffect(() => {
     const root = enemyRef.current;
-    if (root) {
-      root.position.set(startVec.current.x, startVec.current.y, startVec.current.z);
-      console.log(
-        '[SimpleShambler] Initial world position set:',
-        startVec.current.x,
-        startVec.current.y,
-        startVec.current.z
-      );
+    if (!root) return;
+
+    root.position.set(startVec.current.x, startVec.current.y, startVec.current.z);
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("[SimpleShambler] initial position", {
+        enemyId,
+        start: {
+          x: startVec.current.x,
+          y: startVec.current.y,
+          z: startVec.current.z,
+        },
+      });
     }
   }, []);
 
