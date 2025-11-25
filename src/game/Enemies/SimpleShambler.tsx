@@ -18,7 +18,7 @@ const SHAMBLER_ATTACK_WARMUP_MS = 2000;
 const SHAMBLER_ATTACK_COOLDOWN = 1.3;
 const DEBUG_SHAMBLER_LOGS = false;
 
-type SimpleShamblerProps = {
+type SimpleShamblerProps = { 
 
   id?: string;
 
@@ -102,7 +102,7 @@ export function SimpleShambler({
 
     root.position.set(startVec.current.x, startVec.current.y, startVec.current.z);
 
-    if (process.env.NODE_ENV === "development" && DEBUG_SHAMBLER_LOGS) {
+    if (import.meta.env.DEV && DEBUG_SHAMBLER_LOGS) {
       console.log("[SimpleShambler] initial position", {
         enemyId,
         start: {
