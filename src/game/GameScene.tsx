@@ -253,11 +253,11 @@ export function GameScene() {
         
         {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}
         {/* Shambler starts idle until activated by trigger volume */}
-        {/* <EnemyShambler
-          initialPosition={[18, 0, 0]}
-          playerPosition={_playerPosition}
-          isActivated={isShamblerActivated}
-        /> */}
+        {/* DEBUG: Shambler spawn coordinates confirmed:
+            - Zone 3 ground plane is at x=15, spans x=5 to x=25
+            - start=[18, 0, 0] is inside Zone 3 corridor
+            - end=[24, 0, -3] patrols toward the side room entrance
+            - isActivated tied to zone === 'zone3' */}
         <SimpleShambler
           id="shambler-18-0-0"
           start={[18, 0, 0]}

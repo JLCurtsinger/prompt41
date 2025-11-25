@@ -100,6 +100,20 @@ export function SimpleShambler({
 
   }, [isActivated]);
 
+  // Set initial position on mount so the Shambler spawns at the correct location
+  useEffect(() => {
+    const root = enemyRef.current;
+    if (root) {
+      root.position.set(startVec.current.x, startVec.current.y, startVec.current.z);
+      console.log(
+        '[SimpleShambler] Initial world position set:',
+        startVec.current.x,
+        startVec.current.y,
+        startVec.current.z
+      );
+    }
+  }, []);
+
   // Generate enemy ID if not provided
 
   const enemyId = id || `shambler-${start.join("-")}-${end.join("-")}`;
