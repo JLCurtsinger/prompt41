@@ -35,7 +35,7 @@ type SimpleDroneProps = {
 
 export function SimpleDrone({
   id,
-  maxHealth = 60,
+  maxHealth = 100,
   attackRange = 2.5,
   attackDamage = 10,
   deathDuration = 0.5,

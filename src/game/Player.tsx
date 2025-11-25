@@ -72,7 +72,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   
   // Combat constants
   const BATON_RANGE = 4; // meters
-  const BATON_DAMAGE = 25; // damage per hit
+  const BATON_DAMAGE = 20; // damage per hit
   const ATTACK_COOLDOWN = 0.4; // seconds between attacks
   
   // Camera constants

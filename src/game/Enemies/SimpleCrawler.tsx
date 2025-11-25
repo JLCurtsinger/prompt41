@@ -55,7 +55,7 @@ export function SimpleCrawler({
 
   end,
 
-  maxHealth = 50,
+  maxHealth = 150,
 
   attackRange: _attackRange = 2, // Keep for interface compatibility, but use CRAWLER_MELEE_RANGE instead
 

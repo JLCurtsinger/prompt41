@@ -50,7 +50,7 @@ export function SimpleShambler({
 
   end,
 
-  maxHealth = 100,
+  maxHealth = 200,
 
   attackRange: _attackRange = 2.5, // Keep for interface compatibility, but use SHAMBLER_MELEE_ATTACK_RANGE instead
 
