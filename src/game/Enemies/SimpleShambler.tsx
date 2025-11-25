@@ -306,8 +306,6 @@ export function SimpleShambler({
 
         attackCooldownRef.current = SHAMBLER_ATTACK_COOLDOWN;
       }
-    }
-
   });
 
   return (
