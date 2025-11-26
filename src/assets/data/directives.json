@@ -4,7 +4,7 @@
     "options": ["Disable local sentries", "Override access gate", "Convert watcher node"],
     "successMessage": "DIRECTIVE ACCEPTED. ACCESS GATE UNLOCKED."
   },
-  "terminal-zone4-final": {
+  "final_terminal": {
     "title": "CORE OVERRIDE NODE",
     "options": ["Shutdown Core", "Purge Host Memory", "Reset Directives"],
     "successMessage": "CORE OVERRIDE COMPLETE. SYSTEM SHUTDOWN INITIATED."

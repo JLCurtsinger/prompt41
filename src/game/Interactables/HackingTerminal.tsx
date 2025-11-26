@@ -44,6 +44,9 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   // Check if this terminal is locked by Sentinel
   const isLockedBySentinel = disabledUntilSentinelDefeated && !sentinelDefeated && terminalState === 'locked';
   
+  // Track previous in-range state with a ref to avoid stale closure issues
+  const wasInRangeRef = useRef(false);
+  
   // Check if player is in range
   useFrame(() => {
     if (!terminalRef.current) return;
@@ -65,6 +68,10 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
     });
     
     if (!playerPosition) {
+      if (wasInRangeRef.current) {
+        clearInteractionPrompt(id);
+      }
+      wasInRangeRef.current = false;
       setIsInRange(false);
       return;
     }
@@ -73,18 +80,20 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
     const playerPos = playerPosition as THREE.Vector3;
     const terminalPos = new THREE.Vector3(...position);
     const distance = playerPos.distanceTo(terminalPos);
-    const wasInRange = isInRange;
+    const wasInRange = wasInRangeRef.current;
     const nowInRange = distance <= INTERACTION_RANGE;
-    setIsInRange(nowInRange);
     
     // Update interaction prompt based on range and state
     if (nowInRange && !wasInRange) {
       // Just entered range
+      console.log(`[HackingTerminal ${id}] Player entered range (distance: ${distance.toFixed(2)})`);
       if (terminalState === 'locked') {
         if (isLockedBySentinel) {
           // Don't show prompt if locked by Sentinel
+          console.log(`[HackingTerminal ${id}] Locked by Sentinel - no prompt`);
           clearInteractionPrompt(id);
         } else {
+          console.log(`[HackingTerminal ${id}] Showing interaction prompt`);
           showInteractionPrompt({
             message: 'Hack terminal',
             actionKey: 'E',
@@ -93,30 +102,43 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
         }
       } else {
         // Already hacked - no prompt
+        console.log(`[HackingTerminal ${id}] Already hacked - no prompt`);
         clearInteractionPrompt(id);
       }
     } else if (!nowInRange && wasInRange) {
       // Just left range
+      console.log(`[HackingTerminal ${id}] Player left range`);
       clearInteractionPrompt(id);
     } else if (nowInRange && terminalState === 'hacked') {
       // In range but already hacked - clear prompt
       clearInteractionPrompt(id);
     }
+    
+    // Update refs and state
+    wasInRangeRef.current = nowInRange;
+    setIsInRange(nowInRange);
   });
   
   // Handle E key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Log all E key presses for debugging
+      if (e.key.toLowerCase() === 'e') {
+        console.log(`[HackingTerminal ${id}] E key pressed - isInRange: ${isInRange}, hackingOverlay.isOpen: ${hackingOverlay.isOpen}, terminalState: ${terminalState}`);
+      }
+      
       if (e.key.toLowerCase() === 'e' && isInRange && !hackingOverlay.isOpen) {
         try {
           if (terminalState === 'locked') {
             // Check if terminal is locked by Sentinel
             if (isLockedBySentinel) {
+              console.log(`[HackingTerminal ${id}] Terminal locked by Sentinel - cannot hack`);
               return;
             }
             
             // Open normal hacking overlay
             try {
+              console.log(`[HackingTerminal ${id}] Opening hacking overlay...`);
               openHackingOverlay(id, 'normal');
               clearInteractionPrompt(id); // Clear prompt when overlay opens
               
