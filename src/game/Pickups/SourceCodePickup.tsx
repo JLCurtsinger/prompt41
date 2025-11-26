@@ -1,7 +1,7 @@
 // Source Code Pickup - collectible data fragment
 // Glowing orb that player can collect to increment sourceCodeCount
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGameState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
@@ -26,6 +26,10 @@ export function SourceCodePickup({ position }: SourceCodePickupProps) {
   // Store base Y for bobbing calculation
   const baseY = position[1];
   
+  // Pre-allocate Vector3 instances to avoid per-frame allocations
+  const playerPosVec = useMemo(() => new THREE.Vector3(), []);
+  const pickupPosVec = useMemo(() => new THREE.Vector3(position[0], baseY, position[2]), [position, baseY]);
+  
   useFrame((_, delta) => {
     if (isCollected || !groupRef.current) return;
     
@@ -37,20 +41,15 @@ export function SourceCodePickup({ position }: SourceCodePickupProps) {
     groupRef.current.position.y = baseY + bobOffset;
     
     // Check player distance using game state player position
-    const playerPos = new THREE.Vector3(
-      playerPosition.x,
-      playerPosition.y,
-      playerPosition.z
-    );
-    const pickupPos = new THREE.Vector3(position[0], baseY, position[2]);
-    const distance = playerPos.distanceTo(pickupPos);
+    // Reuse pre-allocated Vector3 instances - no allocations in the loop
+    playerPosVec.set(playerPosition.x, playerPosition.y, playerPosition.z);
+    const distance = playerPosVec.distanceTo(pickupPosVec);
     
     if (distance <= PICKUP_RANGE) {
       // Pick up the source code
       setIsCollected(true);
       addSourceCode(1);
       AudioManager.playSFX('pickupSourceCode');
-      console.log('Source Code collected!');
     }
   });
   
