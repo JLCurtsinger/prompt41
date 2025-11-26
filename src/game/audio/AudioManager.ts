@@ -29,7 +29,7 @@
 //    - Game should continue running even if audio fails
 
 type ZoneId = 'zone1' | 'zone2' | 'zone3' | 'zone4';
-type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'pickupEnergyCell' | 'shutdownStart';
+type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'pickupEnergyCell' | 'pickupSourceCode' | 'shutdownStart';
 
 interface AmbientLayer {
   audio: HTMLAudioElement;
@@ -59,6 +59,7 @@ class AudioManagerClass {
   private readonly SFX_HACKING_START_PATH = '/audio/sfx_hacking_start.ogg';
   private readonly SFX_HACKING_SUCCESS_PATH = '/audio/sfx_hacking_success.ogg';
   private readonly SFX_PICKUP_ENERGY_CELL_PATH = '/audio/sfx_pickup_energy_cell.ogg';
+  private readonly SFX_PICKUP_SOURCE_CODE_PATH = '/audio/sfx_pickup_source_code.ogg';
   private readonly SFX_SHUTDOWN_START_PATH = '/audio/sfx_shutdown_start.ogg';
 
   private readonly FADE_DURATION = 0.9; // seconds
@@ -144,6 +145,7 @@ class AudioManagerClass {
       hackingStart: this.SFX_HACKING_START_PATH,
       hackingSuccess: this.SFX_HACKING_SUCCESS_PATH,
       pickupEnergyCell: this.SFX_PICKUP_ENERGY_CELL_PATH,
+      pickupSourceCode: this.SFX_PICKUP_SOURCE_CODE_PATH,
       shutdownStart: this.SFX_SHUTDOWN_START_PATH,
     };
 

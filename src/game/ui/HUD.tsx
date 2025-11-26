@@ -13,7 +13,7 @@
 import { useGameState } from '../../state/gameState';
 
 export function HUD() {
-  const { playerHealth, playerMaxHealth, energyCellCount } = useGameState();
+  const { playerHealth, playerMaxHealth, energyCellCount, sourceCodeCount } = useGameState();
   
   const healthPercentage = Math.max(0, Math.min(100, (playerHealth / playerMaxHealth) * 100));
   
@@ -77,6 +77,18 @@ export function HUD() {
         }}
       >
         Energy Cells: {energyCellCount}
+      </div>
+      
+      {/* Source Code counter */}
+      <div
+        style={{
+          color: '#00ff88',
+          textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+          fontSize: '16px',
+          marginTop: '4px',
+        }}
+      >
+        Source Codes: {sourceCodeCount}
       </div>
     </div>
   );

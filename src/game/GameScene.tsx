@@ -30,6 +30,7 @@ import { SimpleShambler } from './Enemies/SimpleShambler';
 import { ScreenFade } from './Effects/ScreenFade';
 import { LootCrate } from './Interactables/LootCrate';
 import { EnergyCell } from './Pickups/EnergyCell';
+import { SourceCodePickup } from './Pickups/SourceCodePickup';
 import { ZoneAudioController } from './audio/ZoneAudioController';
 import { useGameState } from '../state/gameState';
 import { getAllEnemies } from './Enemies/enemyRegistry';
@@ -41,6 +42,17 @@ const DEBUG_SHOW_WORLD_HELPERS = true;
 // Loot and pickup positions (easily adjustable for future GLB integration)
 const LOOT_CRATE_ZONE2_POSITION: [number, number, number] = [2, 0, -3]; // Zone 2 (Processing Yard)
 const ENERGY_CELL_ZONE3_POSITION: [number, number, number] = [15, 0.5, -2]; // Zone 3 (Conduit Hall)
+
+// Source Code pickup positions (spread across zones)
+const SOURCE_CODE_POSITIONS: [number, number, number][] = [
+  [-12, 0.5, 2],    // Zone 1 - near spawn
+  [-14, 0.5, -2],   // Zone 1 - opposite corner
+  [-2, 0.5, 3],     // Zone 2 - near entrance
+  [4, 0.5, -4],     // Zone 2 - far corner
+  [0, 0.5, 0],      // Zone 2 - center
+  [14, 0.5, 2],     // Zone 3 - near entrance
+  [20, 0.5, -1],    // Zone 3 - middle
+];
 
 // Zone transition marker positions (tied to trigger positions for easy GLB migration)
 // These are temporary guidance markers that will move with the future GLB environment
@@ -343,6 +355,11 @@ export function GameScene() {
         
         {/* Standalone Energy Cell in Zone 3 (Conduit Hall) */}
         <EnergyCell position={ENERGY_CELL_ZONE3_POSITION} />
+        
+        {/* Source Code pickups spread across zones */}
+        {SOURCE_CODE_POSITIONS.map((pos, index) => (
+          <SourceCodePickup key={`source-code-${index}`} position={pos} />
+        ))}
         
         {/* Zone transition markers - subtle floor strips for guidance */}
         {/* These markers are temporary and will be replaced/moved with the future GLB environment */}

@@ -156,6 +156,7 @@ interface GameState {
   
   // Inventory state
   energyCellCount: number;
+  sourceCodeCount: number;
   
   // Zone tracking
   currentZone: 'zone1' | 'zone2' | 'zone3' | 'zone4';
@@ -219,6 +220,7 @@ interface GameState {
   // Inventory actions
   addEnergyCell: (count?: number) => void;
   consumeEnergyCell: (count?: number) => void;
+  addSourceCode: (count?: number) => void;
   resetInventory: () => void;
   
   // Zone actions
@@ -313,6 +315,7 @@ export const useGameState = create<GameState>((set, get) => {
   
   // Inventory initial state
   energyCellCount: 0,
+  sourceCodeCount: 0,
   
   // Zone initial state
   currentZone: 'zone1',
@@ -442,6 +445,7 @@ export const useGameState = create<GameState>((set, get) => {
       lowHealthTriggered: false,
       // Reset inventory
       energyCellCount: 0,
+      sourceCodeCount: 0,
       // Reset zone
       currentZone: 'zone1',
       // Clear interaction prompt
@@ -636,8 +640,15 @@ export const useGameState = create<GameState>((set, get) => {
     console.log(`Consumed ${count} energy cell(s). Total: ${get().energyCellCount}`);
   },
   
+  addSourceCode: (count = 1) => {
+    set((state) => ({
+      sourceCodeCount: state.sourceCodeCount + count
+    }));
+    console.log(`Added ${count} source code(s). Total: ${get().sourceCodeCount}`);
+  },
+  
   resetInventory: () => {
-    set({ energyCellCount: 0 });
+    set({ energyCellCount: 0, sourceCodeCount: 0 });
     console.log('Inventory reset');
   },
   
