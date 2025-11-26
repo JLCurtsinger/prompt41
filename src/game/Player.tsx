@@ -28,14 +28,21 @@
 //    - Mouse look should still work alongside arrow keys
 //    - Vertical rotation should be clamped to prevent camera flipping
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState } from '../state/gameState';
 import { PLAYER_SPAWN_POSITION } from './LevelLayout';
 import { getEnemiesInRange, getAllEnemies } from './Enemies/enemyRegistry';
 import { BatonSFX } from './audio/BatonSFX';
 import type { BatonSFXHandle } from './audio/BatonSFX';
+import { BatonImpactSpark } from './Effects/BatonImpactSpark';
 import * as THREE from 'three';
+
+// Type for tracking active spark effects
+interface ActiveSpark {
+  id: number;
+  position: [number, number, number];
+}
 
 interface PlayerProps {
   initialPosition?: [number, number, number];
@@ -49,6 +56,15 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const direction = useRef(new THREE.Vector3());
   const isGrounded = useRef(true);
   const verticalVelocity = useRef(0);
+  
+  // Impact spark state
+  const [activeSparks, setActiveSparks] = useState<ActiveSpark[]>([]);
+  const sparkIdCounter = useRef(0);
+  
+  // Callback to remove a spark when it completes
+  const removeSpark = useCallback((id: number) => {
+    setActiveSparks(prev => prev.filter(spark => spark.id !== id));
+  }, []);
   
   const { camera } = useThree();
   const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding, setBatonSfxRef, setPlayerPosition } = useGameState();
@@ -673,6 +689,11 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         hitEnemy.takeDamage(BATON_DAMAGE);
         hasHitThisSwing.current = true; // Prevent multiple hits in one swing
         
+        // Spawn impact spark at enemy position
+        const sparkId = sparkIdCounter.current++;
+        const sparkPos: [number, number, number] = [enemyPos.x, enemyPos.y + 1, enemyPos.z];
+        setActiveSparks(prev => [...prev, { id: sparkId, position: sparkPos }]);
+        
         // Play impact audio
         const sfx = batonSfxRef.current;
         sfx?.playImpact();
@@ -745,47 +766,58 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   }, [initialPosition]);
   
   return (
-    <group ref={playerRef} position={initialPosition}>
-      {/* TODO: Replace this placeholder capsule with the actual player GLB model (mainChar.png) */}
-      <mesh position={[0, 1, 0]} castShadow>
-        <capsuleGeometry args={[0.4, 1.2, 4, 8]} />
-        <meshStandardMaterial 
-          color="#6ab8ff" 
-          emissive="#2a5a99" 
-          emissiveIntensity={0.4}
+    <>
+      <group ref={playerRef} position={initialPosition}>
+        {/* TODO: Replace this placeholder capsule with the actual player GLB model (mainChar.png) */}
+        <mesh position={[0, 1, 0]} castShadow>
+          <capsuleGeometry args={[0.4, 1.2, 4, 8]} />
+          <meshStandardMaterial 
+            color="#6ab8ff" 
+            emissive="#2a5a99" 
+            emissiveIntensity={0.4}
+          />
+        </mesh>
+        {/* Simple visor glow effect placeholder */}
+        <mesh position={[0, 1.8, 0.2]} castShadow>
+          <planeGeometry args={[0.3, 0.2]} />
+          <meshStandardMaterial color="#00ffff" emissive="#00ffff" emissiveIntensity={1} />
+        </mesh>
+        {/* Shock Baton - wrapped in group for animation */}
+        <BatonSFX ref={batonSfxRef}>
+          <group ref={batonRef} position={[0.5, 1.1, 0.3]} rotation={[0, 0, -0.3]}>
+            {/* Baton blade - simple narrow box */}
+            <mesh position={[0, 0.1, 0]} castShadow>
+              <boxGeometry args={[0.08, 0.5, 0.08]} />
+              <meshStandardMaterial 
+                color="#4a4a4a" 
+                emissive="#00ffff" 
+                emissiveIntensity={0.6}
+                metalness={0.8}
+                roughness={0.2}
+              />
+            </mesh>
+            {/* Baton handle/grip */}
+            <mesh position={[0, -0.1, 0]} castShadow>
+              <boxGeometry args={[0.1, 0.2, 0.1]} />
+              <meshStandardMaterial 
+                color="#2a2a2a" 
+                metalness={0.3}
+                roughness={0.7}
+              />
+            </mesh>
+          </group>
+        </BatonSFX>
+      </group>
+      
+      {/* Impact sparks rendered at world positions */}
+      {activeSparks.map(spark => (
+        <BatonImpactSpark
+          key={spark.id}
+          position={spark.position}
+          onComplete={() => removeSpark(spark.id)}
         />
-      </mesh>
-      {/* Simple visor glow effect placeholder */}
-      <mesh position={[0, 1.8, 0.2]} castShadow>
-        <planeGeometry args={[0.3, 0.2]} />
-        <meshStandardMaterial color="#00ffff" emissive="#00ffff" emissiveIntensity={1} />
-      </mesh>
-      {/* Shock Baton - wrapped in group for animation */}
-      <BatonSFX ref={batonSfxRef}>
-        <group ref={batonRef} position={[0.5, 1.1, 0.3]} rotation={[0, 0, -0.3]}>
-          {/* Baton blade - simple narrow box */}
-          <mesh position={[0, 0.1, 0]} castShadow>
-            <boxGeometry args={[0.08, 0.5, 0.08]} />
-            <meshStandardMaterial 
-              color="#4a4a4a" 
-              emissive="#00ffff" 
-              emissiveIntensity={0.6}
-              metalness={0.8}
-              roughness={0.2}
-            />
-          </mesh>
-          {/* Baton handle/grip */}
-          <mesh position={[0, -0.1, 0]} castShadow>
-            <boxGeometry args={[0.1, 0.2, 0.1]} />
-            <meshStandardMaterial 
-              color="#2a2a2a" 
-              metalness={0.3}
-              roughness={0.7}
-            />
-          </mesh>
-        </group>
-      </BatonSFX>
-    </group>
+      ))}
+    </>
   );
 }
 
