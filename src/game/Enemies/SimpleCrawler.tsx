@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Group, Vector3 } from "three";
 
@@ -11,6 +11,8 @@ import { applyDamageToPlayer } from "./enemyDamage";
 import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 
 import { useGameState } from "../../state/gameState";
+
+import { EnemyDeathFragments } from "../Effects/EnemyDeathFragments";
 
 // Type declaration for process.env (Vite provides NODE_ENV)
 declare const process: { env: { NODE_ENV: string } };
@@ -90,11 +92,13 @@ export function SimpleCrawler({
   const attackCooldownRef = useRef(0); // in seconds
   const spawnedAtRef = useRef(Date.now()); // Track when crawler spawned
 
-  const deathTimerRef = useRef(0);
-
   const isDyingRef = useRef(false);
 
   const hasFinishedDeathRef = useRef(false);
+  
+  // Death fragment effect state
+  const [showDeathFragments, setShowDeathFragments] = useState(false);
+  const [deathPosition, setDeathPosition] = useState<[number, number, number]>([0, 0, 0]);
 
   // Generate enemy ID if not provided
 
@@ -188,27 +192,22 @@ export function SimpleCrawler({
 
         isDyingRef.current = true;
 
-        deathTimerRef.current = 0;
+        // Capture death position and trigger fragment effect
+        const worldPos = new THREE.Vector3();
+        root.getWorldPosition(worldPos);
+        setDeathPosition([worldPos.x, worldPos.y + 0.3, worldPos.z]);
+        setShowDeathFragments(true);
+
+        // Hide enemy mesh immediately
+        root.visible = false;
 
         console.log("[Crawler]", enemyId, "death sequence started");
 
       }
 
-      deathTimerRef.current += delta;
-
-      const t = Math.min(deathTimerRef.current / deathDuration, 1);
-
-      const scale = 1 - t;
-
-      root.scale.set(scale, scale, scale);
-
-      root.position.y = startVec.current.y - t * 0.5;
-
-      if (t >= 1 && !hasFinishedDeathRef.current) {
+      if (!hasFinishedDeathRef.current) {
 
         hasFinishedDeathRef.current = true;
-
-        root.visible = false;
 
         unregisterEnemy(enemyId);
 
@@ -307,19 +306,28 @@ export function SimpleCrawler({
   });
 
   return (
+    <>
+      <group ref={enemyRef}>
 
-    <group ref={enemyRef}>
+        <mesh>
 
-      <mesh>
+          <boxGeometry args={[1, 0.6, 1]} />
 
-        <boxGeometry args={[1, 0.6, 1]} />
+          <meshStandardMaterial color={color} />
 
-        <meshStandardMaterial color={color} />
+        </mesh>
 
-      </mesh>
-
-    </group>
-
+      </group>
+      
+      {/* Death fragment effect */}
+      {showDeathFragments && (
+        <EnemyDeathFragments
+          position={deathPosition}
+          color={color}
+          onComplete={() => setShowDeathFragments(false)}
+        />
+      )}
+    </>
   );
 
 }

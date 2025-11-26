@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Group } from "three";
 
@@ -11,6 +11,8 @@ import { applyDamageToPlayer } from "./enemyDamage";
 import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 
 import { useGameState } from "../../state/gameState";
+
+import { EnemyDeathFragments } from "../Effects/EnemyDeathFragments";
 
 const DRONE_ATTACK_WARMUP_MS = 2000;
 const DRONE_ATTACK_COOLDOWN = 1.0;
@@ -57,9 +59,12 @@ export function SimpleDrone({
   const healthRef = useRef(maxHealth);
   const attackCooldownRef = useRef(0);
   const spawnedAtRef = useRef(Date.now());
-  const deathTimerRef = useRef(0);
   const isDyingRef = useRef(false);
   const hasFinishedDeathRef = useRef(false);
+  
+  // Death fragment effect state
+  const [showDeathFragments, setShowDeathFragments] = useState(false);
+  const [deathPosition, setDeathPosition] = useState<[number, number, number]>([0, 0, 0]);
 
   // Generate enemy ID if not provided
   const enemyId = id || `drone-${Math.random().toString(36).slice(2, 8)}`;
@@ -126,19 +131,21 @@ export function SimpleDrone({
     if (healthRef.current <= 0) {
       if (!isDyingRef.current) {
         isDyingRef.current = true;
-        deathTimerRef.current = 0;
+        
+        // Capture death position and trigger fragment effect
+        const worldPos = new THREE.Vector3();
+        root.getWorldPosition(worldPos);
+        setDeathPosition([worldPos.x, worldPos.y, worldPos.z]);
+        setShowDeathFragments(true);
+        
+        // Hide enemy mesh immediately
+        root.visible = false;
+        
         console.log("[Drone]", enemyId, "death sequence started");
       }
 
-      deathTimerRef.current += delta;
-      const t = Math.min(deathTimerRef.current / deathDuration, 1);
-      const scale = 1 - t;
-      root.scale.set(scale, scale, scale);
-      root.position.y = followHeight - t * 0.5;
-
-      if (t >= 1 && !hasFinishedDeathRef.current) {
+      if (!hasFinishedDeathRef.current) {
         hasFinishedDeathRef.current = true;
-        root.visible = false;
         unregisterEnemy(enemyId);
         incrementEnemiesKilled();
         checkWinCondition();
@@ -232,18 +239,29 @@ export function SimpleDrone({
   });
 
   return (
-    <group ref={enemyRef}>
-      <mesh>
-        {/* Main body */}
-        <sphereGeometry args={[0.5, 16, 16]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} />
-      </mesh>
-      {/* Optional simple ring to suggest rotors */}
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -0.2, 0]}>
-        <torusGeometry args={[0.7, 0.05, 8, 16]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-    </group>
+    <>
+      <group ref={enemyRef}>
+        <mesh>
+          {/* Main body */}
+          <sphereGeometry args={[0.5, 16, 16]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.4} />
+        </mesh>
+        {/* Optional simple ring to suggest rotors */}
+        <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -0.2, 0]}>
+          <torusGeometry args={[0.7, 0.05, 8, 16]} />
+          <meshStandardMaterial color={color} />
+        </mesh>
+      </group>
+      
+      {/* Death fragment effect */}
+      {showDeathFragments && (
+        <EnemyDeathFragments
+          position={deathPosition}
+          color={color}
+          onComplete={() => setShowDeathFragments(false)}
+        />
+      )}
+    </>
   );
 }
 
