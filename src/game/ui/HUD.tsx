@@ -68,7 +68,7 @@ export function HUD() {
         </div>
       </div>
       
-      {/* Energy Cell counter */}
+      {/* Source Codes counter (from terminals) */}
       <div
         style={{
           color: '#00ffff',
@@ -76,10 +76,10 @@ export function HUD() {
           fontSize: '16px',
         }}
       >
-        Energy Cells: {energyCellCount}
+        Source Codes: {energyCellCount}
       </div>
       
-      {/* Source Code counter (objective) */}
+      {/* Energy Cells counter (from orb pickups, objective) */}
       <div
         style={{
           color: '#00ff88',
@@ -88,7 +88,7 @@ export function HUD() {
           marginTop: '4px',
         }}
       >
-        Source Codes: {sourceCodeCount} / {SOURCE_CODE_GOAL}
+        Energy Cells: {sourceCodeCount} / {SOURCE_CODE_GOAL}
       </div>
       
       {/* Objective complete message */}
