@@ -58,7 +58,7 @@ export function SimpleShambler({
 
   attackDamage = 18,
 
-  deathDuration = 0.6,
+  _deathDuration = 0.6,
 
   speed = 0.18,
 

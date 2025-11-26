@@ -62,7 +62,7 @@ export function SimpleCrawler({
 
   attackDamage = 5,
 
-  deathDuration = 0.5,
+  _deathDuration = 0.5,
 
   speed = 0.35,
 
