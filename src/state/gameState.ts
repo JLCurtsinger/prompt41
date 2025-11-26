@@ -414,9 +414,10 @@ export const useGameState = create<GameState>((set, get) => {
       set({ lowHealthTriggered: true });
     }
     
-    // Trigger death line
+    // Trigger death line and game-over sound
     if (newHealth === 0) {
       get().playHostLine('combat:death');
+      AudioManager.playSFX('gameOver');
     }
     
     // Clear recentlyHit after 200ms

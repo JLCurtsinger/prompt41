@@ -29,7 +29,7 @@
 //    - Game should continue running even if audio fails
 
 type ZoneId = 'zone1' | 'zone2' | 'zone3' | 'zone4';
-type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'pickupEnergyCell' | 'pickupSourceCode' | 'shutdownStart' | 'footstep';
+type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'pickupEnergyCell' | 'pickupSourceCode' | 'shutdownStart' | 'footstep' | 'gameOver';
 
 interface AmbientLayer {
   audio: HTMLAudioElement;
@@ -62,6 +62,7 @@ class AudioManagerClass {
   private readonly SFX_PICKUP_SOURCE_CODE_PATH = '/audio/sfx_pickup_source_code.ogg';
   private readonly SFX_SHUTDOWN_START_PATH = '/audio/sfx_shutdown_start.ogg';
   private readonly SFX_FOOTSTEP_PATH = '/audio/sfx_footstep.ogg';
+  private readonly SFX_GAME_OVER_PATH = '/audio/game-over.ogg';
 
   private readonly FADE_DURATION = 0.9; // seconds
 
@@ -149,6 +150,7 @@ class AudioManagerClass {
       pickupSourceCode: this.SFX_PICKUP_SOURCE_CODE_PATH,
       shutdownStart: this.SFX_SHUTDOWN_START_PATH,
       footstep: this.SFX_FOOTSTEP_PATH,
+      gameOver: this.SFX_GAME_OVER_PATH,
     };
 
     for (const [type, path] of Object.entries(sfxMap)) {

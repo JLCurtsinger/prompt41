@@ -32,6 +32,7 @@ import { LootCrate } from './Interactables/LootCrate';
 import { EnergyCell } from './Pickups/EnergyCell';
 import { SourceCodePickup } from './Pickups/SourceCodePickup';
 import { ZoneAudioController } from './audio/ZoneAudioController';
+import { BackgroundAtmosphere } from './audio/BackgroundAtmosphere';
 import { useGameState } from '../state/gameState';
 import { getAllEnemies } from './Enemies/enemyRegistry';
 import * as THREE from 'three';
@@ -278,6 +279,7 @@ export function GameScene() {
   return (
     <>
       <ZoneAudioController />
+      <BackgroundAtmosphere />
       <ScreenFade />
       <Canvas
       style={{ width: '100vw', height: '100vh' }}
