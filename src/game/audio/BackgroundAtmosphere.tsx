@@ -34,32 +34,44 @@ export function BackgroundAtmosphere() {
     const tryPlay = () => {
       if (hasStartedRef.current) return; // Already started, don't try again
       
-      console.log('[BackgroundAtmosphere] play() called');
+      console.log('[BackgroundAtmosphere] attempting play()');
       el.play()
         .then(() => {
           console.log('[BackgroundAtmosphere] play() succeeded');
           hasStartedRef.current = true;
+          // Remove listeners once playback has started
+          removeUserGestureListeners();
         })
         .catch((err) => {
-          console.log('[BackgroundAtmosphere] play() blocked, will retry on click:', err.message);
+          console.log('[BackgroundAtmosphere] play() blocked, will retry on user gesture:', err.message);
         });
     };
 
-    // Try to play immediately
-    tryPlay();
-    
-    // Also attach a click listener in case autoplay was blocked
-    const handleClick = () => {
+    // Handler for any generic user gesture (not tied to baton or any specific input)
+    const handleUserGesture = () => {
       if (!hasStartedRef.current) {
-        console.log('[BackgroundAtmosphere] retrying play on user click');
+        console.log('[BackgroundAtmosphere] retrying play on user gesture');
         tryPlay();
       }
     };
+
+    const removeUserGestureListeners = () => {
+      window.removeEventListener('pointerdown', handleUserGesture);
+      window.removeEventListener('keydown', handleUserGesture);
+      window.removeEventListener('touchstart', handleUserGesture);
+    };
+
+    // Try to play immediately on mount
+    tryPlay();
     
-    window.addEventListener('click', handleClick, { once: true });
+    // If autoplay was blocked, listen for any generic user gesture to retry
+    // Using pointerdown/keydown/touchstart covers all interaction types
+    window.addEventListener('pointerdown', handleUserGesture, { once: true });
+    window.addEventListener('keydown', handleUserGesture, { once: true });
+    window.addEventListener('touchstart', handleUserGesture, { once: true });
 
     return () => {
-      window.removeEventListener('click', handleClick);
+      removeUserGestureListeners();
       el.pause();
     };
   }, []);
