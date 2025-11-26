@@ -13,7 +13,7 @@
 //    - Terminal screen should visually indicate hacked state (optional)
 
 import { useRef, useEffect, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useGameState, getTerminalState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
 import * as THREE from 'three';
@@ -27,7 +27,6 @@ interface HackingTerminalProps {
 
 export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = false }: HackingTerminalProps) {
   const terminalRef = useRef<THREE.Group>(null);
-  const { scene } = useThree();
   const [isInRange, setIsInRange] = useState(false);
   
   const terminalState = useGameState((state) => getTerminalState(state, id));
@@ -38,6 +37,8 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   const openHackingOverlay = useGameState((state) => state.openHackingOverlay);
   const closeHackingOverlay = useGameState((state) => state.closeHackingOverlay);
   const hackingOverlay = useGameState((state) => state.hackingOverlay);
+  // Use playerPosition from gameState (set by Player.tsx using getWorldPosition)
+  const playerPosition = useGameState((state) => state.playerPosition);
   
   const INTERACTION_RANGE = 2.5;
   
@@ -51,35 +52,14 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   useFrame(() => {
     if (!terminalRef.current) return;
     
-    let playerPosition: THREE.Vector3 | null = null;
+    // Get player world position from gameState (set by Player.tsx using getWorldPosition)
+    const playerPos = new THREE.Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
     
-    scene.traverse((object) => {
-      if (object instanceof THREE.Group) {
-        let hasCapsule = false;
-        object.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.geometry instanceof THREE.CapsuleGeometry) {
-            hasCapsule = true;
-          }
-        });
-        if (hasCapsule) {
-          playerPosition = object.position.clone() as THREE.Vector3;
-        }
-      }
-    });
+    // Get terminal world position
+    const terminalWorldPos = new THREE.Vector3();
+    terminalRef.current.getWorldPosition(terminalWorldPos);
     
-    if (!playerPosition) {
-      if (wasInRangeRef.current) {
-        clearInteractionPrompt(id);
-      }
-      wasInRangeRef.current = false;
-      setIsInRange(false);
-      return;
-    }
-    
-    // TypeScript needs explicit type assertion here
-    const playerPos = playerPosition as THREE.Vector3;
-    const terminalPos = new THREE.Vector3(...position);
-    const distance = playerPos.distanceTo(terminalPos);
+    const distance = playerPos.distanceTo(terminalWorldPos);
     const wasInRange = wasInRangeRef.current;
     const nowInRange = distance <= INTERACTION_RANGE;
     

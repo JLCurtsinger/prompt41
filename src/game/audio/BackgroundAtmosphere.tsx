@@ -11,7 +11,7 @@ export function BackgroundAtmosphere() {
     if (!el) return;
 
     el.loop = true;
-    el.volume = 0.15; // Quiet background level
+    el.volume = 0.09; // Quiet background level
 
     const tryPlay = () => {
       el.play().catch(() => {
