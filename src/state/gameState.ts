@@ -229,6 +229,7 @@ interface GameState {
   consumeEnergyCell: (count?: number) => void;
   addSourceCode: (count?: number) => void;
   resetInventory: () => void;
+  healPlayer: (amount: number) => void;
   
   // Zone actions
   setCurrentZone: (zone: 'zone1' | 'zone2' | 'zone3' | 'zone4') => void;
@@ -681,6 +682,13 @@ export const useGameState = create<GameState>((set, get) => {
   resetInventory: () => {
     set({ energyCellCount: 0, sourceCodeCount: 0 });
     console.log('Inventory reset');
+  },
+  
+  healPlayer: (amount) => {
+    const state = get();
+    const newHealth = Math.min(state.playerHealth + amount, state.playerMaxHealth);
+    set({ playerHealth: newHealth });
+    console.log(`Healed player by ${amount}. Health: ${newHealth}/${state.playerMaxHealth}`);
   },
   
   // Zone actions

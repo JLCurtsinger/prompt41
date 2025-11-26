@@ -1,5 +1,5 @@
-// Source Code Pickup - collectible data fragment
-// Glowing orb that player can collect to increment sourceCodeCount
+// Energy Cell Pickup - collectible data fragment
+// Glowing orb that player can collect to increment sourceCodeCount and heal +5 HP
 
 import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -16,6 +16,7 @@ export function SourceCodePickup({ position }: SourceCodePickupProps) {
   const [isCollected, setIsCollected] = useState(false);
   
   const addSourceCode = useGameState((state) => state.addSourceCode);
+  const healPlayer = useGameState((state) => state.healPlayer);
   const playerPosition = useGameState((state) => state.playerPosition);
   
   const PICKUP_RANGE = 1.5;
@@ -46,9 +47,10 @@ export function SourceCodePickup({ position }: SourceCodePickupProps) {
     const distance = playerPosVec.distanceTo(pickupPosVec);
     
     if (distance <= PICKUP_RANGE) {
-      // Pick up the source code
+      // Pick up the energy cell
       setIsCollected(true);
       addSourceCode(1);
+      healPlayer(5); // Heal +5 HP on pickup
       AudioManager.playSFX('pickupSourceCode');
     }
   });

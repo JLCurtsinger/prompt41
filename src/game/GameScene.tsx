@@ -47,7 +47,7 @@ const DEBUG_SHOW_WORLD_HELPERS = true;
 const LOOT_CRATE_ZONE2_POSITION: [number, number, number] = [2, 0, -3]; // Zone 2 (Processing Yard)
 const ENERGY_CELL_ZONE3_POSITION: [number, number, number] = [15, 0.5, -2]; // Zone 3 (Conduit Hall)
 
-// Source Code pickup positions (spread across zones)
+// Energy Cell pickup positions (spread across zones)
 const SOURCE_CODE_POSITIONS: [number, number, number][] = [
   [-12, 0.5, 2],    // Zone 1 - near spawn
   [-14, 0.5, -2],   // Zone 1 - opposite corner
@@ -55,7 +55,7 @@ const SOURCE_CODE_POSITIONS: [number, number, number][] = [
   [4, 0.5, -4],     // Zone 2 - far corner
   [0, 0.5, 0],      // Zone 2 - center
   [14, 0.5, 2],     // Zone 3 - near entrance
-  [20, 0.5, -1],    // Zone 3 - middle
+  // Removed one orb from Zone 3 middle position
 ];
 
 // Zone transition marker positions (tied to trigger positions for easy GLB migration)
@@ -510,7 +510,7 @@ export function GameScene() {
         {/* Standalone Energy Cell in Zone 3 (Conduit Hall) */}
         <EnergyCell position={ENERGY_CELL_ZONE3_POSITION} />
         
-        {/* Source Code pickups spread across zones */}
+        {/* Energy Cell pickups spread across zones */}
         {SOURCE_CODE_POSITIONS.map((pos, index) => (
           <SourceCodePickup key={`source-code-${index}`} position={pos} />
         ))}

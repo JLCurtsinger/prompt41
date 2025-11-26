@@ -79,7 +79,7 @@ export function HUD() {
         Energy Cells: {energyCellCount}
       </div>
       
-      {/* Source Code counter */}
+      {/* Energy Cell counter */}
       <div
         style={{
           color: '#00ff88',
@@ -88,7 +88,7 @@ export function HUD() {
           marginTop: '4px',
         }}
       >
-        Source Codes: {sourceCodeCount} / {SOURCE_CODE_GOAL}
+        Energy Cells: {sourceCodeCount} / {SOURCE_CODE_GOAL}
       </div>
       
       {/* Objective complete message */}
