@@ -14,9 +14,6 @@ import { useGameState } from "../../state/gameState";
 
 import { EnemyDeathFragments } from "../Effects/EnemyDeathFragments";
 
-// Type declaration for process.env (Vite provides NODE_ENV)
-declare const process: { env: { NODE_ENV: string } };
-
 // Attack constants - ensure melee range is tight and reasonable
 const CRAWLER_MELEE_RANGE = 1.25; // Tighter melee range - must be very close for melee hit
 const CRAWLER_ATTACK_COOLDOWN = 1.0; // seconds between attacks
