@@ -36,6 +36,7 @@ import { getEnemiesInRange, getAllEnemies } from './Enemies/enemyRegistry';
 import { BatonSFX } from './audio/BatonSFX';
 import type { BatonSFXHandle } from './audio/BatonSFX';
 import { BatonImpactSpark } from './Effects/BatonImpactSpark';
+import { AudioManager } from './audio/AudioManager';
 import * as THREE from 'three';
 
 // Type for tracking active spark effects
@@ -67,11 +68,28 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   }, []);
   
   const { camera } = useThree();
-  const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding, setBatonSfxRef, setPlayerPosition } = useGameState();
+  const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding, setBatonSfxRef, setPlayerPosition, recentlyHit } = useGameState();
   
   // Baton swing animation state
   const batonSwingTimeRef = useRef(0);
   const batonIsSwingingRef = useRef(false);
+  
+  // Camera shake state (triggered on player hit)
+  const cameraShakeTimeRef = useRef(0);
+  const cameraShakeActiveRef = useRef(false);
+  const prevRecentlyHitRef = useRef(false);
+  const CAMERA_SHAKE_DURATION = 0.15; // seconds
+  const CAMERA_SHAKE_INTENSITY = 0.08; // amplitude
+  
+  // Baton swing recoil state
+  const recoilTimeRef = useRef(0);
+  const recoilActiveRef = useRef(false);
+  const RECOIL_DURATION = 0.1; // seconds
+  const RECOIL_INTENSITY = 0.03; // amplitude
+  
+  // Footstep sound state
+  const footstepTimerRef = useRef(0);
+  const FOOTSTEP_INTERVAL = 0.4; // seconds between footsteps
   
   // Movement constants
   const WALK_SPEED = 4;
@@ -303,6 +321,29 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       return;
     }
     
+    // Trigger camera shake when player gets hit (recentlyHit transitions to true)
+    if (recentlyHit && !prevRecentlyHitRef.current) {
+      cameraShakeActiveRef.current = true;
+      cameraShakeTimeRef.current = 0;
+    }
+    prevRecentlyHitRef.current = recentlyHit;
+    
+    // Update camera shake timer
+    if (cameraShakeActiveRef.current) {
+      cameraShakeTimeRef.current += delta;
+      if (cameraShakeTimeRef.current >= CAMERA_SHAKE_DURATION) {
+        cameraShakeActiveRef.current = false;
+      }
+    }
+    
+    // Update recoil timer
+    if (recoilActiveRef.current) {
+      recoilTimeRef.current += delta;
+      if (recoilTimeRef.current >= RECOIL_DURATION) {
+        recoilActiveRef.current = false;
+      }
+    }
+    
     // ============================================================
     // ATTACK FLOW TRACE:
     // 1. Input system: Enter key sets keys.current.enter (line 142-144)
@@ -343,6 +384,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       batonIsSwingingRef.current = true;
       batonSwingTimeRef.current = 0;
       hasHitThisSwing.current = false; // Reset hit flag for new swing
+      
+      // Trigger view recoil effect
+      recoilActiveRef.current = true;
+      recoilTimeRef.current = 0;
       
       // Play swing audio
       const sfx = batonSfxRef.current;
@@ -497,6 +542,20 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     player.position.x += deltaMovement.x;
     player.position.z += deltaMovement.z;
     
+    // Footstep sounds while walking on ground
+    if (isMoving && isGrounded.current) {
+      footstepTimerRef.current += delta;
+      // Adjust interval based on sprinting
+      const currentInterval = isSprinting ? FOOTSTEP_INTERVAL * 0.65 : FOOTSTEP_INTERVAL;
+      if (footstepTimerRef.current >= currentInterval) {
+        AudioManager.playSFX('footstep');
+        footstepTimerRef.current = 0;
+      }
+    } else {
+      // Reset timer when not walking
+      footstepTimerRef.current = 0;
+    }
+    
     // Write player world position to state
     if (playerRef.current) {
       const worldPos = new THREE.Vector3();
@@ -615,6 +674,25 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     lookAtTarget.y += 1.5; // Look at player's head height
     
     camera.lookAt(lookAtTarget);
+    
+    // Apply camera shake offset (on player hit)
+    if (cameraShakeActiveRef.current) {
+      const shakeT = cameraShakeTimeRef.current / CAMERA_SHAKE_DURATION;
+      const decay = 1 - shakeT; // Linear decay
+      const shakeX = (Math.random() - 0.5) * 2 * CAMERA_SHAKE_INTENSITY * decay;
+      const shakeY = (Math.random() - 0.5) * 2 * CAMERA_SHAKE_INTENSITY * decay;
+      camera.position.x += shakeX;
+      camera.position.y += shakeY;
+    }
+    
+    // Apply recoil offset (on baton swing)
+    if (recoilActiveRef.current) {
+      const recoilT = recoilTimeRef.current / RECOIL_DURATION;
+      const recoilDecay = 1 - recoilT; // Linear decay
+      // Small pitch bump (rotate camera slightly up then back)
+      const recoilPitch = Math.sin(recoilT * Math.PI) * RECOIL_INTENSITY * recoilDecay;
+      camera.rotation.x -= recoilPitch;
+    }
     
     // ============================================================
     // BATON ANIMATION BLOCK:
