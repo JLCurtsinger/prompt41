@@ -76,7 +76,7 @@ export function WinOverlay() {
           marginBottom: '16px',
         }}
       >
-        Energy Cells Collected: {sourceCodeCount} / {SOURCE_CODE_GOAL}
+        Source Codes Collected: {sourceCodeCount} / {SOURCE_CODE_GOAL}
       </div>
       
       <div
