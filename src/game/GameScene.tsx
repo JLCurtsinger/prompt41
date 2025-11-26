@@ -11,7 +11,7 @@
 //    - Red/orange point light should create atmospheric glow
 //    - Core chamber should feel distinct from other zones
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
 import { Player } from './Player';
@@ -35,6 +35,9 @@ import { ZoneAudioController } from './audio/ZoneAudioController';
 import { useGameState } from '../state/gameState';
 import { getAllEnemies } from './Enemies/enemyRegistry';
 import * as THREE from 'three';
+
+// Exit Portal position (at the far end of Zone 4)
+const EXIT_PORTAL_POSITION: [number, number, number] = [48, 0, 0];
 
 // DEBUG: Toggle world debug helpers visibility
 const DEBUG_SHOW_WORLD_HELPERS = true;
@@ -65,6 +68,155 @@ const ENEMY_TUNING = {
   crawler: { maxHealth: 150, speed: 0.35, attackDamage: 6, attackCooldown: 1.0, attackRange: 2.2 },
   drone:   { maxHealth: 100, moveSpeed: 0.45, attackDamage: 4, attackCooldown: 1.1, attackRange: 2.6 }
 };
+
+// Exit Portal component - glowing portal that becomes interactable when objective is complete
+function ExitPortal({ position }: { position: [number, number, number] }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const [isInRange, setIsInRange] = useState(false);
+  
+  const objectiveComplete = useGameState((state) => state.objectiveComplete);
+  const setHasWon = useGameState((state) => state.setHasWon);
+  const showInteractionPrompt = useGameState((state) => state.showInteractionPrompt);
+  const clearInteractionPrompt = useGameState((state) => state.clearInteractionPrompt);
+  const playerPosition = useGameState((state) => state.playerPosition);
+  const isPaused = useGameState((state) => state.isPaused);
+  const isDead = useGameState((state) => state.isDead);
+  
+  const INTERACTION_RANGE = 3.0;
+  const PULSE_SPEED = 2.0;
+  
+  // Handle E key press for exit interaction
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === 'e' && isInRange && objectiveComplete && !isPaused && !isDead) {
+        setHasWon(true);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isInRange, objectiveComplete, isPaused, isDead, setHasWon]);
+  
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+    
+    // Animate glow intensity with pulsing effect
+    const pulse = Math.sin(Date.now() * 0.001 * PULSE_SPEED * Math.PI) * 0.5 + 0.5;
+    groupRef.current.children.forEach((child) => {
+      if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
+        // Pulse emissive intensity based on objective state
+        const baseIntensity = objectiveComplete ? 2.0 : 0.3;
+        child.material.emissiveIntensity = baseIntensity + pulse * (objectiveComplete ? 1.0 : 0.2);
+      }
+    });
+    
+    // Slowly rotate the portal
+    groupRef.current.rotation.y += delta * 0.5;
+    
+    // Check player distance
+    const playerPos = new THREE.Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
+    const portalPos = new THREE.Vector3(position[0], position[1], position[2]);
+    const distance = playerPos.distanceTo(portalPos);
+    
+    const wasInRange = isInRange;
+    const nowInRange = distance <= INTERACTION_RANGE;
+    setIsInRange(nowInRange);
+    
+    // Update interaction prompt
+    if (nowInRange && !wasInRange && objectiveComplete) {
+      showInteractionPrompt({
+        message: 'Exit',
+        actionKey: 'E',
+        sourceId: 'exit-portal',
+      });
+    } else if (!nowInRange && wasInRange) {
+      clearInteractionPrompt('exit-portal');
+    } else if (nowInRange && !objectiveComplete && wasInRange) {
+      // In range but objective not complete - show locked message briefly
+      // Don't show continuous message, just clear any existing
+      clearInteractionPrompt('exit-portal');
+    }
+  });
+  
+  // Colors based on objective state
+  const portalColor = objectiveComplete ? '#00ff88' : '#555555';
+  const glowColor = objectiveComplete ? '#00ff88' : '#333333';
+  
+  return (
+    <group ref={groupRef} position={position}>
+      {/* Portal frame - outer ring */}
+      <mesh position={[0, 2.5, 0]} rotation={[0, 0, 0]}>
+        <torusGeometry args={[2.2, 0.15, 16, 32]} />
+        <meshStandardMaterial
+          color="#1a1a1a"
+          metalness={0.8}
+          roughness={0.2}
+        />
+      </mesh>
+      
+      {/* Portal frame - inner glow ring */}
+      <mesh position={[0, 2.5, 0]} rotation={[0, 0, 0]}>
+        <torusGeometry args={[2.0, 0.08, 16, 32]} />
+        <meshStandardMaterial
+          color={portalColor}
+          emissive={portalColor}
+          emissiveIntensity={objectiveComplete ? 1.5 : 0.2}
+        />
+      </mesh>
+      
+      {/* Portal surface - glowing plane */}
+      <mesh position={[0, 2.5, 0]} rotation={[0, 0, 0]}>
+        <circleGeometry args={[1.9, 32]} />
+        <meshStandardMaterial
+          color={glowColor}
+          emissive={glowColor}
+          emissiveIntensity={objectiveComplete ? 2.0 : 0.3}
+          transparent
+          opacity={objectiveComplete ? 0.8 : 0.3}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      
+      {/* Portal base pedestal */}
+      <mesh position={[0, 0.25, 0]}>
+        <cylinderGeometry args={[2.5, 2.8, 0.5, 16]} />
+        <meshStandardMaterial
+          color="#2a2a2a"
+          metalness={0.5}
+          roughness={0.5}
+        />
+      </mesh>
+      
+      {/* Point light for local glow */}
+      <pointLight
+        position={[0, 2.5, 0]}
+        color={portalColor}
+        intensity={objectiveComplete ? 2.0 : 0.3}
+        distance={8}
+        decay={2}
+      />
+      
+      {/* Status indicator lights on base */}
+      {[0, 1, 2, 3].map((i) => (
+        <mesh
+          key={i}
+          position={[
+            Math.cos((i * Math.PI) / 2) * 2.3,
+            0.55,
+            Math.sin((i * Math.PI) / 2) * 2.3,
+          ]}
+        >
+          <sphereGeometry args={[0.1, 8, 8]} />
+          <meshStandardMaterial
+            color={portalColor}
+            emissive={portalColor}
+            emissiveIntensity={objectiveComplete ? 2.0 : 0.2}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
 
 // Component to track player position and provide it to enemies
 function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [number, number, number]) => void }) {
@@ -360,6 +512,9 @@ export function GameScene() {
         {SOURCE_CODE_POSITIONS.map((pos, index) => (
           <SourceCodePickup key={`source-code-${index}`} position={pos} />
         ))}
+        
+        {/* Exit Portal at the end of Zone 4 */}
+        <ExitPortal position={EXIT_PORTAL_POSITION} />
         
         {/* Zone transition markers - subtle floor strips for guidance */}
         {/* These markers are temporary and will be replaced/moved with the future GLB environment */}

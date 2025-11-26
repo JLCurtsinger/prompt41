@@ -116,6 +116,9 @@ import { setPlayerSpawnTime, SPAWN_PROTECTION_MS } from '../game/Enemies/enemyDa
 
 const DEBUG_DAMAGE_LOGS = false;
 
+// Objective configuration
+export const SOURCE_CODE_GOAL = 10;
+
 interface HostMessage {
   id: string;
   text: string;
@@ -148,6 +151,10 @@ interface GameState {
   // Enemy kill tracking
   enemiesKilled: number;
   totalEnemiesForLevelStart: number;
+  
+  // Objective state
+  objectiveComplete: boolean;
+  hasWon: boolean;
   
   // Host message bus
   hostMessages: HostMessage[];
@@ -256,6 +263,9 @@ interface GameState {
   // Invulnerability actions
   setPlayerInvulnerableFor: (milliseconds: number) => void;
   clearPlayerInvulnerability: () => void;
+  
+  // Objective actions
+  setHasWon: (won: boolean) => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -307,6 +317,10 @@ export const useGameState = create<GameState>((set, get) => {
   // Enemy kill tracking initial state
   enemiesKilled: 0,
   totalEnemiesForLevelStart: 0,
+  
+  // Objective initial state
+  objectiveComplete: false,
+  hasWon: false,
   
   // Host message bus initial state
   hostMessages: [],
@@ -438,6 +452,9 @@ export const useGameState = create<GameState>((set, get) => {
       // Reset enemy kills
       enemiesKilled: 0,
       totalEnemiesForLevelStart: 0,
+      // Reset objective state
+      objectiveComplete: false,
+      hasWon: false,
       isPaused: false,
       // Reset host messages
       hostMessages: [],
@@ -641,10 +658,23 @@ export const useGameState = create<GameState>((set, get) => {
   },
   
   addSourceCode: (count = 1) => {
-    set((state) => ({
-      sourceCodeCount: state.sourceCodeCount + count
-    }));
-    console.log(`Added ${count} source code(s). Total: ${get().sourceCodeCount}`);
+    const state = get();
+    const newCount = state.sourceCodeCount + count;
+    const wasComplete = state.objectiveComplete;
+    const isNowComplete = newCount >= SOURCE_CODE_GOAL;
+    
+    set({
+      sourceCodeCount: newCount,
+      // Only trigger objectiveComplete once
+      objectiveComplete: wasComplete || isNowComplete,
+    });
+    
+    console.log(`Added ${count} source code(s). Total: ${newCount}`);
+    
+    // Log objective completion only the first time
+    if (!wasComplete && isNowComplete) {
+      console.log('[Objective] Source code goal reached! Proceed to exit.');
+    }
   },
   
   resetInventory: () => {
@@ -787,6 +817,12 @@ export const useGameState = create<GameState>((set, get) => {
     set({
       playerInvulnerableUntil: null,
     }),
+  
+  // Objective actions
+  setHasWon: (won) => {
+    set({ hasWon: won });
+    console.log(`[Objective] Player has won: ${won}`);
+  },
   };
 });
 

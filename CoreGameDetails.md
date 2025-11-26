@@ -1,4 +1,4 @@
-# Core Details – AI Rogue Agents Game
+# Core Details – Propmt 41 (AI Rogue Agents Game)
 
 Single-level, 5–8 minute third-person experience built with React + Three.js (react-three-fiber).  
 Tone: cinematic sci-fi with light psychological horror about AI agents interpreting goals too literally.
@@ -8,7 +8,7 @@ Tone: cinematic sci-fi with light psychological horror about AI agents interpret
 ## 1. High Concept
 
 
-**Working title:** *Rogue Directives* (placeholder)
+**Working title:** *Prompt 41* (placeholder)
 
 ### Premise
 You play as **Zeeko Raines**, a cyber-security engineer investigating a compromised research site where autonomous AI agents have rewritten their directives. Although this prototype includes only a single level, it is designed to feel like the **opening playable zone** of a much larger world — with light branching, optional exploration, and a cinematic third-person presentation.
