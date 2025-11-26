@@ -58,8 +58,6 @@ export function SimpleShambler({
 
   attackDamage = 18,
 
-  _deathDuration = 0.6,
-
   speed = 0.18,
 
   color = "purple",

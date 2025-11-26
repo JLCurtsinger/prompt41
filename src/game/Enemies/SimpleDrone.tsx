@@ -40,7 +40,6 @@ export function SimpleDrone({
   maxHealth = 100,
   attackRange = 2.5,
   attackDamage = 10,
-  _deathDuration = 0.5,
   followHeight = 3,
   followRadius = 4,
   orbitSpeed = 0.8,
