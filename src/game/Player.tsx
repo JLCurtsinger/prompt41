@@ -242,6 +242,11 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     
     const handleMouseDown = (e: MouseEvent) => {
       if (e.button === 0) {
+        // Guard: Don't trigger baton swing when clicking on audio controls
+        const target = e.target as HTMLElement | null;
+        if (target && target.closest('#audio-controls')) {
+          return; // Click was in audio UI, don't swing baton
+        }
         mouseButtonPressed.current = true;
       }
     };

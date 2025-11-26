@@ -358,3 +358,25 @@ class AudioManagerClass {
 // Export singleton instance
 export const AudioManager = new AudioManagerClass();
 
+// Subscribe to gameState changes and sync volume/mute
+// This import is deferred to avoid circular dependency issues
+let unsubscribe: (() => void) | null = null;
+
+export function initAudioManagerStateSync() {
+  if (unsubscribe) return; // Already subscribed
+  
+  // Dynamic import to avoid circular dependency
+  import('../../state/gameState').then(({ useGameState }) => {
+    // Sync initial state
+    const state = useGameState.getState();
+    AudioManager.setVolume(state.audioVolume);
+    AudioManager.setMuted(state.audioMuted);
+    
+    // Subscribe to future changes
+    unsubscribe = useGameState.subscribe((state) => {
+      AudioManager.setVolume(state.audioVolume);
+      AudioManager.setMuted(state.audioMuted);
+    });
+  });
+}
+

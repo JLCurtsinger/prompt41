@@ -28,6 +28,7 @@ export function AudioSettings() {
 
   return (
     <div
+      id="audio-controls"
       style={{
         position: 'fixed',
         bottom: '20px',
