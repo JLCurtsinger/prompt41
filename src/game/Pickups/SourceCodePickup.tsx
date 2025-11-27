@@ -15,7 +15,7 @@ interface SourceCodePickupProps {
 export function SourceCodePickup({ position }: SourceCodePickupProps) {
   const groupRef = useRef<THREE.Group>(null);
   const [isCollected, setIsCollected] = useState(false);
-  const [bobOffset, setBobOffset] = useState(0);
+  const bobOffsetRef = useRef(0);
   
   const addSourceCode = useGameState((state) => state.addSourceCode);
   const healPlayer = useGameState((state) => state.healPlayer);
@@ -29,19 +29,27 @@ export function SourceCodePickup({ position }: SourceCodePickupProps) {
   // Store base Y for bobbing calculation
   const baseY = position[1];
   
+  // Single useFrame for rotation, bobbing, position update, and pickup detection
   useFrame((_, delta) => {
     if (isCollected || !groupRef.current) return;
     
     // Rotate the pickup
     groupRef.current.rotation.y += ROTATION_SPEED * delta;
     
-    // Bob up and down
-    setBobOffset(Math.sin(Date.now() * 0.001 * BOB_SPEED * Math.PI * 2) * BOB_AMPLITUDE);
+    // Update bob offset (no setState)
+    bobOffsetRef.current = Math.sin(Date.now() * 0.001 * BOB_SPEED * Math.PI * 2) * BOB_AMPLITUDE;
+    
+    // Update position with bob directly
+    groupRef.current.position.set(
+      position[0],
+      baseY + bobOffsetRef.current,
+      position[2]
+    );
     
     // Check player distance using game state player position (optimized - no scene traversal)
     const playerPos = useGameState.getState().playerPosition;
     const dx = playerPos.x - position[0];
-    const dy = playerPos.y - (baseY + bobOffset);
+    const dy = playerPos.y - (baseY + bobOffsetRef.current);
     const dz = playerPos.z - position[2];
     const distanceSq = dx * dx + dy * dy + dz * dz;
     
@@ -51,17 +59,6 @@ export function SourceCodePickup({ position }: SourceCodePickupProps) {
       addSourceCode(1);
       healPlayer(5); // Heal +5 HP on pickup
       AudioManager.playSFX('pickupSourceCode');
-    }
-  });
-  
-  // Update position with bob
-  useFrame(() => {
-    if (groupRef.current && !isCollected) {
-      groupRef.current.position.set(
-        position[0],
-        baseY + bobOffset,
-        position[2]
-      );
     }
   });
   

@@ -17,7 +17,7 @@
 //    - Verify HOST line appears for each pickup
 
 import { useRef, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useGameState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
 import { EnergyCellModel } from '../models/EnergyCellModel';
@@ -29,70 +29,50 @@ interface EnergyCellProps {
 
 export function EnergyCell({ position }: EnergyCellProps) {
   const cellRef = useRef<THREE.Group>(null);
-  const { scene } = useThree();
   const [isCollected, setIsCollected] = useState(false);
-  const [bobOffset, setBobOffset] = useState(0);
+  const bobOffsetRef = useRef(0);
   
   const addEnergyCell = useGameState((state) => state.addEnergyCell);
   const playHostLine = useGameState((state) => state.playHostLine);
   
   const PICKUP_RANGE = 1.5;
+  const PICKUP_RANGE_SQ = PICKUP_RANGE * PICKUP_RANGE; // Squared distance for performance
   const ROTATION_SPEED = 1.0; // radians per second
   const BOB_SPEED = 2.0; // cycles per second
   const BOB_AMPLITUDE = 0.1; // meters
   
-  // Check if player is in range for pickup
+  const baseY = position[1];
+  
+  // Single useFrame for rotation, bobbing, position update, and pickup detection
   useFrame((_, delta) => {
     if (isCollected || !cellRef.current) return;
     
     // Rotate the cell
-    if (cellRef.current) {
-      cellRef.current.rotation.y += ROTATION_SPEED * delta;
-    }
+    cellRef.current.rotation.y += ROTATION_SPEED * delta;
     
-    // Bob up and down
-    setBobOffset(Math.sin(Date.now() * 0.001 * BOB_SPEED * Math.PI * 2) * BOB_AMPLITUDE);
+    // Update bob offset (no setState)
+    bobOffsetRef.current = Math.sin(Date.now() * 0.001 * BOB_SPEED * Math.PI * 2) * BOB_AMPLITUDE;
     
-    // Check player distance
-    let playerPosition: THREE.Vector3 | null = null;
+    // Update position with bob directly
+    cellRef.current.position.set(
+      position[0],
+      baseY + bobOffsetRef.current,
+      position[2]
+    );
     
-    scene.traverse((object) => {
-      if (object instanceof THREE.Group) {
-        let hasCapsule = false;
-        object.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.geometry instanceof THREE.CapsuleGeometry) {
-            hasCapsule = true;
-          }
-        });
-        if (hasCapsule) {
-          playerPosition = object.position.clone() as THREE.Vector3;
-        }
-      }
-    });
+    // Check player distance using game state player position (optimized - no scene traversal)
+    const playerPos = useGameState.getState().playerPosition;
+    const dx = playerPos.x - position[0];
+    const dy = playerPos.y - (baseY + bobOffsetRef.current);
+    const dz = playerPos.z - position[2];
+    const distanceSq = dx * dx + dy * dy + dz * dz;
     
-    if (!playerPosition) return;
-    
-    const playerPos = playerPosition as THREE.Vector3;
-    const cellPos = new THREE.Vector3(...position);
-    const distance = playerPos.distanceTo(cellPos);
-    
-    if (distance <= PICKUP_RANGE) {
+    if (distanceSq <= PICKUP_RANGE_SQ) {
       // Pick up the cell
       setIsCollected(true);
       addEnergyCell(1);
       playHostLine('pickup:energyCell');
       AudioManager.playSFX('pickupEnergyCell');
-    }
-  });
-  
-  // Update position with bob
-  useFrame(() => {
-    if (cellRef.current && !isCollected) {
-      cellRef.current.position.set(
-        position[0],
-        position[1] + bobOffset,
-        position[2]
-      );
     }
   });
   
