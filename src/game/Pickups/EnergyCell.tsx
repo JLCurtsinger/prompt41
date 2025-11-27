@@ -70,10 +70,13 @@ export function EnergyCell({ position }: EnergyCellProps) {
     if (distanceSq <= PICKUP_RANGE_SQ) {
       // Pick up the cell
       setIsCollected(true);
-      // Energy cells are pure heal pickups, not tracked as score.
+      // Heal the player by 5 HP, clamped to max health
       healPlayer(5);
-      AudioManager.playSFX('pickupEnergyCell');
+      // Optional host line is fine to keep
       playHostLine('pickup:energyCell');
+      // Play the new pickup sound
+      console.log('[EnergyCell] playing pickupEnergyCell SFX');
+      AudioManager.playSFX('pickupEnergyCell');
     }
   });
   
