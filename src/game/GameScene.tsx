@@ -600,15 +600,6 @@ export function GameScene() {
                 side={THREE.DoubleSide}
               />
             </mesh>
-            {/* Player spawn position marker */}
-            <mesh position={[...PLAYER_SPAWN_POSITION]}>
-              <boxGeometry args={[0.3, 0.3, 0.3]} />
-              <meshStandardMaterial
-                color="#0000ff"
-                emissive="#0000ff"
-                emissiveIntensity={0.8}
-              />
-            </mesh>
           </group>
         )}
       </Suspense>
