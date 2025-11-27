@@ -14,6 +14,8 @@ import { useGameState } from "../../state/gameState";
 
 import { EnemyDeathFragments } from "../Effects/EnemyDeathFragments";
 
+import { AudioManager } from "../audio/AudioManager";
+
 const DRONE_ATTACK_WARMUP_MS = 2000;
 const DRONE_ATTACK_COOLDOWN = 1.0;
 
@@ -130,6 +132,9 @@ export function SimpleDrone({
     if (healthRef.current <= 0) {
       if (!isDyingRef.current) {
         isDyingRef.current = true;
+        
+        // Play death sound effect
+        AudioManager.playSFX('EnemyDying');
         
         // Capture death position and trigger fragment effect
         const worldPos = new THREE.Vector3();

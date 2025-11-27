@@ -29,6 +29,7 @@ import { applyDamageToPlayer } from './enemyDamage';
 import { registerEnemy, unregisterEnemy } from './enemyRegistry';
 import { EnemyHealthBar } from './EnemyHealthBar';
 import { useGameState } from '../../state/gameState';
+import { AudioManager } from '../audio/AudioManager';
 import * as THREE from 'three';
 
 interface EnemyShamblerProps {
@@ -202,6 +203,10 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
       if (!isDying.current) {
         isDying.current = true;
         deathTimer.current = 0;
+        
+        // Play death sound effect
+        AudioManager.playSFX('EnemyDying');
+        
         console.log('[Shambler]', enemyId, 'death sequence started');
       }
       

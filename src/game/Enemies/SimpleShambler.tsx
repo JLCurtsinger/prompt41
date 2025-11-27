@@ -14,6 +14,8 @@ import { useGameState } from "../../state/gameState";
 
 import { EnemyDeathFragments } from "../Effects/EnemyDeathFragments";
 
+import { AudioManager } from "../audio/AudioManager";
+
 // Attack constants - ensure melee range is tight and reasonable
 const SHAMBLER_MELEE_ATTACK_RANGE = 2.5; // Tight melee range - must be very close
 const SHAMBLER_ATTACK_WARMUP_MS = 2000;
@@ -168,6 +170,9 @@ export function SimpleShambler({
       if (!isDyingRef.current) {
 
         isDyingRef.current = true;
+
+        // Play death sound effect
+        AudioManager.playSFX('EnemyDying');
 
         // Capture death position and trigger fragment effect
         const worldPos = new THREE.Vector3();

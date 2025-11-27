@@ -14,6 +14,8 @@ import { useGameState } from "../../state/gameState";
 
 import { EnemyDeathFragments } from "../Effects/EnemyDeathFragments";
 
+import { AudioManager } from "../audio/AudioManager";
+
 // Attack constants - ensure melee range is tight and reasonable
 const CRAWLER_MELEE_RANGE = 1.25; // Tighter melee range - must be very close for melee hit
 const CRAWLER_ATTACK_COOLDOWN = 1.0; // seconds between attacks
@@ -186,6 +188,9 @@ export function SimpleCrawler({
       if (!isDyingRef.current) {
 
         isDyingRef.current = true;
+
+        // Play death sound effect
+        AudioManager.playSFX('EnemyDying');
 
         // Capture death position and trigger fragment effect
         const worldPos = new THREE.Vector3();
