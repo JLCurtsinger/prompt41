@@ -13,7 +13,7 @@
 import { useGameState, SOURCE_CODE_GOAL } from '../../state/gameState';
 
 export function HUD() {
-  const { playerHealth, playerMaxHealth, energyCellCount, sourceCodeCount, objectiveComplete } = useGameState();
+  const { playerHealth, playerMaxHealth, energyCellCount, objectiveComplete } = useGameState();
   
   const healthPercentage = Math.max(0, Math.min(100, (playerHealth / playerMaxHealth) * 100));
   
@@ -68,7 +68,7 @@ export function HUD() {
         </div>
       </div>
       
-      {/* Source Codes counter (from terminals) */}
+      {/* Source Codes counter (from terminals, main objective) */}
       <div
         style={{
           color: '#00ffff',
@@ -76,19 +76,7 @@ export function HUD() {
           fontSize: '16px',
         }}
       >
-        Source Codes: {energyCellCount}
-      </div>
-      
-      {/* Energy Cells counter (from orb pickups, objective) */}
-      <div
-        style={{
-          color: '#00ff88',
-          textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-          fontSize: '16px',
-          marginTop: '4px',
-        }}
-      >
-        Energy Cells: {sourceCodeCount} / {SOURCE_CODE_GOAL}
+        Source Codes: {energyCellCount} / {SOURCE_CODE_GOAL}
       </div>
       
       {/* Objective complete message */}
