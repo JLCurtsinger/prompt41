@@ -508,7 +508,7 @@ export function HackingOverlay() {
   const startHackingAction = useGameState((state) => state.startHackingAction);
   const setMiniGameResult = useGameState((state) => state.setMiniGameResult);
   const decrementAttempts = useGameState((state) => state.decrementAttempts);
-  const addSourceCode = useGameState((state) => state.addSourceCode);
+  const markTerminalHacked = useGameState((state) => state.markTerminalHacked);
   const setTerminalState = useGameState((state) => state.setTerminalState);
   const unlockZone2Door = useGameState((state) => state.unlockZone2Door);
   const completeLevel = useGameState((state) => state.completeLevel);
@@ -568,10 +568,10 @@ export function HackingOverlay() {
     hasAwardedRef.current = true;
 
     if (miniGameResult === 'success') {
-      // Award source code from successful hack
-      addSourceCode(1);
+      // Mark terminal as hacked (this awards source code once per terminal)
+      markTerminalHacked(terminalId);
       
-      // Mark terminal as hacked
+      // Mark terminal state as hacked
       setTerminalState(terminalId, 'hacked');
       
       // Zone-specific effects
@@ -599,7 +599,7 @@ export function HackingOverlay() {
         console.warn('HackingOverlay: Error playing failure SFX:', error);
       }
     }
-  }, [isOpen, miniGamePhase, miniGameResult, terminalId, addSourceCode, setTerminalState, unlockZone2Door, completeLevel, playHostLine]);
+  }, [isOpen, miniGamePhase, miniGameResult, terminalId, markTerminalHacked, setTerminalState, unlockZone2Door, completeLevel, playHostLine]);
 
   // Auto-close after result is shown (optional)
   useEffect(() => {

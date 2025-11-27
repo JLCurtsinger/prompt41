@@ -164,6 +164,8 @@ interface GameState {
   // Inventory state
   energyCellCount: number;
   sourceCodeCount: number;
+  totalSourceCodes: number;
+  hackedTerminalIds: Set<string>;
   
   // Zone tracking
   currentZone: 'zone1' | 'zone2' | 'zone3' | 'zone4';
@@ -236,6 +238,7 @@ interface GameState {
   addEnergyCell: (count?: number) => void;
   consumeEnergyCell: (count?: number) => void;
   addSourceCode: (count?: number) => void;
+  markTerminalHacked: (id: string) => void;
   resetInventory: () => void;
   healPlayer: (amount: number) => void;
   
@@ -362,6 +365,8 @@ export const useGameState = create<GameState>((set, get) => {
   // Inventory initial state
   energyCellCount: 0,
   sourceCodeCount: 0,
+  totalSourceCodes: 3,
+  hackedTerminalIds: new Set<string>(),
   
   // Zone initial state
   currentZone: 'zone1',
@@ -513,6 +518,7 @@ export const useGameState = create<GameState>((set, get) => {
       // Reset inventory
       energyCellCount: 0,
       sourceCodeCount: 0,
+      hackedTerminalIds: new Set<string>(),
       // Reset zone
       currentZone: 'zone1',
       // Clear interaction prompt
@@ -737,8 +743,45 @@ export const useGameState = create<GameState>((set, get) => {
     }
   },
   
+  markTerminalHacked: (id) => {
+    const state = get();
+    
+    // Check if terminal was already hacked
+    if (state.hackedTerminalIds.has(id)) {
+      console.log(`Terminal ${id} already hacked - skipping source code award`);
+      return;
+    }
+    
+    // Add terminal to hacked set
+    const newHackedSet = new Set(state.hackedTerminalIds);
+    newHackedSet.add(id);
+    
+    // Increment source code count (up to totalSourceCodes)
+    const newCount = Math.min(state.sourceCodeCount + 1, state.totalSourceCodes);
+    const wasComplete = state.objectiveComplete;
+    const isNowComplete = newCount >= state.totalSourceCodes;
+    
+    set({
+      hackedTerminalIds: newHackedSet,
+      sourceCodeCount: newCount,
+      // Only trigger objectiveComplete once
+      objectiveComplete: wasComplete || isNowComplete,
+    });
+    
+    console.log(`Terminal ${id} hacked - Source codes: ${newCount}/${state.totalSourceCodes}`);
+    
+    // Log objective completion only the first time
+    if (!wasComplete && isNowComplete) {
+      console.log('[Objective] Source code goal reached! Proceed to exit.');
+    }
+  },
+  
   resetInventory: () => {
-    set({ energyCellCount: 0, sourceCodeCount: 0 });
+    set({ 
+      energyCellCount: 0, 
+      sourceCodeCount: 0,
+      hackedTerminalIds: new Set<string>(),
+    });
     console.log('Inventory reset');
   },
   

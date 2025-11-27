@@ -10,10 +10,10 @@
 //    - Health bar should not go below 0 or above max
 //    - Should handle rapid damage updates smoothly
 
-import { useGameState, SOURCE_CODE_GOAL } from '../../state/gameState';
+import { useGameState } from '../../state/gameState';
 
 export function HUD() {
-  const { playerHealth, playerMaxHealth, sourceCodeCount, objectiveComplete } = useGameState();
+  const { playerHealth, playerMaxHealth, sourceCodeCount, totalSourceCodes, objectiveComplete } = useGameState();
   
   const healthPercentage = Math.max(0, Math.min(100, (playerHealth / playerMaxHealth) * 100));
   
@@ -76,7 +76,7 @@ export function HUD() {
           fontSize: '16px',
         }}
       >
-        Source Codes: {sourceCodeCount} / {SOURCE_CODE_GOAL}
+        Source Codes: {sourceCodeCount} / {totalSourceCodes}
       </div>
       
       {/* Objective complete message */}
