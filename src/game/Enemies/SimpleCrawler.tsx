@@ -20,6 +20,7 @@ import { AudioManager } from "../audio/AudioManager";
 const CRAWLER_MELEE_RANGE = 1.25; // Tighter melee range - must be very close for melee hit
 const CRAWLER_ATTACK_COOLDOWN = 1.0; // seconds between attacks
 const CRAWLER_ATTACK_WARMUP_MS = 2000; // ms after spawn before crawler can attack
+const CRAWLER_COMBAT_ENGAGEMENT_RANGE = 4.0; // Range at which crawler enters combat (larger than attack range)
 const DEBUG_CRAWLER_LOGS = false;
 
 type SimpleCrawlerProps = {
@@ -92,6 +93,9 @@ export function SimpleCrawler({
   const isDyingRef = useRef(false);
 
   const hasFinishedDeathRef = useRef(false);
+  
+  // Track if crawler voice has been played for current engagement
+  const hasPlayedVoiceRef = useRef(false);
   
   // Death fragment effect state
   const [showDeathFragments, setShowDeathFragments] = useState(false);
@@ -274,6 +278,18 @@ export function SimpleCrawler({
         },
         distanceToPlayer,
       });
+    }
+
+    // Combat engagement detection - play voice when first entering combat range
+    const isInCombatRange = distanceToPlayer <= CRAWLER_COMBAT_ENGAGEMENT_RANGE;
+    
+    if (isInCombatRange && !hasPlayedVoiceRef.current) {
+      // First time entering combat range - play voice
+      hasPlayedVoiceRef.current = true;
+      AudioManager.playSFX('CrawlerVoice');
+    } else if (!isInCombatRange && hasPlayedVoiceRef.current) {
+      // Player left combat range - reset flag for next engagement
+      hasPlayedVoiceRef.current = false;
     }
 
     // Update attack cooldown (delta is in seconds)
