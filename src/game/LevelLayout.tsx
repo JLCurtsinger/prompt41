@@ -169,6 +169,12 @@ function ConduitHallZone() {
         <meshStandardMaterial color="#4a4a4a" />
       </mesh>
       
+      {/* Zone 3 terminal (awards Source Code) */}
+      <HackingTerminal
+        id="terminal-zone3"
+        position={[20, 0, 0]}
+      />
+      
       {/* TODO: Hazard area (steam vents, sparks) will be added here */}
     </group>
   );
@@ -226,6 +232,12 @@ function CoreAccessChamberZone() {
       <group
         name="core_chamber_center"
         position={[40, 0, 0]} // center of the room
+      />
+      
+      {/* Zone 4 terminal (awards Source Code) */}
+      <HackingTerminal
+        id="terminal-zone4"
+        position={[40, 0, 5]}
       />
     </group>
   );

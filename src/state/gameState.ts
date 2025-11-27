@@ -337,6 +337,8 @@ export const useGameState = create<GameState>((set, get) => {
   },
   terminalStates: {
     'terminal-zone2-main': 'locked',
+    'terminal-zone3': 'locked',
+    'terminal-zone4': 'locked',
     'terminal-zone4-final': 'locked'
   },
   
@@ -497,6 +499,8 @@ export const useGameState = create<GameState>((set, get) => {
       },
       terminalStates: {
         'terminal-zone2-main': 'locked',
+        'terminal-zone3': 'locked',
+        'terminal-zone4': 'locked',
         'terminal-zone4-final': 'locked'
       },
       // Reset Sentinel and shutdown
