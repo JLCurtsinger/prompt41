@@ -177,7 +177,7 @@ export function SimpleDrone({
         unregisterEnemy(enemyId);
         
         // Notify respawn manager
-        enemyRespawnManager.unregisterEnemy(determinedZoneId, enemyId, 'drone');
+        enemyRespawnManager.unregisterEnemy(determinedZoneId, enemyId);
         
         incrementEnemiesKilled();
         checkWinCondition();

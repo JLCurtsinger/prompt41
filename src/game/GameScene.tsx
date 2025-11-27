@@ -463,7 +463,6 @@ export function GameScene() {
         {/* Spawned enemies from respawn system */}
         {spawnedEnemies.map((enemy) => {
           if (enemy.type === 'crawler') {
-            const config = enemyRespawnManager.getZoneConfig(enemy.zoneId);
             const endPos: [number, number, number] = [
               enemy.position[0] + (Math.random() - 0.5) * 4,
               enemy.position[1],

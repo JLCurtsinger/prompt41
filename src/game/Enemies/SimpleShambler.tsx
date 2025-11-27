@@ -206,7 +206,7 @@ export function SimpleShambler({
         unregisterEnemy(enemyId);
         
         // Notify respawn manager
-        enemyRespawnManager.unregisterEnemy(determinedZoneId, enemyId, 'shambler');
+        enemyRespawnManager.unregisterEnemy(determinedZoneId, enemyId);
 
         incrementEnemiesKilled();
 

@@ -228,7 +228,7 @@ export function SimpleCrawler({
         unregisterEnemy(enemyId);
         
         // Notify respawn manager
-        enemyRespawnManager.unregisterEnemy(determinedZoneId, enemyId, 'crawler');
+        enemyRespawnManager.unregisterEnemy(determinedZoneId, enemyId);
 
         incrementEnemiesKilled();
 

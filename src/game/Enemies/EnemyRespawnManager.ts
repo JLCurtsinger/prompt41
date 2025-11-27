@@ -86,15 +86,6 @@ class EnemyRespawnManager {
     });
   }
 
-  // Get zone ID from enemy position (simple heuristic)
-  private getZoneFromPosition(position: [number, number, number]): string | null {
-    const x = position[0];
-    if (x < 5) return 'zone2';
-    if (x < 35) return 'zone3';
-    if (x < 60) return 'zone4';
-    return null;
-  }
-
   // Count active enemies in a zone
   private countActiveEnemiesInZone(zoneId: string): number {
     const allEnemies = getAllEnemies();
@@ -121,7 +112,7 @@ class EnemyRespawnManager {
   }
 
   // Unregister an enemy (called on death)
-  unregisterEnemy(zoneId: string, enemyId: string, enemyType: EnemyType): void {
+  unregisterEnemy(zoneId: string, enemyId: string): void {
     const zoneSet = this.activeEnemiesByZone.get(zoneId);
     if (zoneSet) {
       zoneSet.delete(enemyId);
