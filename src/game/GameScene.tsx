@@ -282,7 +282,7 @@ export function GameScene() {
       <BackgroundAtmosphere />
       <ScreenFade />
       <Canvas
-      style={{ width: '100vw', height: '100vh' }}
+      style={{ width: '100%', height: '100%', display: 'block' }}
       gl={{ antialias: true, alpha: false }}
       dpr={[1, 2]}
       shadows
