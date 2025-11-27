@@ -16,11 +16,11 @@
 //    - Verify count increments correctly each time
 //    - Verify HOST line appears for each pickup
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
 import { useGameState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
+import { EnergyCellModel } from '../models/EnergyCellModel';
 import * as THREE from 'three';
 
 interface EnergyCellProps {
@@ -33,11 +33,7 @@ export function EnergyCell({ position }: EnergyCellProps) {
   const [isCollected, setIsCollected] = useState(false);
   const [bobOffset, setBobOffset] = useState(0);
   
-  const { scene: energyCellModel } = useGLTF('/models/Energy-Cell.glb');
   const addEnergyCell = useGameState((state) => state.addEnergyCell);
-  
-  // Clone the model scene for this instance to avoid shared geometry issues
-  const clonedModel = useMemo(() => energyCellModel.clone(), [energyCellModel]);
   
   const PICKUP_RANGE = 1.5;
   const ROTATION_SPEED = 1.0; // radians per second
@@ -104,11 +100,9 @@ export function EnergyCell({ position }: EnergyCellProps) {
   }
   
   return (
-    <group ref={cellRef} position={position} scale={0.8}>
-      <primitive object={clonedModel} />
+    <group ref={cellRef} position={position}>
+      <EnergyCellModel scale={0.8} />
     </group>
   );
 }
-
-useGLTF.preload('/models/Energy-Cell.glb');
 

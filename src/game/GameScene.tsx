@@ -28,6 +28,7 @@ import { SimpleShambler } from './Enemies/SimpleShambler';
 // TODO: Deprecated - EnemySentinel replaced by Simple enemy architecture
 // import { EnemySentinel } from './Enemies/EnemySentinel';
 import { ScreenFade } from './Effects/ScreenFade';
+import { GlowingOrb } from './Effects/GlowingOrb';
 import { LootCrate } from './Interactables/LootCrate';
 import { EnergyCell } from './Pickups/EnergyCell';
 import { SourceCodePickup } from './Pickups/SourceCodePickup';
@@ -45,7 +46,23 @@ const DEBUG_SHOW_WORLD_HELPERS = true;
 
 // Loot and pickup positions (easily adjustable for future GLB integration)
 const LOOT_CRATE_ZONE2_POSITION: [number, number, number] = [2, 0, -3]; // Zone 2 (Processing Yard)
-const ENERGY_CELL_ZONE3_POSITION: [number, number, number] = [15, 0.5, -2]; // Zone 3 (Conduit Hall)
+
+// Energy Cell pickup positions - exactly 3 pickups near enemy encounter areas
+const ENERGY_CELL_POSITIONS: [number, number, number][] = [
+  [-2, 0.3, 1],    // Zone 2 - near Crawler/Drone area
+  [20, 0.3, 0],    // Zone 3 - near Shambler area
+  [40, 0.3, -3],   // Zone 4 - near future boss area
+];
+
+// Decorative GlowingOrb positions for ambient lighting
+const GLOWING_ORB_POSITIONS: [number, number, number][] = [
+  [-12, 0.5, 2],   // Zone 1 - near spawn
+  [-8, 0.5, -3],   // Zone 1 - corridor
+  [5, 0.5, 2],     // Zone 2 - near machinery
+  [12, 0.5, -2],   // Zone 3 - corridor
+  [25, 0.5, -4],   // Zone 3 - side room
+  [35, 0.5, 2],    // Zone 4 - entrance
+];
 
 // Energy Cell pickup positions (spread across zones)
 const SOURCE_CODE_POSITIONS: [number, number, number][] = [
@@ -507,12 +524,19 @@ export function GameScene() {
         {/* Loot Crate in Zone 2 (Processing Yard) */}
         <LootCrate id="crate-zone2-1" position={LOOT_CRATE_ZONE2_POSITION} />
         
-        {/* Standalone Energy Cell in Zone 3 (Conduit Hall) */}
-        <EnergyCell position={ENERGY_CELL_ZONE3_POSITION} />
+        {/* Energy Cell pickups - exactly 3 near enemy encounter areas */}
+        {ENERGY_CELL_POSITIONS.map((pos, index) => (
+          <EnergyCell key={`energy-cell-${index}`} position={pos} />
+        ))}
         
-        {/* Energy Cell pickups spread across zones */}
+        {/* Source Code pickups spread across zones */}
         {SOURCE_CODE_POSITIONS.map((pos, index) => (
           <SourceCodePickup key={`source-code-${index}`} position={pos} />
+        ))}
+        
+        {/* Decorative GlowingOrbs for ambient lighting */}
+        {GLOWING_ORB_POSITIONS.map((pos, index) => (
+          <GlowingOrb key={`glowing-orb-${index}`} position={pos} />
         ))}
         
         {/* Exit Portal at the end of Zone 4 */}
