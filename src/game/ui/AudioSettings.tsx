@@ -18,6 +18,7 @@
 //    - Should not overlap HostLog (different z-index or position)
 //    - Should match existing UI style (monospace font, dark background, subtle borders)
 
+import { useRef, useEffect } from 'react';
 import { useGameState } from '../../state/gameState';
 
 export function AudioSettings() {
@@ -25,6 +26,15 @@ export function AudioSettings() {
   const audioMuted = useGameState((state) => state.audioMuted);
   const setAudioVolume = useGameState((state) => state.setAudioVolume);
   const toggleAudioMuted = useGameState((state) => state.toggleAudioMuted);
+
+  const muteButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  // Blur mute button if mute state changes while it's focused (e.g., from external source)
+  useEffect(() => {
+    if (muteButtonRef.current && document.activeElement === muteButtonRef.current) {
+      muteButtonRef.current.blur();
+    }
+  }, [audioMuted]);
 
   return (
     <div
@@ -43,7 +53,14 @@ export function AudioSettings() {
     >
       {/* Mute toggle button */}
       <button
-        onClick={toggleAudioMuted}
+        ref={muteButtonRef}
+        onClick={() => {
+          toggleAudioMuted();
+          // Remove focus so Enter/Return doesn't keep toggling mute
+          if (muteButtonRef.current) {
+            muteButtonRef.current.blur();
+          }
+        }}
         style={{
           padding: '6px 12px',
           backgroundColor: audioMuted ? '#330000' : '#001100',
