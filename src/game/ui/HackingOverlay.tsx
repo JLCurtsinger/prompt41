@@ -35,35 +35,30 @@ interface DirectiveData {
 
 type HackingActionType = 'disableSentries' | 'overrideGate' | 'convertWatcher';
 
-// Timing bar configuration per action type
-const TIMING_CONFIG: Record<HackingActionType, { speed: number; zoneWidth: number }> = {
-  disableSentries: { speed: 0.6, zoneWidth: 0.25 },   // Easy: slow, wide zone
-  overrideGate: { speed: 1.0, zoneWidth: 0.18 },      // Medium
-  convertWatcher: { speed: 1.5, zoneWidth: 0.12 },    // Hard: fast, narrow zone
-};
-
-// --- Timing Bar Mini-Game Component ---
+// --- Timing Bar Mini-Game Component (used for "Disable local sentries") ---
 function TimingBarMiniGame({
-  action,
+  selectedActionLabel,
   attemptsRemaining,
   onSuccess,
-  onMiss,
+  onFailedAttempt,
 }: {
-  action: HackingActionType;
+  selectedActionLabel: string;
   attemptsRemaining: number;
   onSuccess: () => void;
-  onMiss: () => void;
+  onFailedAttempt: () => void;
 }) {
   const [cursorPosition, setCursorPosition] = useState(0);
   const directionRef = useRef(1);
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
 
-  const config = TIMING_CONFIG[action];
+  // Disable sentries uses a slow speed, wide zone (easy)
+  const speed = 0.6;
+  const zoneWidth = 0.25;
   
   // Success zone is centered (around 0.5)
-  const zoneStart = 0.5 - config.zoneWidth / 2;
-  const zoneEnd = 0.5 + config.zoneWidth / 2;
+  const zoneStart = 0.5 - zoneWidth / 2;
+  const zoneEnd = 0.5 + zoneWidth / 2;
 
   // Animation loop
   useEffect(() => {
@@ -76,7 +71,7 @@ function TimingBarMiniGame({
       lastTimeRef.current = time;
       
       setCursorPosition((prev) => {
-        let next = prev + directionRef.current * config.speed * deltaTime;
+        let next = prev + directionRef.current * speed * deltaTime;
         
         // Bounce at edges
         if (next >= 1) {
@@ -100,7 +95,7 @@ function TimingBarMiniGame({
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [config.speed]);
+  }, []);
 
   // Handle click
   const handleClick = useCallback(() => {
@@ -109,9 +104,9 @@ function TimingBarMiniGame({
     if (isInZone) {
       onSuccess();
     } else {
-      onMiss();
+      onFailedAttempt();
     }
-  }, [cursorPosition, zoneStart, zoneEnd, onSuccess, onMiss]);
+  }, [cursorPosition, zoneStart, zoneEnd, onSuccess, onFailedAttempt]);
 
   return (
     <div
@@ -126,9 +121,7 @@ function TimingBarMiniGame({
     >
       {/* Action label */}
       <div style={{ fontSize: '18px', color: '#00ff00', textTransform: 'uppercase' }}>
-        {action === 'disableSentries' && '// DISABLING SENTRIES'}
-        {action === 'overrideGate' && '// OVERRIDING GATE'}
-        {action === 'convertWatcher' && '// CONVERTING WATCHER'}
+        {selectedActionLabel}
       </div>
 
       {/* Timing bar container */}
@@ -150,7 +143,7 @@ function TimingBarMiniGame({
           style={{
             position: 'absolute',
             left: `${zoneStart * 100}%`,
-            width: `${config.zoneWidth * 100}%`,
+            width: `${zoneWidth * 100}%`,
             height: '100%',
             backgroundColor: 'rgba(0, 255, 0, 0.3)',
             borderLeft: '2px solid #00ff00',
@@ -176,6 +169,324 @@ function TimingBarMiniGame({
       {/* Instructions */}
       <div style={{ fontSize: '14px', color: '#00ff00', opacity: 0.8 }}>
         Click when the signal is inside the green zone
+      </div>
+
+      {/* Attempts remaining */}
+      <div style={{ fontSize: '16px', color: attemptsRemaining === 1 ? '#ff4444' : '#00ff00' }}>
+        ATTEMPTS: {attemptsRemaining}
+      </div>
+    </div>
+  );
+}
+
+// --- Override Gate Mini-Game Component (dual timing bars) ---
+function OverrideGateMiniGame({
+  selectedActionLabel,
+  attemptsRemaining,
+  onSuccess,
+  onFailedAttempt,
+}: {
+  selectedActionLabel: string;
+  attemptsRemaining: number;
+  onSuccess: () => void;
+  onFailedAttempt: () => void;
+}) {
+  const [cursorPos1, setCursorPos1] = useState(0);
+  const [cursorPos2, setCursorPos2] = useState(0.3); // Start offset for visual variety
+  const direction1Ref = useRef(1);
+  const direction2Ref = useRef(1);
+  const animationRef = useRef<number | null>(null);
+  const lastTimeRef = useRef<number | null>(null);
+
+  // Two bars with different speeds so they drift relative to each other
+  const speed1 = 1.0;
+  const speed2 = 1.3;
+
+  // Different success zones for each bar
+  const zone1 = { start: 0.3, end: 0.55 };
+  const zone2 = { start: 0.45, end: 0.75 };
+
+  // Animation loop
+  useEffect(() => {
+    const animate = (time: number) => {
+      if (lastTimeRef.current === null) {
+        lastTimeRef.current = time;
+      }
+      
+      const deltaTime = (time - lastTimeRef.current) / 1000;
+      lastTimeRef.current = time;
+      
+      // Update cursor 1
+      setCursorPos1((prev) => {
+        let next = prev + direction1Ref.current * speed1 * deltaTime;
+        if (next >= 1) {
+          next = 1;
+          direction1Ref.current = -1;
+        } else if (next <= 0) {
+          next = 0;
+          direction1Ref.current = 1;
+        }
+        return next;
+      });
+
+      // Update cursor 2
+      setCursorPos2((prev) => {
+        let next = prev + direction2Ref.current * speed2 * deltaTime;
+        if (next >= 1) {
+          next = 1;
+          direction2Ref.current = -1;
+        } else if (next <= 0) {
+          next = 0;
+          direction2Ref.current = 1;
+        }
+        return next;
+      });
+      
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    
+    animationRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, []);
+
+  // Handle click - both cursors must be in their zones
+  const handleClick = useCallback(() => {
+    const cursor1InZone = cursorPos1 >= zone1.start && cursorPos1 <= zone1.end;
+    const cursor2InZone = cursorPos2 >= zone2.start && cursorPos2 <= zone2.end;
+    
+    if (cursor1InZone && cursor2InZone) {
+      onSuccess();
+    } else {
+      onFailedAttempt();
+    }
+  }, [cursorPos1, cursorPos2, onSuccess, onFailedAttempt]);
+
+  // Shared bar style
+  const barStyle: React.CSSProperties = {
+    width: '100%',
+    height: '35px',
+    backgroundColor: '#001100',
+    border: '2px solid #00ff00',
+    borderRadius: '4px',
+    position: 'relative',
+    overflow: 'hidden',
+  };
+
+  return (
+    <div
+      onClick={handleClick}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '20px',
+        width: '100%',
+        maxWidth: '500px',
+        cursor: 'pointer',
+      }}
+    >
+      {/* Action label */}
+      <div style={{ fontSize: '18px', color: '#00ff00', textTransform: 'uppercase' }}>
+        {selectedActionLabel}
+      </div>
+
+      {/* Bar 1 */}
+      <div style={barStyle}>
+        {/* Success zone */}
+        <div
+          style={{
+            position: 'absolute',
+            left: `${zone1.start * 100}%`,
+            width: `${(zone1.end - zone1.start) * 100}%`,
+            height: '100%',
+            backgroundColor: 'rgba(0, 255, 0, 0.3)',
+            borderLeft: '2px solid #00ff00',
+            borderRight: '2px solid #00ff00',
+          }}
+        />
+        {/* Moving cursor */}
+        <div
+          style={{
+            position: 'absolute',
+            left: `${cursorPos1 * 100}%`,
+            top: '0',
+            width: '4px',
+            height: '100%',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 0 8px #ffffff, 0 0 16px #00ff00',
+            transform: 'translateX(-50%)',
+          }}
+        />
+      </div>
+
+      {/* Bar 2 */}
+      <div style={barStyle}>
+        {/* Success zone */}
+        <div
+          style={{
+            position: 'absolute',
+            left: `${zone2.start * 100}%`,
+            width: `${(zone2.end - zone2.start) * 100}%`,
+            height: '100%',
+            backgroundColor: 'rgba(0, 255, 0, 0.3)',
+            borderLeft: '2px solid #00ff00',
+            borderRight: '2px solid #00ff00',
+          }}
+        />
+        {/* Moving cursor */}
+        <div
+          style={{
+            position: 'absolute',
+            left: `${cursorPos2 * 100}%`,
+            top: '0',
+            width: '4px',
+            height: '100%',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 0 8px #ffffff, 0 0 16px #00ff00',
+            transform: 'translateX(-50%)',
+          }}
+        />
+      </div>
+
+      {/* Instructions */}
+      <div style={{ fontSize: '14px', color: '#00ff00', opacity: 0.8 }}>
+        Click when BOTH signals overlap their green zones
+      </div>
+
+      {/* Attempts remaining */}
+      <div style={{ fontSize: '16px', color: attemptsRemaining === 1 ? '#ff4444' : '#00ff00' }}>
+        ATTEMPTS: {attemptsRemaining}
+      </div>
+    </div>
+  );
+}
+
+// --- Convert Watcher Mini-Game Component (pattern matching grid) ---
+function ConvertWatcherMiniGame({
+  selectedActionLabel,
+  attemptsRemaining,
+  onSuccess,
+  onFailedAttempt,
+}: {
+  selectedActionLabel: string;
+  attemptsRemaining: number;
+  onSuccess: () => void;
+  onFailedAttempt: () => void;
+}) {
+  // Generate puzzle on mount (only once per hacking attempt)
+  const [puzzle] = useState(() => {
+    // Generate a random 3-character target code from '0' and '1'
+    const generateCode = () => {
+      let code = '';
+      for (let i = 0; i < 3; i++) {
+        code += Math.random() < 0.5 ? '0' : '1';
+      }
+      return code;
+    };
+
+    // Generate a code that differs from target by at least one character
+    const generateDifferentCode = (target: string) => {
+      let code: string;
+      do {
+        code = generateCode();
+      } while (code === target);
+      return code;
+    };
+
+    const targetCode = generateCode();
+    const correctIndex = Math.floor(Math.random() * 9);
+    
+    // Generate 9 tile codes
+    const tiles: string[] = [];
+    for (let i = 0; i < 9; i++) {
+      if (i === correctIndex) {
+        tiles.push(targetCode);
+      } else {
+        tiles.push(generateDifferentCode(targetCode));
+      }
+    }
+
+    return { targetCode, tiles, correctIndex };
+  });
+
+  // Handle tile click
+  const handleTileClick = useCallback((index: number) => {
+    if (puzzle.tiles[index] === puzzle.targetCode) {
+      onSuccess();
+    } else {
+      onFailedAttempt();
+    }
+  }, [puzzle, onSuccess, onFailedAttempt]);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '20px',
+        width: '100%',
+        maxWidth: '400px',
+      }}
+    >
+      {/* Action label */}
+      <div style={{ fontSize: '18px', color: '#00ff00', textTransform: 'uppercase' }}>
+        {selectedActionLabel}
+      </div>
+
+      {/* Target signature */}
+      <div style={{ fontSize: '16px', color: '#00ff00' }}>
+        Target signature: <span style={{ fontWeight: 'bold', letterSpacing: '4px' }}>{puzzle.targetCode}</span>
+      </div>
+
+      {/* 3x3 Grid */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '10px',
+          width: '100%',
+          maxWidth: '300px',
+        }}
+      >
+        {puzzle.tiles.map((code, index) => (
+          <button
+            key={index}
+            onClick={() => handleTileClick(index)}
+            style={{
+              padding: '20px',
+              backgroundColor: '#001100',
+              color: '#00ff00',
+              border: '2px solid #00ff00',
+              fontFamily: 'monospace',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              letterSpacing: '2px',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#003300';
+              e.currentTarget.style.boxShadow = '0 0 10px #00ff00';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#001100';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            {code}
+          </button>
+        ))}
+      </div>
+
+      {/* Instructions */}
+      <div style={{ fontSize: '14px', color: '#00ff00', opacity: 0.8 }}>
+        Click the tile matching the target signature
       </div>
 
       {/* Attempts remaining */}
@@ -462,7 +773,41 @@ export function HackingOverlay() {
       </div>
     );
   } else if (miniGamePhase === 'playing' && selectedAction) {
-    // Playing phase - show timing bar
+    // Playing phase - render appropriate mini-game based on selectedAction
+    let miniGameComponent: React.ReactNode = null;
+
+    if (selectedAction === 'disableSentries') {
+      // Disable local sentries uses the timing-bar mini-game
+      miniGameComponent = (
+        <TimingBarMiniGame
+          selectedActionLabel="// DISABLING SENTRIES"
+          attemptsRemaining={attemptsRemaining}
+          onSuccess={handleMiniGameSuccess}
+          onFailedAttempt={handleMiniGameMiss}
+        />
+      );
+    } else if (selectedAction === 'overrideGate') {
+      // Override access gate uses the dual timing-bar mini-game
+      miniGameComponent = (
+        <OverrideGateMiniGame
+          selectedActionLabel="// OVERRIDING ACCESS GATE"
+          attemptsRemaining={attemptsRemaining}
+          onSuccess={handleMiniGameSuccess}
+          onFailedAttempt={handleMiniGameMiss}
+        />
+      );
+    } else if (selectedAction === 'convertWatcher') {
+      // Convert watcher node uses the pattern-matching grid mini-game
+      miniGameComponent = (
+        <ConvertWatcherMiniGame
+          selectedActionLabel="// CONVERTING WATCHER NODE"
+          attemptsRemaining={attemptsRemaining}
+          onSuccess={handleMiniGameSuccess}
+          onFailedAttempt={handleMiniGameMiss}
+        />
+      );
+    }
+
     body = (
       <div
         style={{
@@ -479,12 +824,7 @@ export function HackingOverlay() {
         <div style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 'bold', color: '#00ff00' }}>
           {title}
         </div>
-        <TimingBarMiniGame
-          action={selectedAction}
-          attemptsRemaining={attemptsRemaining}
-          onSuccess={handleMiniGameSuccess}
-          onMiss={handleMiniGameMiss}
-        />
+        {miniGameComponent}
         <div style={{ marginTop: '24px', fontSize: '12px', color: '#00ff00', opacity: 0.6 }}>
           Press ESC to cancel
         </div>
