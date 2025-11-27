@@ -16,7 +16,7 @@ Overview
 
 This project investigates how artificial intelligence can elevate horror—using dynamic behaviors, adaptive threats, and shifting environments to keep players guessing. Every sound, every flicker of light, and every unexplained response from the system might be the clue that saves you… or the warning you didn’t hear in time.
 
-A public showcase site will be available at: [https://prompt41.cc](https://prompt41.cc) (in progress)
+A public showcase site is available at: [https://prompt41.cc](https://prompt41.cc) (in progress)
 
 * * *
 
