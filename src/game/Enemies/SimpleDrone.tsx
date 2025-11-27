@@ -63,6 +63,9 @@ export function SimpleDrone({
   const isDyingRef = useRef(false);
   const hasFinishedDeathRef = useRef(false);
   
+  // Audio state tracking
+  const isAttackLoopPlayingRef = useRef(false);
+  
   // Death fragment effect state
   const [showDeathFragments, setShowDeathFragments] = useState(false);
   const [deathPosition, setDeathPosition] = useState<[number, number, number]>([0, 0, 0]);
@@ -120,6 +123,11 @@ export function SimpleDrone({
 
     return () => {
       unregisterEnemy(enemyId);
+      // Stop attack loop on unmount
+      if (isAttackLoopPlayingRef.current) {
+        isAttackLoopPlayingRef.current = false;
+        AudioManager.stopDroneAttackLoop();
+      }
     };
   }, [enemyId, maxHealth, enemyName]);
 
@@ -132,6 +140,12 @@ export function SimpleDrone({
     if (healthRef.current <= 0) {
       if (!isDyingRef.current) {
         isDyingRef.current = true;
+        
+        // Stop attack loop immediately on death
+        if (isAttackLoopPlayingRef.current) {
+          isAttackLoopPlayingRef.current = false;
+          AudioManager.stopDroneAttackLoop();
+        }
         
         // Play death sound effect
         AudioManager.playSFX('EnemyDying');
@@ -178,6 +192,19 @@ export function SimpleDrone({
     } else if (modeRef.current === 'attack' && distanceToPlayer > aggroRadius * 1.3) {
       modeRef.current = 'idle';
       console.log(`[Drone] mode attack → idle (distance: ${distanceToPlayer.toFixed(2)})`);
+    }
+
+    // Audio state machine: manage drone attack loop
+    const shouldPlayAttackLoop = modeRef.current === 'attack' && healthRef.current > 0;
+    
+    if (shouldPlayAttackLoop && !isAttackLoopPlayingRef.current) {
+      // Transition: start playing attack loop
+      isAttackLoopPlayingRef.current = true;
+      AudioManager.startDroneAttackLoop();
+    } else if (!shouldPlayAttackLoop && isAttackLoopPlayingRef.current) {
+      // Transition: stop playing attack loop
+      isAttackLoopPlayingRef.current = false;
+      AudioManager.stopDroneAttackLoop();
     }
 
     // Movement based on mode

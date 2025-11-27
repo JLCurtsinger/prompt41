@@ -29,7 +29,7 @@
 //    - Game should continue running even if audio fails
 
 type ZoneId = 'zone1' | 'zone2' | 'zone3' | 'zone4';
-type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'hackingFail' | 'pickupEnergyCell' | 'pickupSourceCode' | 'shutdownStart' | 'footstep' | 'gameOver' | 'ActiveHacking' | 'HackingSuccess' | 'ZeekoDamage' | 'EnemyDying' | 'SneakingFootsteps' | 'QuickFootsteps' | 'CrawlerVoice';
+type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'hackingFail' | 'pickupEnergyCell' | 'pickupSourceCode' | 'shutdownStart' | 'footstep' | 'gameOver' | 'ActiveHacking' | 'HackingSuccess' | 'ZeekoDamage' | 'EnemyDying' | 'SneakingFootsteps' | 'QuickFootsteps' | 'CrawlerVoice' | 'DroneAttack';
 
 interface AmbientLayer {
   audio: HTMLAudioElement;
@@ -52,6 +52,10 @@ class AudioManagerClass {
   // Hacking loop audio element (plays during mini-game)
   private hackingLoop: HTMLAudioElement | null = null;
   private isHackingLoopPlaying: boolean = false;
+  
+  // Drone attack loop audio element (plays during drone combat)
+  private droneAttackLoop: HTMLAudioElement | null = null;
+  private isDroneAttackLoopPlaying: boolean = false;
 
   // TODO: Replace with final asset paths
   private readonly AMBIENT_GLOBAL_PATH = '/audio/ambient_global_loop.ogg'; // Low industrial hum
@@ -76,6 +80,7 @@ class AudioManagerClass {
   private readonly SFX_SNEAKING_FOOTSTEPS_PATH = '/audio/Sneaking-Footsteps.ogg';
   private readonly SFX_QUICK_FOOTSTEPS_PATH = '/audio/Quick-Footsteps.ogg';
   private readonly SFX_CRAWLER_VOICE_PATH = '/audio/crawler-voice.ogg';
+  private readonly SFX_DRONE_ATTACK_PATH = '/audio/drone-attack.ogg';
 
   private readonly FADE_DURATION = 0.9; // seconds
 
@@ -172,6 +177,7 @@ class AudioManagerClass {
       SneakingFootsteps: this.SFX_SNEAKING_FOOTSTEPS_PATH,
       QuickFootsteps: this.SFX_QUICK_FOOTSTEPS_PATH,
       CrawlerVoice: this.SFX_CRAWLER_VOICE_PATH,
+      DroneAttack: this.SFX_DRONE_ATTACK_PATH,
     };
 
     for (const [type, path] of Object.entries(sfxMap)) {
@@ -186,6 +192,13 @@ class AudioManagerClass {
     if (this.hackingLoop) {
       this.hackingLoop.loop = true;
       this.hackingLoop.volume = 0;
+    }
+    
+    // Create drone attack loop (separate from SFX cache as it loops)
+    this.droneAttackLoop = this.createAudio(this.SFX_DRONE_ATTACK_PATH, true);
+    if (this.droneAttackLoop) {
+      this.droneAttackLoop.loop = true;
+      this.droneAttackLoop.volume = 0;
     }
   }
 
@@ -342,6 +355,40 @@ class AudioManagerClass {
   }
 
   /**
+   * Start the drone attack loop (plays during drone combat)
+   */
+  startDroneAttackLoop(): void {
+    if (this.isDroneAttackLoopPlaying || this.muted || !this.droneAttackLoop) return;
+    
+    try {
+      this.droneAttackLoop.currentTime = 0;
+      const targetVolume = this.volume * 0.6; // SFX volume level
+      this.droneAttackLoop.volume = targetVolume;
+      this.droneAttackLoop.play().catch((err) => {
+        console.warn('AudioManager: Failed to start drone attack loop:', err);
+      });
+      this.isDroneAttackLoopPlaying = true;
+    } catch (err) {
+      console.warn('AudioManager: Error starting drone attack loop:', err);
+    }
+  }
+
+  /**
+   * Stop the drone attack loop
+   */
+  stopDroneAttackLoop(): void {
+    if (!this.isDroneAttackLoopPlaying || !this.droneAttackLoop) return;
+    
+    try {
+      this.droneAttackLoop.pause();
+      this.droneAttackLoop.currentTime = 0;
+      this.isDroneAttackLoopPlaying = false;
+    } catch (err) {
+      console.warn('AudioManager: Error stopping drone attack loop:', err);
+    }
+  }
+
+  /**
    * Set master volume (0-1)
    */
   setVolume(volume: number): void {
@@ -374,6 +421,11 @@ class AudioManagerClass {
         layer.targetVolume = effectiveVolume * 0.3;
         layer.audio.volume = layer.targetVolume;
       }
+    }
+    
+    // Update drone attack loop
+    if (this.droneAttackLoop && this.isDroneAttackLoopPlaying) {
+      this.droneAttackLoop.volume = effectiveVolume * 0.6;
     }
   }
 
@@ -417,6 +469,13 @@ class AudioManagerClass {
       this.hackingLoop.pause();
       this.hackingLoop = null;
       this.isHackingLoopPlaying = false;
+    }
+    
+    // Stop drone attack loop if playing
+    if (this.droneAttackLoop) {
+      this.droneAttackLoop.pause();
+      this.droneAttackLoop = null;
+      this.isDroneAttackLoopPlaying = false;
     }
 
     this.sfxCache.clear();
