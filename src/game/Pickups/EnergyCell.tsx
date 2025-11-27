@@ -86,7 +86,7 @@ export function EnergyCell({ position }: EnergyCellProps) {
   
   return (
     <group ref={cellRef} position={position}>
-      <EnergyCellModel scale={0.8} />
+      <EnergyCellModel scale={0.6} />
     </group>
   );
 }

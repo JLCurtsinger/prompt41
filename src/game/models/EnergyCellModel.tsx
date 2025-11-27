@@ -6,14 +6,14 @@ interface EnergyCellModelProps {
   position?: [number, number, number];
 }
 
-export function EnergyCellModel({ scale = 0.7, position }: EnergyCellModelProps) {
+export function EnergyCellModel({ scale = 0.6, position }: EnergyCellModelProps) {
   const { scene } = useGLTF('/models/Energy-Cell.glb');
   
   // Clone the model scene for this instance to avoid shared geometry issues
   const clonedModel = useMemo(() => scene.clone(), [scene]);
   
   // Default Y offset to position the canister just above ground
-  const yOffset = 0.3;
+  const yOffset = 0.6;
   
   return (
     <group 
