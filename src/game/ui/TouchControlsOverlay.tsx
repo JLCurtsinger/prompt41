@@ -7,21 +7,28 @@ const JOYSTICK_RADIUS = 50; // pixels
 const JOYSTICK_DEADZONE = 15; // pixels
 const CAMERA_SENSITIVITY = 0.004;
 
+// Tap detection thresholds
+const TAP_MAX_DURATION = 250; // milliseconds
+const TAP_MAX_DISTANCE = 20; // pixels
+
 export function TouchControlsOverlay() {
   const touchMode = useGameState((state) => state.touchMode);
   const setTouchMoveInput = useGameState((state) => state.setTouchMoveInput);
   const addTouchCameraDelta = useGameState((state) => state.addTouchCameraDelta);
   const setTouchAttackPressed = useGameState((state) => state.setTouchAttackPressed);
   const setTouchInteractPressed = useGameState((state) => state.setTouchInteractPressed);
+  const setTouchJumpPressed = useGameState((state) => state.setTouchJumpPressed);
   
   // Joystick state refs
-  const joystickStartRef = useRef<{ x: number; y: number } | null>(null);
+  const joystickStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const joystickTouchIdRef = useRef<number | null>(null);
   const joystickThumbRef = useRef<HTMLDivElement>(null);
+  const joystickMovedRef = useRef(false); // Track if joystick was moved (not just tapped)
   
   // Camera swipe state refs
-  const cameraStartRef = useRef<{ x: number; y: number } | null>(null);
+  const cameraStartRef = useRef<{ x: number; y: number; time: number; initialX: number; initialY: number } | null>(null);
   const cameraTouchIdRef = useRef<number | null>(null);
+  const cameraMovedRef = useRef(false); // Track if camera was swiped (not just tapped)
   
   // --- Joystick Handlers ---
   const handleJoystickTouchStart = useCallback((e: React.TouchEvent) => {
@@ -30,7 +37,8 @@ export function TouchControlsOverlay() {
     if (!touch) return;
     
     joystickTouchIdRef.current = touch.identifier;
-    joystickStartRef.current = { x: touch.clientX, y: touch.clientY };
+    joystickStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+    joystickMovedRef.current = false;
     
     // Reset thumb position
     if (joystickThumbRef.current) {
@@ -61,6 +69,11 @@ export function TouchControlsOverlay() {
     const angle = Math.atan2(dy, dx);
     const clampedX = Math.cos(angle) * clampedDistance;
     const clampedY = Math.sin(angle) * clampedDistance;
+    
+    // Mark as moved if distance exceeds tap threshold
+    if (distance > TAP_MAX_DISTANCE) {
+      joystickMovedRef.current = true;
+    }
     
     // Update thumb visual position
     if (joystickThumbRef.current) {
@@ -96,10 +109,20 @@ export function TouchControlsOverlay() {
       }
     }
     
-    if (!found) {
+    if (!found && joystickStartRef.current) {
+      const duration = Date.now() - joystickStartRef.current.time;
+      
+      // Check for tap (short duration, minimal movement)
+      if (!joystickMovedRef.current && duration < TAP_MAX_DURATION) {
+        // Tap on left side = JUMP
+        setTouchJumpPressed(true);
+        setTimeout(() => setTouchJumpPressed(false), 100);
+      }
+      
       // Our touch ended
       joystickTouchIdRef.current = null;
       joystickStartRef.current = null;
+      joystickMovedRef.current = false;
       
       // Reset thumb position
       if (joystickThumbRef.current) {
@@ -109,7 +132,7 @@ export function TouchControlsOverlay() {
       // Reset movement
       setTouchMoveInput({ forward: false, backward: false, left: false, right: false });
     }
-  }, [setTouchMoveInput]);
+  }, [setTouchMoveInput, setTouchJumpPressed]);
   
   // --- Camera Swipe Handlers ---
   const handleCameraTouchStart = useCallback((e: React.TouchEvent) => {
@@ -118,7 +141,14 @@ export function TouchControlsOverlay() {
     if (!touch) return;
     
     cameraTouchIdRef.current = touch.identifier;
-    cameraStartRef.current = { x: touch.clientX, y: touch.clientY };
+    cameraStartRef.current = { 
+      x: touch.clientX, 
+      y: touch.clientY, 
+      time: Date.now(),
+      initialX: touch.clientX,
+      initialY: touch.clientY
+    };
+    cameraMovedRef.current = false;
   }, []);
   
   const handleCameraTouchMove = useCallback((e: React.TouchEvent) => {
@@ -138,11 +168,22 @@ export function TouchControlsOverlay() {
     const dx = touch.clientX - cameraStartRef.current.x;
     const dy = touch.clientY - cameraStartRef.current.y;
     
+    // Check total distance from initial position
+    const totalDx = touch.clientX - cameraStartRef.current.initialX;
+    const totalDy = touch.clientY - cameraStartRef.current.initialY;
+    const totalDistance = Math.sqrt(totalDx * totalDx + totalDy * totalDy);
+    
+    // Mark as moved if total distance exceeds tap threshold
+    if (totalDistance > TAP_MAX_DISTANCE) {
+      cameraMovedRef.current = true;
+    }
+    
     // Update camera delta (will be consumed by Player.tsx)
     addTouchCameraDelta(dx * CAMERA_SENSITIVITY, dy * CAMERA_SENSITIVITY);
     
     // Update start position for continuous movement
-    cameraStartRef.current = { x: touch.clientX, y: touch.clientY };
+    cameraStartRef.current.x = touch.clientX;
+    cameraStartRef.current.y = touch.clientY;
   }, [addTouchCameraDelta]);
   
   const handleCameraTouchEnd = useCallback((e: React.TouchEvent) => {
@@ -157,11 +198,21 @@ export function TouchControlsOverlay() {
       }
     }
     
-    if (!found) {
+    if (!found && cameraStartRef.current) {
+      const duration = Date.now() - cameraStartRef.current.time;
+      
+      // Check for tap (short duration, minimal movement)
+      if (!cameraMovedRef.current && duration < TAP_MAX_DURATION) {
+        // Tap on right side = ATTACK
+        setTouchAttackPressed(true);
+        setTimeout(() => setTouchAttackPressed(false), 100);
+      }
+      
       cameraTouchIdRef.current = null;
       cameraStartRef.current = null;
+      cameraMovedRef.current = false;
     }
-  }, []);
+  }, [setTouchAttackPressed]);
   
   // --- Attack Button Handler ---
   const handleAttackTouchStart = useCallback((e: React.TouchEvent) => {
@@ -228,7 +279,7 @@ export function TouchControlsOverlay() {
         onTouchCancel={handleCameraTouchEnd}
       />
       
-      {/* Attack button (right side, bottom) */}
+      {/* Attack button (right side, above audio controls) */}
       <button
         className="touch-attack-button"
         onTouchStart={handleAttackTouchStart}
@@ -246,4 +297,3 @@ export function TouchControlsOverlay() {
     </div>
   );
 }
-

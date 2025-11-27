@@ -3,7 +3,7 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 1000;
+  z-index: 30; /* Above game canvas, below audio controls (1400) and menus */
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
@@ -47,12 +47,12 @@
   transition: none;
 }
 
-/* Right side: Camera look/swipe area */
+/* Right side: Camera look/swipe area - stops above audio controls area */
 .touch-look-area {
   position: absolute;
   top: 0;
   right: 0;
-  bottom: 25%;
+  bottom: 130px; /* Stop above audio controls (bottom ~100px) + some margin */
   width: 50%;
   pointer-events: auto;
   touch-action: none;
@@ -60,15 +60,16 @@
   /* background: rgba(0, 255, 0, 0.02); */
 }
 
-/* Attack button */
+/* Attack button - positioned above audio controls */
 .touch-attack-button {
   position: absolute;
-  bottom: 10%;
-  right: 5%;
+  bottom: 130px; /* Above audio controls */
+  right: 20px;
   width: 90px;
   height: 60px;
   pointer-events: auto;
   touch-action: manipulation;
+  z-index: 35; /* Above look area */
   
   font-family: 'Courier New', monospace;
   font-size: 12px;
@@ -97,15 +98,16 @@
   transform: scale(0.95);
 }
 
-/* Interact button */
+/* Interact button - positioned above attack button */
 .touch-interact-button {
   position: absolute;
-  bottom: 22%;
-  right: 5%;
+  bottom: 200px; /* Above attack button */
+  right: 20px;
   width: 90px;
   height: 50px;
   pointer-events: auto;
   touch-action: manipulation;
+  z-index: 35; /* Above look area */
   
   font-family: 'Courier New', monospace;
   font-size: 11px;
@@ -153,20 +155,23 @@
     height: 40px;
   }
   
+  .touch-look-area {
+    bottom: 110px; /* Smaller margin on small screens */
+  }
+  
   .touch-attack-button {
-    bottom: 8%;
-    right: 3%;
+    bottom: 110px;
+    right: 10px;
     width: 75px;
     height: 50px;
     font-size: 10px;
   }
   
   .touch-interact-button {
-    bottom: 18%;
-    right: 3%;
+    bottom: 170px;
+    right: 10px;
     width: 75px;
     height: 42px;
     font-size: 9px;
   }
 }
-

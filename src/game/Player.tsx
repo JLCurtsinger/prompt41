@@ -76,7 +76,9 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const touchCameraDelta = useGameState((state) => state.touchCameraDelta);
   const resetTouchCameraDelta = useGameState((state) => state.resetTouchCameraDelta);
   const touchAttackPressed = useGameState((state) => state.touchAttackPressed);
+  const touchJumpPressed = useGameState((state) => state.touchJumpPressed);
   const prevTouchAttackRef = useRef(false);
+  const prevTouchJumpRef = useRef(false);
   
   // Baton swing animation state
   const batonSwingTimeRef = useRef(0);
@@ -485,7 +487,14 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     // Handle jump input (check on key press, not hold)
     const spaceJustPressed = keys.current.space && !prevSpaceState.current;
     
-    if (spaceJustPressed) {
+    // Handle touch jump input
+    const touchJumpJustPressed = touchJumpPressed && !prevTouchJumpRef.current;
+    prevTouchJumpRef.current = touchJumpPressed;
+    
+    // Combine keyboard and touch jump
+    const jumpInputDetected = spaceJustPressed || touchJumpJustPressed;
+    
+    if (jumpInputDetected) {
       if (isGrounded.current) {
         // Normal jump from ground
         verticalVelocity.current = JUMP_VELOCITY;

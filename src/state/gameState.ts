@@ -279,6 +279,7 @@ interface GameState {
   touchCameraDelta: { x: number; y: number };
   touchAttackPressed: boolean;
   touchInteractPressed: boolean;
+  touchJumpPressed: boolean;
   
   // Touch input actions
   setTouchMoveInput: (input: { forward: boolean; backward: boolean; left: boolean; right: boolean }) => void;
@@ -286,6 +287,7 @@ interface GameState {
   resetTouchCameraDelta: () => void;
   setTouchAttackPressed: (pressed: boolean) => void;
   setTouchInteractPressed: (pressed: boolean) => void;
+  setTouchJumpPressed: (pressed: boolean) => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -392,6 +394,7 @@ export const useGameState = create<GameState>((set, get) => {
   touchCameraDelta: { x: 0, y: 0 },
   touchAttackPressed: false,
   touchInteractPressed: false,
+  touchJumpPressed: false,
   
   // Actions
   setPlayerHealth: (health) => set({ playerHealth: health }),
@@ -519,6 +522,7 @@ export const useGameState = create<GameState>((set, get) => {
       touchCameraDelta: { x: 0, y: 0 },
       touchAttackPressed: false,
       touchInteractPressed: false,
+      touchJumpPressed: false,
     });
     // Clear cooldowns
     hostLineCooldowns.clear();
@@ -883,6 +887,7 @@ export const useGameState = create<GameState>((set, get) => {
   resetTouchCameraDelta: () => set({ touchCameraDelta: { x: 0, y: 0 } }),
   setTouchAttackPressed: (pressed) => set({ touchAttackPressed: pressed }),
   setTouchInteractPressed: (pressed) => set({ touchInteractPressed: pressed }),
+  setTouchJumpPressed: (pressed) => set({ touchJumpPressed: pressed }),
   };
 });
 
