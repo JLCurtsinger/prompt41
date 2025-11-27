@@ -29,7 +29,7 @@
 //    - Game should continue running even if audio fails
 
 type ZoneId = 'zone1' | 'zone2' | 'zone3' | 'zone4';
-type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'hackingFail' | 'pickupEnergyCell' | 'pickupSourceCode' | 'shutdownStart' | 'footstep' | 'gameOver' | 'ActiveHacking' | 'HackingSuccess';
+type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'hackingFail' | 'pickupEnergyCell' | 'pickupSourceCode' | 'shutdownStart' | 'footstep' | 'gameOver' | 'ActiveHacking' | 'HackingSuccess' | 'ZeekoDamage';
 
 interface AmbientLayer {
   audio: HTMLAudioElement;
@@ -71,6 +71,7 @@ class AudioManagerClass {
   private readonly SFX_GAME_OVER_PATH = '/audio/game-over.ogg';
   private readonly SFX_ACTIVE_HACKING_PATH = '/audio/Active-Hacking.ogg';
   private readonly SFX_HACKING_SUCCESS_NEW_PATH = '/audio/Hacking-Success.ogg';
+  private readonly SFX_ZEEKO_DAMAGE_PATH = '/audio/Zeeko-Damage.ogg';
 
   private readonly FADE_DURATION = 0.9; // seconds
 
@@ -162,6 +163,7 @@ class AudioManagerClass {
       gameOver: this.SFX_GAME_OVER_PATH,
       ActiveHacking: this.SFX_ACTIVE_HACKING_PATH,
       HackingSuccess: this.SFX_HACKING_SUCCESS_NEW_PATH,
+      ZeekoDamage: this.SFX_ZEEKO_DAMAGE_PATH,
     };
 
     for (const [type, path] of Object.entries(sfxMap)) {

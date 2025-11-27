@@ -454,6 +454,9 @@ export const useGameState = create<GameState>((set, get) => {
     // Play hit player SFX
     AudioManager.playSFX('hitPlayer');
     
+    // Play Zeeko damage SFX
+    AudioManager.playSFX('ZeekoDamage');
+    
     // Trigger low health line if crossing threshold
     if (!wasLowHealth && isLowHealth && !get().lowHealthTriggered) {
       get().playHostLine('combat:lowHealth');
