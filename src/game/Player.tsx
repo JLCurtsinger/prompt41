@@ -81,6 +81,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const prevTouchAttackRef = useRef(false);
   const prevTouchJumpRef = useRef(false);
   
+  // Audio state
+  const audioVolume = useGameState((state) => state.audioVolume);
+  const audioMuted = useGameState((state) => state.audioMuted);
+  
   // Baton swing animation state
   const batonSwingTimeRef = useRef(0);
   const batonIsSwingingRef = useRef(false);
@@ -98,9 +102,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const RECOIL_DURATION = 0.1; // seconds
   const RECOIL_INTENSITY = 0.03; // amplitude
   
-  // Footstep sound state
-  const footstepTimerRef = useRef(0);
-  const FOOTSTEP_INTERVAL = 0.4; // seconds between footsteps
+  // Footstep sound state - looping footsteps
+  const sneakingFootstepsAudioRef = useRef<HTMLAudioElement | null>(null);
+  const isFootstepsPlayingRef = useRef(false);
+  const prevIsMovingRef = useRef(false);
   
   // Movement constants
   const WALK_SPEED = 4;
@@ -615,19 +620,46 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     player.position.x += deltaMovement.x;
     player.position.z += deltaMovement.z;
     
-    // Footstep sounds while walking on ground
-    if (isMoving && isGrounded.current) {
-      footstepTimerRef.current += delta;
-      // Adjust interval based on sprinting
-      const currentInterval = isSprinting ? FOOTSTEP_INTERVAL * 0.65 : FOOTSTEP_INTERVAL;
-      if (footstepTimerRef.current >= currentInterval) {
-        AudioManager.playSFX('footstep');
-        footstepTimerRef.current = 0;
+    // Looping footsteps sound - start/stop based on movement state
+    const isCurrentlyMoving = isMoving && isGrounded.current;
+    
+    // Detect movement state transitions
+    if (isCurrentlyMoving && !prevIsMovingRef.current) {
+      // Started moving - start looping footsteps
+      const audio = sneakingFootstepsAudioRef.current;
+      if (audio && !isFootstepsPlayingRef.current) {
+        try {
+          audio.currentTime = 0;
+          audio.volume = audioMuted ? 0 : audioVolume * 0.6; // SFX at 60% of master volume
+          audio.play().catch((err) => {
+            console.warn('Player: Failed to play sneaking footsteps:', err);
+          });
+          isFootstepsPlayingRef.current = true;
+        } catch (err) {
+          console.warn('Player: Error starting sneaking footsteps:', err);
+        }
       }
-    } else {
-      // Reset timer when not walking
-      footstepTimerRef.current = 0;
+    } else if (!isCurrentlyMoving && prevIsMovingRef.current) {
+      // Stopped moving - stop looping footsteps
+      const audio = sneakingFootstepsAudioRef.current;
+      if (audio && isFootstepsPlayingRef.current) {
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+          isFootstepsPlayingRef.current = false;
+        } catch (err) {
+          console.warn('Player: Error stopping sneaking footsteps:', err);
+        }
+      }
     }
+    
+    // Update volume if footsteps are playing
+    if (isFootstepsPlayingRef.current && sneakingFootstepsAudioRef.current) {
+      sneakingFootstepsAudioRef.current.volume = audioMuted ? 0 : audioVolume * 0.6;
+    }
+    
+    // Update previous movement state
+    prevIsMovingRef.current = isCurrentlyMoving;
     
     // Write player world position to state
     if (playerRef.current) {
@@ -923,6 +955,34 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       }
     }
   }, [initialPosition]);
+  
+  // Initialize looping footsteps audio element
+  useEffect(() => {
+    try {
+      const audio = new Audio('/audio/Sneaking-Footsteps.ogg');
+      audio.loop = true;
+      audio.volume = 0;
+      audio.preload = 'auto';
+      
+      audio.addEventListener('error', () => {
+        console.warn('Player: Failed to load Sneaking-Footsteps.ogg');
+      });
+      
+      sneakingFootstepsAudioRef.current = audio;
+      
+      return () => {
+        // Cleanup on unmount
+        if (audio) {
+          audio.pause();
+          audio.src = '';
+        }
+        sneakingFootstepsAudioRef.current = null;
+        isFootstepsPlayingRef.current = false;
+      };
+    } catch (err) {
+      console.warn('Player: Error creating sneaking footsteps audio:', err);
+    }
+  }, []);
   
   return (
     <>
