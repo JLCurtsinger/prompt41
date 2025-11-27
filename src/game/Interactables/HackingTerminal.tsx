@@ -47,6 +47,8 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   
   // Track previous in-range state with a ref to avoid stale closure issues
   const wasInRangeRef = useRef(false);
+  // Track if we've shown the prompt for this terminal to avoid unnecessary updates
+  const promptShownRef = useRef(false);
   
   // Check if player is in range
   useFrame(() => {
@@ -64,34 +66,66 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
     const nowInRange = distance <= INTERACTION_RANGE;
     
     // Update interaction prompt based on range and state
+    // ================================================================
+    // EXACT CONDITION FOR SHOWING "Press E to hack" PROMPT:
+    // const canHack = isPlayerNear && isLocked && !isDisabledBySentinel;
+    // Where:
+    //   - isPlayerNear: distance <= 2.5 units (INTERACTION_RANGE)
+    //   - isLocked: terminalState === 'locked' (from gameState.terminalStates[id])
+    //   - isDisabledBySentinel: disabledUntilSentinelDefeated && !sentinelDefeated && terminalState === 'locked'
+    // ================================================================
+    const canHack = nowInRange && terminalState === 'locked' && !isLockedBySentinel;
+    
     if (nowInRange && !wasInRange) {
       // Just entered range
       console.log(`[HackingTerminal ${id}] Player entered range (distance: ${distance.toFixed(2)})`);
-      if (terminalState === 'locked') {
-        if (isLockedBySentinel) {
-          // Don't show prompt if locked by Sentinel
-          console.log(`[HackingTerminal ${id}] Locked by Sentinel - no prompt`);
-          clearInteractionPrompt(id);
-        } else {
-          console.log(`[HackingTerminal ${id}] Showing interaction prompt`);
-          showInteractionPrompt({
-            message: 'Hack terminal',
-            actionKey: 'E',
-            sourceId: id,
-          });
-        }
+      if (canHack) {
+        console.log(`[HackingTerminal ${id}] Showing interaction prompt`);
+        showInteractionPrompt({
+          message: 'Hack terminal',
+          actionKey: 'E',
+          sourceId: id,
+        });
+        promptShownRef.current = true;
+      } else if (isLockedBySentinel) {
+        // Don't show prompt if locked by Sentinel
+        console.log(`[HackingTerminal ${id}] Locked by Sentinel - no prompt`);
+        clearInteractionPrompt(id);
+        promptShownRef.current = false;
       } else {
         // Already hacked - no prompt
         console.log(`[HackingTerminal ${id}] Already hacked - no prompt`);
         clearInteractionPrompt(id);
+        promptShownRef.current = false;
       }
     } else if (!nowInRange && wasInRange) {
       // Just left range
       console.log(`[HackingTerminal ${id}] Player left range`);
       clearInteractionPrompt(id);
-    } else if (nowInRange && terminalState === 'hacked') {
-      // In range but already hacked - clear prompt
-      clearInteractionPrompt(id);
+      promptShownRef.current = false;
+    } else if (nowInRange) {
+      // Continuously ensure prompt is shown/hidden based on current state
+      // This fixes the issue where prompt might be cleared by another terminal
+      if (canHack) {
+        // Re-show prompt if we should be showing it but it's not currently shown
+        // Check current state to see if our prompt is active
+        const currentPrompt = useGameState.getState().interactionPrompt;
+        if (currentPrompt.sourceId !== id || !currentPrompt.message) {
+          console.log(`[HackingTerminal ${id}] Re-showing interaction prompt (current sourceId: ${currentPrompt.sourceId})`);
+          showInteractionPrompt({
+            message: 'Hack terminal',
+            actionKey: 'E',
+            sourceId: id,
+          });
+          promptShownRef.current = true;
+        } else {
+          promptShownRef.current = true;
+        }
+      } else {
+        // Clear prompt if we're in range but can't hack (hacked or locked by Sentinel)
+        clearInteractionPrompt(id);
+        promptShownRef.current = false;
+      }
     }
     
     // Update refs and state
