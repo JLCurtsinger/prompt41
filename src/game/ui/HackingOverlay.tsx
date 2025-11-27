@@ -585,6 +585,7 @@ export function HackingOverlay() {
       try {
         playHostLine('hacking:success');
         AudioManager.playSFX('hackingSuccess');
+        AudioManager.playSFX('HackingSuccess');
       } catch (error) {
         console.warn('HackingOverlay: Error playing success feedback:', error);
       }

@@ -120,6 +120,7 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
             try {
               console.log(`[HackingTerminal ${id}] Opening hacking overlay...`);
               openHackingOverlay(id, 'normal');
+              AudioManager.playSFX('ActiveHacking');
               clearInteractionPrompt(id); // Clear prompt when overlay opens
               
               // Safely call playHostLine
