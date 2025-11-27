@@ -1,0 +1,172 @@
+/* Touch Controls Overlay - Mobile/Tablet only */
+.touch-controls-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* Left side: Movement joystick area */
+.touch-joystick-area {
+  position: absolute;
+  bottom: 10%;
+  left: 5%;
+  width: 140px;
+  height: 140px;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.touch-joystick-base {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(0, 255, 0, 0.08);
+  border: 2px solid rgba(0, 255, 0, 0.3);
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+}
+
+.touch-joystick-thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(0, 255, 0, 0.3);
+  border: 2px solid rgba(0, 255, 0, 0.8);
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+  transition: none;
+}
+
+/* Right side: Camera look/swipe area */
+.touch-look-area {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 25%;
+  width: 50%;
+  pointer-events: auto;
+  touch-action: none;
+  /* Visual indicator - subtle */
+  /* background: rgba(0, 255, 0, 0.02); */
+}
+
+/* Attack button */
+.touch-attack-button {
+  position: absolute;
+  bottom: 10%;
+  right: 5%;
+  width: 90px;
+  height: 60px;
+  pointer-events: auto;
+  touch-action: manipulation;
+  
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  
+  background: rgba(255, 50, 50, 0.25);
+  border: 2px solid rgba(255, 100, 100, 0.8);
+  border-radius: 8px;
+  color: #ff6666;
+  
+  box-shadow: 
+    0 0 15px rgba(255, 50, 50, 0.3),
+    inset 0 0 10px rgba(255, 50, 50, 0.1);
+  
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.touch-attack-button:active {
+  background: rgba(255, 50, 50, 0.5);
+  box-shadow: 
+    0 0 25px rgba(255, 50, 50, 0.6),
+    inset 0 0 15px rgba(255, 50, 50, 0.3);
+  transform: scale(0.95);
+}
+
+/* Interact button */
+.touch-interact-button {
+  position: absolute;
+  bottom: 22%;
+  right: 5%;
+  width: 90px;
+  height: 50px;
+  pointer-events: auto;
+  touch-action: manipulation;
+  
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  
+  background: rgba(0, 200, 255, 0.2);
+  border: 2px solid rgba(0, 200, 255, 0.7);
+  border-radius: 8px;
+  color: #00ccff;
+  
+  box-shadow: 
+    0 0 12px rgba(0, 200, 255, 0.2),
+    inset 0 0 8px rgba(0, 200, 255, 0.1);
+  
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.touch-interact-button:active {
+  background: rgba(0, 200, 255, 0.4);
+  box-shadow: 
+    0 0 20px rgba(0, 200, 255, 0.5),
+    inset 0 0 12px rgba(0, 200, 255, 0.2);
+  transform: scale(0.95);
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+  .touch-joystick-area {
+    bottom: 8%;
+    left: 3%;
+    width: 120px;
+    height: 120px;
+  }
+  
+  .touch-joystick-base {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .touch-joystick-thumb {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .touch-attack-button {
+    bottom: 8%;
+    right: 3%;
+    width: 75px;
+    height: 50px;
+    font-size: 10px;
+  }
+  
+  .touch-interact-button {
+    bottom: 18%;
+    right: 3%;
+    width: 75px;
+    height: 42px;
+    font-size: 9px;
+  }
+}
+

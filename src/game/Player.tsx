@@ -70,6 +70,14 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const { camera } = useThree();
   const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding, setBatonSfxRef, setPlayerPosition, recentlyHit } = useGameState();
   
+  // Touch mode and touch inputs
+  const touchMode = useGameState((state) => state.touchMode);
+  const touchMoveInput = useGameState((state) => state.touchMoveInput);
+  const touchCameraDelta = useGameState((state) => state.touchCameraDelta);
+  const resetTouchCameraDelta = useGameState((state) => state.resetTouchCameraDelta);
+  const touchAttackPressed = useGameState((state) => state.touchAttackPressed);
+  const prevTouchAttackRef = useRef(false);
+  
   // Baton swing animation state
   const batonSwingTimeRef = useRef(0);
   const batonIsSwingingRef = useRef(false);
@@ -164,7 +172,18 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Guard: Skip keyboard input when in touch mode (except respawn key R)
+      const { touchMode: isTouchMode } = useGameState.getState();
       const key = e.key.toLowerCase();
+      
+      // Always allow respawn key even in touch mode
+      if (key === 'r') {
+        keys.current.r = true;
+        return;
+      }
+      
+      if (isTouchMode) return;
+      
       if (key === 'w') keys.current.w = true;
       if (key === 'a') keys.current.a = true;
       if (key === 's') keys.current.s = true;
@@ -202,7 +221,18 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     };
     
     const handleKeyUp = (e: KeyboardEvent) => {
+      // Guard: Skip keyboard input when in touch mode (except respawn key R)
+      const { touchMode: isTouchMode } = useGameState.getState();
       const key = e.key.toLowerCase();
+      
+      // Always allow respawn key even in touch mode
+      if (key === 'r') {
+        keys.current.r = false;
+        return;
+      }
+      
+      if (isTouchMode) return;
+      
       if (key === 'w') keys.current.w = false;
       if (key === 'a') keys.current.a = false;
       if (key === 's') keys.current.s = false;
@@ -241,6 +271,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     };
     
     const handleMouseDown = (e: MouseEvent) => {
+      // Guard: Skip mouse input when in touch mode
+      const { touchMode: isTouchMode } = useGameState.getState();
+      if (isTouchMode) return;
+      
       if (e.button === 0) {
         // Guard: Don't trigger baton swing when clicking on audio controls
         const target = e.target as HTMLElement | null;
@@ -252,12 +286,20 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     };
     
     const handleMouseUp = (e: MouseEvent) => {
+      // Guard: Skip mouse input when in touch mode
+      const { touchMode: isTouchMode } = useGameState.getState();
+      if (isTouchMode) return;
+      
       if (e.button === 0) {
         mouseButtonPressed.current = false;
       }
     };
     
     const handleMouseMove = (e: MouseEvent) => {
+      // Guard: Skip mouse input when in touch mode
+      const { touchMode: isTouchMode } = useGameState.getState();
+      if (isTouchMode) return;
+      
       mouseDelta.current.x += e.movementX * MOUSE_SENSITIVITY;
       mouseDelta.current.y += e.movementY * MOUSE_SENSITIVITY;
     };
@@ -269,6 +311,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     };
     
     const handleClick = () => {
+      // Guard: Skip pointer lock when in touch mode
+      const { touchMode: isTouchMode } = useGameState.getState();
+      if (isTouchMode) return;
+      
       // Request pointer lock on canvas click
       const canvas = document.querySelector('canvas');
       if (canvas) {
@@ -369,16 +415,20 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     // Update mouse button state - detect "just pressed" like Enter key
     const mouseJustPressed = mouseButtonPressed.current && !prevMouseButtonState.current;
     
+    // Update touch attack state - detect "just pressed"
+    const touchAttackJustPressed = touchAttackPressed && !prevTouchAttackRef.current;
+    prevTouchAttackRef.current = touchAttackPressed;
+    
     // Debug: Log attack input detection
-    const attackInputDetected = mouseJustPressed || enterJustPressed;
+    const attackInputDetected = mouseJustPressed || enterJustPressed || touchAttackJustPressed;
     if (attackInputDetected) {
-      console.log('[Combat] Attack input detected, mouseJustPressed =', mouseJustPressed, 'enterJustPressed =', enterJustPressed, 'canAttack =', canAttack, 'isSwinging =', isSwinging);
+      console.log('[Combat] Attack input detected, mouseJustPressed =', mouseJustPressed, 'enterJustPressed =', enterJustPressed, 'touchAttackJustPressed =', touchAttackJustPressed, 'canAttack =', canAttack, 'isSwinging =', isSwinging);
     }
     
-    // Perform attack on mouse click or Enter key press
+    // Perform attack on mouse click, Enter key press, or touch attack button
     // Note: We check canAttack for cooldown, but allow animation even if isSwinging is true
     // (the animation should play every time an attack input is detected)
-    if ((mouseJustPressed || enterJustPressed) && canAttack) {
+    if ((mouseJustPressed || enterJustPressed || touchAttackJustPressed) && canAttack) {
       // Start attack
       lastAttackTime.current = currentTime;
       setIsSwinging(true);
@@ -407,6 +457,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       if (mouseJustPressed) {
         prevMouseButtonState.current = true;
       }
+      
+      // Note: Touch attack state is auto-released by TouchControlsOverlay
     }
     
     // Reset enter key tracking when key is released
@@ -485,20 +537,26 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     direction.current.set(0, 0, 0);
     
     // Build movement vector relative to camera
-    if (keys.current.w) {
-      // W = forward (in camera's forward direction)
+    // Combine keyboard and touch inputs
+    const moveForward = keys.current.w || touchMoveInput.forward;
+    const moveBackward = keys.current.s || touchMoveInput.backward;
+    const moveLeft = keys.current.a || touchMoveInput.left;
+    const moveRight = keys.current.d || touchMoveInput.right;
+    
+    if (moveForward) {
+      // Forward (in camera's forward direction)
       direction.current.add(cameraForward);
     }
-    if (keys.current.s) {
-      // S = backward (opposite of camera's forward direction)
+    if (moveBackward) {
+      // Backward (opposite of camera's forward direction)
       direction.current.sub(cameraForward);
     }
-    if (keys.current.a) {
-      // A = left (opposite of camera's right direction)
+    if (moveLeft) {
+      // Left (opposite of camera's right direction)
       direction.current.sub(cameraRight);
     }
-    if (keys.current.d) {
-      // D = right (in camera's right direction)
+    if (moveRight) {
+      // Right (in camera's right direction)
       direction.current.add(cameraRight);
     }
     
@@ -597,6 +655,14 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       cameraRotation.current.vertical = Math.max(-VERTICAL_LIMIT, Math.min(VERTICAL_LIMIT, cameraRotation.current.vertical));
       mouseDelta.current.x = 0;
       mouseDelta.current.y = 0;
+    }
+    
+    // Update camera rotation from touch input (when in touch mode)
+    if (touchMode && (touchCameraDelta.x !== 0 || touchCameraDelta.y !== 0)) {
+      cameraRotation.current.horizontal -= touchCameraDelta.x;
+      cameraRotation.current.vertical -= touchCameraDelta.y;
+      cameraRotation.current.vertical = Math.max(-VERTICAL_LIMIT, Math.min(VERTICAL_LIMIT, cameraRotation.current.vertical));
+      resetTouchCameraDelta();
     }
     
     // Update camera rotation from arrow keys

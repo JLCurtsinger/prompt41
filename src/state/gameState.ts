@@ -198,6 +198,9 @@ interface GameState {
   // Baton SFX ref
   batonSfxRef?: React.RefObject<BatonSFXHandle | null>;
   
+  // Touch mode state
+  touchMode: boolean;
+  
   // Actions
   setPlayerHealth: (health: number) => void;
   setIsSwinging: (swinging: boolean) => void;
@@ -267,6 +270,22 @@ interface GameState {
   
   // Objective actions
   setHasWon: (won: boolean) => void;
+  
+  // Touch mode actions
+  setTouchMode: (enabled: boolean) => void;
+  
+  // Touch input state (used by TouchControlsOverlay to send inputs to Player)
+  touchMoveInput: { forward: boolean; backward: boolean; left: boolean; right: boolean };
+  touchCameraDelta: { x: number; y: number };
+  touchAttackPressed: boolean;
+  touchInteractPressed: boolean;
+  
+  // Touch input actions
+  setTouchMoveInput: (input: { forward: boolean; backward: boolean; left: boolean; right: boolean }) => void;
+  addTouchCameraDelta: (dx: number, dy: number) => void;
+  resetTouchCameraDelta: () => void;
+  setTouchAttackPressed: (pressed: boolean) => void;
+  setTouchInteractPressed: (pressed: boolean) => void;
 }
 
 // Helper functions to get state (exported for use in components)
@@ -364,6 +383,15 @@ export const useGameState = create<GameState>((set, get) => {
   
   // Baton SFX ref initial state
   batonSfxRef: undefined,
+  
+  // Touch mode initial state
+  touchMode: false,
+  
+  // Touch input initial state
+  touchMoveInput: { forward: false, backward: false, left: false, right: false },
+  touchCameraDelta: { x: 0, y: 0 },
+  touchAttackPressed: false,
+  touchInteractPressed: false,
   
   // Actions
   setPlayerHealth: (health) => set({ playerHealth: health }),
@@ -486,6 +514,11 @@ export const useGameState = create<GameState>((set, get) => {
       currentTargetEnemyName: null,
       currentTargetEnemyHealth: null,
       currentTargetEnemyMaxHealth: null,
+      // Reset touch input state (but not touchMode - that's device-based)
+      touchMoveInput: { forward: false, backward: false, left: false, right: false },
+      touchCameraDelta: { x: 0, y: 0 },
+      touchAttackPressed: false,
+      touchInteractPressed: false,
     });
     // Clear cooldowns
     hostLineCooldowns.clear();
@@ -832,6 +865,24 @@ export const useGameState = create<GameState>((set, get) => {
     set({ hasWon: won });
     console.log(`[Objective] Player has won: ${won}`);
   },
+  
+  // Touch mode actions
+  setTouchMode: (enabled) => {
+    set({ touchMode: enabled });
+    console.log(`[Touch] Touch mode ${enabled ? 'enabled' : 'disabled'}`);
+  },
+  
+  // Touch input actions
+  setTouchMoveInput: (input) => set({ touchMoveInput: input }),
+  addTouchCameraDelta: (dx, dy) => set((state) => ({
+    touchCameraDelta: {
+      x: state.touchCameraDelta.x + dx,
+      y: state.touchCameraDelta.y + dy,
+    },
+  })),
+  resetTouchCameraDelta: () => set({ touchCameraDelta: { x: 0, y: 0 } }),
+  setTouchAttackPressed: (pressed) => set({ touchAttackPressed: pressed }),
+  setTouchInteractPressed: (pressed) => set({ touchInteractPressed: pressed }),
   };
 });
 
