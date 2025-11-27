@@ -28,7 +28,6 @@ import { SimpleShambler } from './Enemies/SimpleShambler';
 // TODO: Deprecated - EnemySentinel replaced by Simple enemy architecture
 // import { EnemySentinel } from './Enemies/EnemySentinel';
 import { ScreenFade } from './Effects/ScreenFade';
-import { GlowingOrb } from './Effects/GlowingOrb';
 import { LootCrate } from './Interactables/LootCrate';
 import { EnergyCell } from './Pickups/EnergyCell';
 import { SourceCodePickup } from './Pickups/SourceCodePickup';
@@ -54,15 +53,6 @@ const ENERGY_CELL_POSITIONS: [number, number, number][] = [
   [40, 0.3, -3],   // Zone 4 - near future boss area
 ];
 
-// Decorative GlowingOrb positions for ambient lighting
-const GLOWING_ORB_POSITIONS: [number, number, number][] = [
-  [-12, 0.5, 2],   // Zone 1 - near spawn
-  [-8, 0.5, -3],   // Zone 1 - corridor
-  [5, 0.5, 2],     // Zone 2 - near machinery
-  [12, 0.5, -2],   // Zone 3 - corridor
-  [25, 0.5, -4],   // Zone 3 - side room
-  [35, 0.5, 2],    // Zone 4 - entrance
-];
 
 // Energy Cell pickup positions (spread across zones)
 const SOURCE_CODE_POSITIONS: [number, number, number][] = [
@@ -532,11 +522,6 @@ export function GameScene() {
         {/* Source Code pickups spread across zones */}
         {SOURCE_CODE_POSITIONS.map((pos, index) => (
           <SourceCodePickup key={`source-code-${index}`} position={pos} />
-        ))}
-        
-        {/* Decorative GlowingOrbs for ambient lighting */}
-        {GLOWING_ORB_POSITIONS.map((pos, index) => (
-          <GlowingOrb key={`glowing-orb-${index}`} position={pos} />
         ))}
         
         {/* Exit Portal at the end of Zone 4 */}
