@@ -362,7 +362,7 @@ class AudioManagerClass {
     
     try {
       this.droneAttackLoop.currentTime = 0;
-      const targetVolume = this.volume * 0.6; // SFX volume level
+      const targetVolume = this.volume * 0.3; // Reduced volume (half of SFX level)
       this.droneAttackLoop.volume = targetVolume;
       this.droneAttackLoop.play().catch((err) => {
         console.warn('AudioManager: Failed to start drone attack loop:', err);
@@ -425,7 +425,7 @@ class AudioManagerClass {
     
     // Update drone attack loop
     if (this.droneAttackLoop && this.isDroneAttackLoopPlaying) {
-      this.droneAttackLoop.volume = effectiveVolume * 0.6;
+      this.droneAttackLoop.volume = effectiveVolume * 0.3;
     }
   }
 

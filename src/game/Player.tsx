@@ -36,7 +36,6 @@ import { getEnemiesInRange, getAllEnemies } from './Enemies/enemyRegistry';
 import { BatonSFX } from './audio/BatonSFX';
 import type { BatonSFXHandle } from './audio/BatonSFX';
 import { BatonImpactSpark } from './Effects/BatonImpactSpark';
-import { AudioManager } from './audio/AudioManager';
 import { ZeekoModel } from './models/ZeekoModel';
 import * as THREE from 'three';
 
