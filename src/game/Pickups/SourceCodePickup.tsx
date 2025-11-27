@@ -1,8 +1,8 @@
 // Source Code Pickup - collectible data fragment
 // Collectible that increments sourceCodeCount and heals +5 HP
-// (Visual mesh temporarily removed to eliminate confusion with energy pickups)
+// Distinct cyan/blue visual to differentiate from energy cell pickups
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGameState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
@@ -15,12 +15,13 @@ interface SourceCodePickupProps {
 export function SourceCodePickup({ position }: SourceCodePickupProps) {
   const groupRef = useRef<THREE.Group>(null);
   const [isCollected, setIsCollected] = useState(false);
+  const [bobOffset, setBobOffset] = useState(0);
   
   const addSourceCode = useGameState((state) => state.addSourceCode);
   const healPlayer = useGameState((state) => state.healPlayer);
-  const playerPosition = useGameState((state) => state.playerPosition);
   
   const PICKUP_RANGE = 1.5;
+  const PICKUP_RANGE_SQ = PICKUP_RANGE * PICKUP_RANGE; // Squared distance for performance
   const ROTATION_SPEED = 1.5; // radians per second
   const BOB_SPEED = 1.5; // cycles per second
   const BOB_AMPLITUDE = 0.15; // meters
@@ -28,26 +29,23 @@ export function SourceCodePickup({ position }: SourceCodePickupProps) {
   // Store base Y for bobbing calculation
   const baseY = position[1];
   
-  // Pre-allocate Vector3 instances to avoid per-frame allocations
-  const playerPosVec = useMemo(() => new THREE.Vector3(), []);
-  const pickupPosVec = useMemo(() => new THREE.Vector3(position[0], baseY, position[2]), [position, baseY]);
-  
   useFrame((_, delta) => {
     if (isCollected || !groupRef.current) return;
     
     // Rotate the pickup
     groupRef.current.rotation.y += ROTATION_SPEED * delta;
     
-    // Bob up and down - update position directly without React state
-    const bobOffset = Math.sin(Date.now() * 0.001 * BOB_SPEED * Math.PI * 2) * BOB_AMPLITUDE;
-    groupRef.current.position.y = baseY + bobOffset;
+    // Bob up and down
+    setBobOffset(Math.sin(Date.now() * 0.001 * BOB_SPEED * Math.PI * 2) * BOB_AMPLITUDE);
     
-    // Check player distance using game state player position
-    // Reuse pre-allocated Vector3 instances - no allocations in the loop
-    playerPosVec.set(playerPosition.x, playerPosition.y, playerPosition.z);
-    const distance = playerPosVec.distanceTo(pickupPosVec);
+    // Check player distance using game state player position (optimized - no scene traversal)
+    const playerPos = useGameState.getState().playerPosition;
+    const dx = playerPos.x - position[0];
+    const dy = playerPos.y - (baseY + bobOffset);
+    const dz = playerPos.z - position[2];
+    const distanceSq = dx * dx + dy * dy + dz * dz;
     
-    if (distance <= PICKUP_RANGE) {
+    if (distanceSq <= PICKUP_RANGE_SQ) {
       // Pick up the source code
       setIsCollected(true);
       addSourceCode(1);
@@ -56,15 +54,53 @@ export function SourceCodePickup({ position }: SourceCodePickupProps) {
     }
   });
   
+  // Update position with bob
+  useFrame(() => {
+    if (groupRef.current && !isCollected) {
+      groupRef.current.position.set(
+        position[0],
+        baseY + bobOffset,
+        position[2]
+      );
+    }
+  });
+  
   if (isCollected) {
     return null;
   }
   
-  // Visual mesh removed temporarily to eliminate green sphere confusion with energy pickups
-  // Pickup logic remains functional - can re-add visual later once energy pickup cleanup is confirmed
+  // Cyan/blue visual distinct from energy cells (green) - using icosahedron for data fragment aesthetic
   return (
     <group ref={groupRef} position={[position[0], position[1], position[2]]}>
-      {/* Visual removed - pickup logic still active */}
+      {/* Core data fragment - cyan/blue icosahedron */}
+      <mesh castShadow>
+        <icosahedronGeometry args={[0.2, 1]} />
+        <meshStandardMaterial 
+          color="#00baff"
+          emissive="#00baff"
+          emissiveIntensity={1.5}
+        />
+      </mesh>
+      
+      {/* Outer glow shell */}
+      <mesh>
+        <icosahedronGeometry args={[0.28, 1]} />
+        <meshStandardMaterial 
+          color="#00baff"
+          emissive="#00baff"
+          emissiveIntensity={0.4}
+          transparent
+          opacity={0.25}
+        />
+      </mesh>
+      
+      {/* Subtle point light for local glow */}
+      <pointLight 
+        color="#00baff"
+        intensity={0.6}
+        distance={2.5}
+        decay={2}
+      />
     </group>
   );
 }
