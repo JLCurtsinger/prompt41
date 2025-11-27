@@ -117,6 +117,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const DECELERATION = 20;
   const ROTATION_SPEED = 8;
   
+  // Footstep volume multipliers (as percentage of master volume)
+  const SNEAKING_FOOTSTEPS_VOLUME = 0.4; // 40% of master volume
+  const QUICK_FOOTSTEPS_VOLUME = 0.6; // 60% of master volume
+  
   // Jump constants
   const JUMP_VELOCITY = 5; // m/s upward
   const DOUBLE_JUMP_VELOCITY = 5; // m/s upward (same as normal jump)
@@ -648,7 +652,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         if (quickAudio) {
           try {
             quickAudio.currentTime = 0;
-            quickAudio.volume = audioMuted ? 0 : audioVolume * 0.6; // SFX at 60% of master volume
+            quickAudio.volume = audioMuted ? 0 : audioVolume * QUICK_FOOTSTEPS_VOLUME;
             quickAudio.play().catch((err) => {
               console.warn('Player: Failed to play quick footsteps:', err);
             });
@@ -678,7 +682,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         if (sneakingAudio) {
           try {
             sneakingAudio.currentTime = 0;
-            sneakingAudio.volume = audioMuted ? 0 : audioVolume * 0.6; // SFX at 60% of master volume
+            sneakingAudio.volume = audioMuted ? 0 : audioVolume * SNEAKING_FOOTSTEPS_VOLUME;
             sneakingAudio.play().catch((err) => {
               console.warn('Player: Failed to play sneaking footsteps:', err);
             });
@@ -719,10 +723,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     
     // Update volume if footsteps are playing
     if (isFootstepsPlayingRef.current && sneakingFootstepsAudioRef.current) {
-      sneakingFootstepsAudioRef.current.volume = audioMuted ? 0 : audioVolume * 0.6;
+      sneakingFootstepsAudioRef.current.volume = audioMuted ? 0 : audioVolume * SNEAKING_FOOTSTEPS_VOLUME;
     }
     if (isQuickFootstepsPlayingRef.current && quickFootstepsAudioRef.current) {
-      quickFootstepsAudioRef.current.volume = audioMuted ? 0 : audioVolume * 0.6;
+      quickFootstepsAudioRef.current.volume = audioMuted ? 0 : audioVolume * QUICK_FOOTSTEPS_VOLUME;
     }
     
     // Update previous movement state
