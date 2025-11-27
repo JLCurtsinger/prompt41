@@ -34,6 +34,7 @@ export function EnergyCell({ position }: EnergyCellProps) {
   const [bobOffset, setBobOffset] = useState(0);
   
   const addEnergyCell = useGameState((state) => state.addEnergyCell);
+  const playHostLine = useGameState((state) => state.playHostLine);
   
   const PICKUP_RANGE = 1.5;
   const ROTATION_SPEED = 1.0; // radians per second
@@ -79,7 +80,7 @@ export function EnergyCell({ position }: EnergyCellProps) {
       // Pick up the cell
       setIsCollected(true);
       addEnergyCell(1);
-      // playHostLine('pickup:energyCell'); // TEMP disabled to avoid visual hitch
+      playHostLine('pickup:energyCell');
       AudioManager.playSFX('pickupEnergyCell');
     }
   });
