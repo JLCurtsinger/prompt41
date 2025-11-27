@@ -29,7 +29,7 @@
 //    - Game should continue running even if audio fails
 
 type ZoneId = 'zone1' | 'zone2' | 'zone3' | 'zone4';
-type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'pickupEnergyCell' | 'pickupSourceCode' | 'shutdownStart' | 'footstep' | 'gameOver';
+type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'hackingFail' | 'pickupEnergyCell' | 'pickupSourceCode' | 'shutdownStart' | 'footstep' | 'gameOver';
 
 interface AmbientLayer {
   audio: HTMLAudioElement;
@@ -48,6 +48,10 @@ class AudioManagerClass {
   private muted: boolean = false;
   private fadeAnimationFrame: number | null = null;
   private isInitialized: boolean = false;
+  
+  // Hacking loop audio element (plays during mini-game)
+  private hackingLoop: HTMLAudioElement | null = null;
+  private isHackingLoopPlaying: boolean = false;
 
   // TODO: Replace with final asset paths
   private readonly AMBIENT_GLOBAL_PATH = '/audio/ambient_global_loop.ogg'; // Low industrial hum
@@ -58,6 +62,8 @@ class AudioManagerClass {
   private readonly SFX_ENEMY_DEATH_PATH = '/audio/sfx_enemy_death.ogg';
   private readonly SFX_HACKING_START_PATH = '/audio/sfx_hacking_start.ogg';
   private readonly SFX_HACKING_SUCCESS_PATH = '/audio/sfx_hacking_success.ogg';
+  private readonly SFX_HACKING_FAIL_PATH = '/audio/sfx_hacking_fail.ogg';
+  private readonly SFX_HACKING_LOOP_PATH = '/audio/sfx_hacking_loop.ogg';
   private readonly SFX_PICKUP_ENERGY_CELL_PATH = '/audio/sfx_pickup_energy_cell.ogg';
   private readonly SFX_PICKUP_SOURCE_CODE_PATH = '/audio/sfx_pickup_source_code.ogg';
   private readonly SFX_SHUTDOWN_START_PATH = '/audio/sfx_shutdown_start.ogg';
@@ -146,6 +152,7 @@ class AudioManagerClass {
       enemyDeath: this.SFX_ENEMY_DEATH_PATH,
       hackingStart: this.SFX_HACKING_START_PATH,
       hackingSuccess: this.SFX_HACKING_SUCCESS_PATH,
+      hackingFail: this.SFX_HACKING_FAIL_PATH,
       pickupEnergyCell: this.SFX_PICKUP_ENERGY_CELL_PATH,
       pickupSourceCode: this.SFX_PICKUP_SOURCE_CODE_PATH,
       shutdownStart: this.SFX_SHUTDOWN_START_PATH,
@@ -158,6 +165,13 @@ class AudioManagerClass {
       if (audio) {
         this.sfxCache.set(type as SFXType, audio);
       }
+    }
+    
+    // Create hacking loop (separate from SFX cache as it loops)
+    this.hackingLoop = this.createAudio(this.SFX_HACKING_LOOP_PATH, true);
+    if (this.hackingLoop) {
+      this.hackingLoop.loop = true;
+      this.hackingLoop.volume = 0;
     }
   }
 
@@ -280,6 +294,40 @@ class AudioManagerClass {
   }
 
   /**
+   * Start the hacking loop (plays during mini-game)
+   */
+  startHackingLoop(): void {
+    if (this.isHackingLoopPlaying || this.muted || !this.hackingLoop) return;
+    
+    try {
+      this.hackingLoop.currentTime = 0;
+      const targetVolume = this.volume * 0.4;
+      this.hackingLoop.volume = targetVolume;
+      this.hackingLoop.play().catch((err) => {
+        console.warn('AudioManager: Failed to start hacking loop:', err);
+      });
+      this.isHackingLoopPlaying = true;
+    } catch (err) {
+      console.warn('AudioManager: Error starting hacking loop:', err);
+    }
+  }
+
+  /**
+   * Stop the hacking loop
+   */
+  stopHackingLoop(): void {
+    if (!this.isHackingLoopPlaying || !this.hackingLoop) return;
+    
+    try {
+      this.hackingLoop.pause();
+      this.hackingLoop.currentTime = 0;
+      this.isHackingLoopPlaying = false;
+    } catch (err) {
+      console.warn('AudioManager: Error stopping hacking loop:', err);
+    }
+  }
+
+  /**
    * Set master volume (0-1)
    */
   setVolume(volume: number): void {
@@ -349,6 +397,13 @@ class AudioManagerClass {
       layer.audio.pause();
     }
     this.zoneLayers.clear();
+
+    // Stop hacking loop if playing
+    if (this.hackingLoop) {
+      this.hackingLoop.pause();
+      this.hackingLoop = null;
+      this.isHackingLoopPlaying = false;
+    }
 
     this.sfxCache.clear();
     this.isInitialized = false;

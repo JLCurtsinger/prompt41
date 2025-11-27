@@ -179,11 +179,16 @@ interface GameState {
     sourceId?: string | null;
   };
   
-  // Hacking overlay state
+  // Hacking overlay state (extended for mini-game)
   hackingOverlay: {
     isOpen: boolean;
     terminalId: string | null;
     mode: 'normal' | 'locked' | 'alreadyHacked' | 'success';
+    // Mini-game state
+    selectedAction: 'disableSentries' | 'overrideGate' | 'convertWatcher' | null;
+    miniGamePhase: 'chooseAction' | 'playing' | 'result';
+    miniGameResult: 'success' | 'failure' | null;
+    attemptsRemaining: number;
   };
   
   // Zone 2 -> Zone 3 door unlock flag
@@ -246,9 +251,14 @@ interface GameState {
   clearInteractionPrompt: (sourceId?: string) => void;
   
   // Hacking overlay actions
-  openHackingOverlay: (terminalId: string, mode: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
+  openHackingOverlay: (terminalId: string, mode?: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
   setHackingOverlayMode: (mode: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
   closeHackingOverlay: () => void;
+  // Mini-game actions
+  startHackingAction: (action: 'disableSentries' | 'overrideGate' | 'convertWatcher') => void;
+  setMiniGameResult: (result: 'success' | 'failure') => void;
+  decrementAttempts: () => number;
+  resetHackingState: () => void;
   
   // Zone 2 door unlock action
   unlockZone2Door: () => void;
@@ -367,11 +377,15 @@ export const useGameState = create<GameState>((set, get) => {
     sourceId: null,
   },
   
-  // Hacking overlay initial state
+  // Hacking overlay initial state (extended for mini-game)
   hackingOverlay: {
     isOpen: false,
     terminalId: null,
     mode: 'normal',
+    selectedAction: null,
+    miniGamePhase: 'chooseAction' as const,
+    miniGameResult: null,
+    attemptsRemaining: 3,
   },
   
   // Zone 2 door unlock initial state
@@ -504,11 +518,15 @@ export const useGameState = create<GameState>((set, get) => {
         actionKey: null,
         sourceId: null,
       },
-      // Close hacking overlay
+      // Close hacking overlay (reset all mini-game state)
       hackingOverlay: {
         isOpen: false,
         terminalId: null,
         mode: 'normal',
+        selectedAction: null,
+        miniGamePhase: 'chooseAction' as const,
+        miniGameResult: null,
+        attemptsRemaining: 3,
       },
       // Reset Zone 2 door unlock
       hasZone2DoorUnlocked: false,
@@ -777,12 +795,17 @@ export const useGameState = create<GameState>((set, get) => {
   },
   
   // Hacking overlay actions
-  openHackingOverlay: (terminalId, mode) => {
+  openHackingOverlay: (terminalId, mode = 'normal') => {
     set({
       hackingOverlay: {
         isOpen: true,
         terminalId,
         mode,
+        // Reset mini-game state when opening
+        selectedAction: null,
+        miniGamePhase: 'chooseAction',
+        miniGameResult: null,
+        attemptsRemaining: 3,
       },
       isPaused: true,
     });
@@ -796,6 +819,59 @@ export const useGameState = create<GameState>((set, get) => {
       },
     }));
   },
+
+  // Mini-game: start a hacking action
+  startHackingAction: (action) => {
+    set((state) => ({
+      hackingOverlay: {
+        ...state.hackingOverlay,
+        selectedAction: action,
+        miniGamePhase: 'playing',
+        miniGameResult: null,
+        attemptsRemaining: 3,
+      },
+    }));
+  },
+
+  // Mini-game: set the result (success or failure)
+  setMiniGameResult: (result) => {
+    set((state) => ({
+      hackingOverlay: {
+        ...state.hackingOverlay,
+        miniGameResult: result,
+        miniGamePhase: 'result',
+      },
+    }));
+  },
+
+  // Mini-game: decrement attempts and return new count
+  decrementAttempts: () => {
+    const state = get();
+    const newAttempts = Math.max(0, state.hackingOverlay.attemptsRemaining - 1);
+    set((s) => ({
+      hackingOverlay: {
+        ...s.hackingOverlay,
+        attemptsRemaining: newAttempts,
+      },
+    }));
+    return newAttempts;
+  },
+
+  // Mini-game: reset hacking state fully
+  resetHackingState: () => {
+    set({
+      hackingOverlay: {
+        isOpen: false,
+        terminalId: null,
+        mode: 'normal',
+        selectedAction: null,
+        miniGamePhase: 'chooseAction',
+        miniGameResult: null,
+        attemptsRemaining: 3,
+      },
+      isPaused: false,
+    });
+  },
   
   closeHackingOverlay: () => {
     set({
@@ -803,6 +879,10 @@ export const useGameState = create<GameState>((set, get) => {
         isOpen: false,
         terminalId: null,
         mode: 'normal',
+        selectedAction: null,
+        miniGamePhase: 'chooseAction',
+        miniGameResult: null,
+        attemptsRemaining: 3,
       },
       isPaused: false,
     });
