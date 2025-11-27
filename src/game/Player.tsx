@@ -936,13 +936,13 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         {/* New visual player model */}
         <ZeekoModel
           scale={0.8}
-          position={[0, -0.6, 0]}
+          position={[0, 0, 0]}
           rotation={[0, Math.PI, 0]}
         />
         
         {/* Shock Baton - wrapped in group for animation */}
         <BatonSFX ref={batonSfxRef}>
-          <group ref={batonRef} position={[0.5, 1.1, 0.3]} rotation={[0, 0, -0.3]}>
+          <group ref={batonRef} position={[0.3, 0.85, 0.2]} rotation={[0, 0, -0.3]}>
             {/* Baton blade - simple narrow box */}
             <mesh position={[0, 0.1, 0]} castShadow>
               <boxGeometry args={[0.08, 0.5, 0.08]} />
