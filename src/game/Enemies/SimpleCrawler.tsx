@@ -12,6 +12,8 @@ import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 
 import { useGameState } from "../../state/gameState";
 
+import { enemyRespawnManager } from "./EnemyRespawnManager";
+
 import { EnemyDeathFragments } from "../Effects/EnemyDeathFragments";
 
 import { AudioManager } from "../audio/AudioManager";
@@ -47,6 +49,8 @@ type SimpleCrawlerProps = {
 
   enemyName?: string;
 
+  zoneId?: 'zone2' | 'zone3' | 'zone4'; // Zone identifier for respawn system
+
 };
 
 export function SimpleCrawler({
@@ -70,6 +74,8 @@ export function SimpleCrawler({
   color = "red",
 
   enemyName = "Crawler",
+
+  zoneId,
 
 }: SimpleCrawlerProps) {
 
@@ -104,6 +110,9 @@ export function SimpleCrawler({
   // Generate enemy ID if not provided
 
   const enemyId = id || `crawler-${start.join("-")}-${end.join("-")}`;
+  
+  // Determine zone from position if not provided
+  const determinedZoneId = zoneId || (start[0] < 5 ? 'zone2' : start[0] < 35 ? 'zone3' : 'zone4') as 'zone2' | 'zone3' | 'zone4';
 
   const { incrementEnemiesKilled, checkWinCondition, playerPosition } = useGameState();
 
@@ -170,6 +179,9 @@ export function SimpleCrawler({
     };
 
     registerEnemy(enemyId, instance);
+    
+    // Register with respawn manager
+    enemyRespawnManager.registerEnemy(determinedZoneId, enemyId);
 
     return () => {
 
@@ -177,7 +189,7 @@ export function SimpleCrawler({
 
     };
 
-  }, [enemyId, maxHealth, enemyName]);
+  }, [enemyId, maxHealth, enemyName, determinedZoneId]);
 
   useFrame((_state, delta) => {
 
@@ -214,6 +226,9 @@ export function SimpleCrawler({
         hasFinishedDeathRef.current = true;
 
         unregisterEnemy(enemyId);
+        
+        // Notify respawn manager
+        enemyRespawnManager.unregisterEnemy(determinedZoneId, enemyId, 'crawler');
 
         incrementEnemiesKilled();
 

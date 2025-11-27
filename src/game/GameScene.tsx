@@ -36,10 +36,11 @@ import { ZoneAudioController } from './audio/ZoneAudioController';
 import { BackgroundAtmosphere } from './audio/BackgroundAtmosphere';
 import { useGameState } from '../state/gameState';
 import { getAllEnemies } from './Enemies/enemyRegistry';
+import { enemyRespawnManager } from './Enemies/EnemyRespawnManager';
 import * as THREE from 'three';
 
-// Exit Portal position (at the far end of Zone 4)
-const EXIT_PORTAL_POSITION: [number, number, number] = [48, 0, 0];
+// Exit Portal position (at the far end of Zone 4) - adjusted for expanded zone
+const EXIT_PORTAL_POSITION: [number, number, number] = [55, 0, 0];
 
 // DEBUG: Toggle world debug helpers visibility
 const DEBUG_SHOW_WORLD_HELPERS = true;
@@ -50,8 +51,8 @@ const LOOT_CRATE_ZONE2_POSITION: [number, number, number] = [2, 0, -3]; // Zone 
 // Energy Cell pickup positions - exactly 3 pickups near enemy encounter areas
 const ENERGY_CELL_POSITIONS: [number, number, number][] = [
   [-2, 0.3, 1],    // Zone 2 - near Crawler/Drone area
-  [20, 0.3, 0],    // Zone 3 - near Shambler area
-  [40, 0.3, -3],   // Zone 4 - near future boss area
+  [25, 0.3, 0],    // Zone 3 - near Shambler area (adjusted for expanded zone)
+  [45, 0.3, -3],   // Zone 4 - near future boss area (adjusted for expanded zone)
 ];
 
 
@@ -70,7 +71,7 @@ const ENERGY_CELL_POSITIONS: [number, number, number][] = [
 // These are temporary guidance markers that will move with the future GLB environment
 const ZONE_TRANSITION_1_TO_2: [number, number, number] = [-5, -0.05, 0]; // Between Zone 1 and Zone 2
 const ZONE_TRANSITION_2_TO_3: [number, number, number] = [10, -0.05, 0]; // Between Zone 2 and Zone 3
-const ZONE_TRANSITION_3_TO_4: [number, number, number] = [32, -0.05, 0]; // Between Zone 3 and Zone 4
+const ZONE_TRANSITION_3_TO_4: [number, number, number] = [37, -0.05, 0]; // Between Zone 3 and Zone 4
 
 // Enemy difficulty tuning - centralized configuration
 const ENEMY_TUNING = {
@@ -260,6 +261,7 @@ export function GameScene() {
   const [zone2Entered, setZone2Entered] = useState(false);
   const [zone3Entered, setZone3Entered] = useState(false);
   const [zone4Entered, setZone4Entered] = useState(false);
+  const [spawnedEnemies, setSpawnedEnemies] = useState<Array<{ id: string; type: 'crawler' | 'drone' | 'shambler'; zoneId: string; position: [number, number, number]; props?: any }>>([]);
   
   const playHostLine = useGameState((state) => state.playHostLine);
   const setCurrentZone = useGameState((state) => state.setCurrentZone);
@@ -269,7 +271,28 @@ export function GameScene() {
   // Initialize player state on game start
   useEffect(() => {
     resetPlayer();
+    // Reset respawn manager
+    enemyRespawnManager.reset();
+    // Clear spawned enemies
+    setSpawnedEnemies([]);
   }, [resetPlayer]);
+  
+  // Check for ready respawns and spawn enemies
+  useFrame(() => {
+    const readyRespawns = enemyRespawnManager.getReadyRespawns();
+    if (readyRespawns.length > 0) {
+      const newEnemies = readyRespawns.map((respawn) => {
+        const enemyId = enemyRespawnManager.generateEnemyId(respawn.zoneId, respawn.enemyType);
+        return {
+          id: enemyId,
+          type: respawn.enemyType,
+          zoneId: respawn.zoneId,
+          position: respawn.spawnPosition,
+        };
+      });
+      setSpawnedEnemies((prev) => [...prev, ...newEnemies]);
+    }
+  });
   
   // Count enemies after they spawn and set total for win condition
   useEffect(() => {
@@ -385,17 +408,18 @@ export function GameScene() {
         {/* Replaced EnemyCrawler with SimpleCrawler for reliable movement */}
         <SimpleCrawler
           {...ENEMY_TUNING.crawler}
-          id="crawler-0-0-0"
+          id="crawler-zone2-0"
           start={[-3, 0, 2]}
           end={[3, 0, -2]}
           deathDuration={0.5}
           color="red"
           enemyName="Crawler"
+          zoneId="zone2"
         />
         
         <SimpleDrone
           {...ENEMY_TUNING.drone}
-          id="drone-0"
+          id="drone-zone2-0"
           deathDuration={0.5}
           followHeight={3}
           followRadius={4}
@@ -405,6 +429,7 @@ export function GameScene() {
           attackSpeed={1.5}
           color="cyan"
           enemyName="Drone"
+          zoneId="zone2"
         />
         
         {/* SimpleShambler prototype in Zone 3 */}
@@ -425,14 +450,74 @@ export function GameScene() {
         {/* Enemy: Shambler Zombot in Zone 3 (Conduit Hall) */}
         {/* Shambler is always active from level start (like Crawler and Drone) */}
         {/* DEBUG: Shambler spawn coordinates confirmed:
-            - Zone 3 ground plane is at x=15, spans x=5 to x=25
-            - start=[18, 1.4, 0] is inside Zone 3 corridor, Y=1.4 places capsule bottom at ground
-            - end=[22, 1.4, 0] patrols along corridor center */}
+            - Zone 3 ground plane is at x=20, spans x=5 to x=35
+            - start=[23, 1.4, 0] is inside Zone 3 corridor, Y=1.4 places capsule bottom at ground
+            - end=[27, 1.4, 0] patrols along corridor center */}
         <SimpleShambler
-          id="shambler-zone3"
-          start={[18, 1.4, 0]}
-          end={[22, 1.4, 0]}
+          id="shambler-zone3-0"
+          start={[23, 1.4, 0]}
+          end={[27, 1.4, 0]}
+          zoneId="zone3"
         />
+        
+        {/* Spawned enemies from respawn system */}
+        {spawnedEnemies.map((enemy) => {
+          if (enemy.type === 'crawler') {
+            const config = enemyRespawnManager.getZoneConfig(enemy.zoneId);
+            const endPos: [number, number, number] = [
+              enemy.position[0] + (Math.random() - 0.5) * 4,
+              enemy.position[1],
+              enemy.position[2] + (Math.random() - 0.5) * 4,
+            ];
+            return (
+              <SimpleCrawler
+                key={enemy.id}
+                {...ENEMY_TUNING.crawler}
+                id={enemy.id}
+                start={enemy.position}
+                end={endPos}
+                deathDuration={0.5}
+                color="red"
+                enemyName="Crawler"
+                zoneId={enemy.zoneId as 'zone2' | 'zone3' | 'zone4'}
+              />
+            );
+          } else if (enemy.type === 'drone') {
+            return (
+              <SimpleDrone
+                key={enemy.id}
+                {...ENEMY_TUNING.drone}
+                id={enemy.id}
+                deathDuration={0.5}
+                followHeight={3}
+                followRadius={4}
+                orbitSpeed={0.8}
+                orbitCenter={[enemy.position[0], enemy.position[1] + 3, enemy.position[2]]}
+                aggroRadius={6}
+                attackSpeed={1.5}
+                color="cyan"
+                enemyName="Drone"
+                zoneId={enemy.zoneId as 'zone2' | 'zone3' | 'zone4'}
+              />
+            );
+          } else if (enemy.type === 'shambler') {
+            const endPos: [number, number, number] = [
+              enemy.position[0] + 4,
+              enemy.position[1],
+              enemy.position[2],
+            ];
+            return (
+              <SimpleShambler
+                key={enemy.id}
+                id={enemy.id}
+                start={enemy.position}
+                end={endPos}
+                zoneId={enemy.zoneId as 'zone2' | 'zone3' | 'zone4'}
+              />
+            );
+          }
+          return null;
+        })}
         
         {/* Sentinel is now in LevelLayout.tsx */}
         
@@ -466,9 +551,9 @@ export function GameScene() {
           name="Zone2_Entry"
         />
         
-        {/* Zone 3 entry trigger */}
+        {/* Zone 3 entry trigger - adjusted position */}
         <TriggerVolume
-          position={[10, 1, 0]}
+          position={[12, 1, 0]}
           size={[4, 4, 4]}
           onEnter={() => {
             if (!zone3Entered) {
@@ -480,9 +565,9 @@ export function GameScene() {
           name="Zone3_Entry"
         />
         
-        {/* Zone 4 entry trigger */}
+        {/* Zone 4 entry trigger - adjusted position */}
         <TriggerVolume
-          position={[32, 1, 0]}
+          position={[37, 1, 0]}
           size={[4, 4, 4]}
           onEnter={() => {
             if (!zone4Entered) {

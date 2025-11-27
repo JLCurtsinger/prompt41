@@ -12,6 +12,8 @@ import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 
 import { useGameState } from "../../state/gameState";
 
+import { enemyRespawnManager } from "./EnemyRespawnManager";
+
 import { EnemyDeathFragments } from "../Effects/EnemyDeathFragments";
 
 import { AudioManager } from "../audio/AudioManager";
@@ -44,6 +46,8 @@ type SimpleShamblerProps = {
 
   enemyName?: string;
 
+  zoneId?: 'zone2' | 'zone3' | 'zone4'; // Zone identifier for respawn system
+
 };
 
 export function SimpleShambler({
@@ -65,6 +69,8 @@ export function SimpleShambler({
   color = "purple",
 
   enemyName = "Shambler",
+
+  zoneId,
 
 }: SimpleShamblerProps) {
 
@@ -96,6 +102,9 @@ export function SimpleShambler({
   // Generate enemy ID if not provided
 
   const enemyId = id || `shambler-${start.join("-")}-${end.join("-")}`;
+  
+  // Determine zone from position if not provided
+  const determinedZoneId = zoneId || (start[0] < 5 ? 'zone2' : start[0] < 35 ? 'zone3' : 'zone4') as 'zone2' | 'zone3' | 'zone4';
 
   const { incrementEnemiesKilled, checkWinCondition, playerPosition } = useGameState();
 
@@ -151,11 +160,14 @@ export function SimpleShambler({
     };
 
     registerEnemy(enemyId, instance);
+    
+    // Register with respawn manager
+    enemyRespawnManager.registerEnemy(determinedZoneId, enemyId);
 
     return () => {
       unregisterEnemy(enemyId);
     };
-  }, [enemyId, maxHealth, enemyName]);
+  }, [enemyId, maxHealth, enemyName, determinedZoneId]);
 
   useFrame((_state, delta) => {
 
@@ -192,6 +204,9 @@ export function SimpleShambler({
         hasFinishedDeathRef.current = true;
 
         unregisterEnemy(enemyId);
+        
+        // Notify respawn manager
+        enemyRespawnManager.unregisterEnemy(determinedZoneId, enemyId, 'shambler');
 
         incrementEnemiesKilled();
 

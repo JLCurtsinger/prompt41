@@ -12,6 +12,8 @@ import { registerEnemy, unregisterEnemy } from "./enemyRegistry";
 
 import { useGameState } from "../../state/gameState";
 
+import { enemyRespawnManager } from "./EnemyRespawnManager";
+
 import { EnemyDeathFragments } from "../Effects/EnemyDeathFragments";
 
 import { AudioManager } from "../audio/AudioManager";
@@ -35,6 +37,7 @@ type SimpleDroneProps = {
   attackSpeed?: number;    // Speed when moving toward player in attack mode
   color?: string;
   enemyName?: string;
+  zoneId?: 'zone2' | 'zone3' | 'zone4'; // Zone identifier for respawn system
 };
 
 export function SimpleDrone({
@@ -50,6 +53,7 @@ export function SimpleDrone({
   attackSpeed = 1.5,
   color = "cyan",
   enemyName = "Drone",
+  zoneId,
 }: SimpleDroneProps) {
   const enemyRef = useRef<Group>(null);
 
@@ -72,6 +76,9 @@ export function SimpleDrone({
 
   // Generate enemy ID if not provided
   const enemyId = id || `drone-${Math.random().toString(36).slice(2, 8)}`;
+  
+  // Determine zone from position if not provided
+  const determinedZoneId = zoneId || (orbitCenter[0] < 5 ? 'zone2' : orbitCenter[0] < 35 ? 'zone3' : 'zone4') as 'zone2' | 'zone3' | 'zone4';
 
   const { incrementEnemiesKilled, checkWinCondition, playerPosition } = useGameState();
 
@@ -120,6 +127,9 @@ export function SimpleDrone({
     };
 
     registerEnemy(enemyId, instance);
+    
+    // Register with respawn manager
+    enemyRespawnManager.registerEnemy(determinedZoneId, enemyId);
 
     return () => {
       unregisterEnemy(enemyId);
@@ -165,6 +175,10 @@ export function SimpleDrone({
       if (!hasFinishedDeathRef.current) {
         hasFinishedDeathRef.current = true;
         unregisterEnemy(enemyId);
+        
+        // Notify respawn manager
+        enemyRespawnManager.unregisterEnemy(determinedZoneId, enemyId, 'drone');
+        
         incrementEnemiesKilled();
         checkWinCondition();
         console.log("[Drone]", enemyId, "unregistered after death");

@@ -78,9 +78,9 @@ function ProcessingYardZone() {
     <group name="Zone2_ProcessingYard">
       {/* TODO: Replace with actual level_blockout.glb geometry */}
       
-      {/* Ground plane for Zone 2 */}
+      {/* Ground plane for Zone 2 - expanded */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[30, 25]} />
+        <planeGeometry args={[40, 35]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
       
@@ -126,19 +126,19 @@ function ConduitHallZone() {
     <group name="Zone3_ConduitHall">
       {/* TODO: Replace with actual level_blockout.glb geometry */}
       
-      {/* Main corridor ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[15, 0, 0]} receiveShadow>
-        <planeGeometry args={[20, 8]} />
+      {/* Main corridor ground - expanded */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[20, 0, 0]} receiveShadow>
+        <planeGeometry args={[30, 12]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
       
-      {/* Corridor walls */}
-      <mesh position={[15, 2, -4]} castShadow>
-        <boxGeometry args={[20, 4, 0.5]} />
+      {/* Corridor walls - expanded */}
+      <mesh position={[20, 2, -6]} castShadow>
+        <boxGeometry args={[30, 4, 0.5]} />
         <meshStandardMaterial color="#3a3a3a" />
       </mesh>
-      <mesh position={[15, 2, 4]} castShadow>
-        <boxGeometry args={[20, 4, 0.5]} />
+      <mesh position={[20, 2, 6]} castShadow>
+        <boxGeometry args={[30, 4, 0.5]} />
         <meshStandardMaterial color="#3a3a3a" />
       </mesh>
       
@@ -163,16 +163,16 @@ function ConduitHallZone() {
         {/* TODO: Environmental log or collectible will be placed here */}
       </group>
       
-      {/* Conduits / pipes along ceiling */}
-      <mesh position={[15, 3.5, 0]}>
-        <cylinderGeometry args={[0.3, 0.3, 20, 8]} />
+      {/* Conduits / pipes along ceiling - expanded */}
+      <mesh position={[20, 3.5, 0]}>
+        <cylinderGeometry args={[0.3, 0.3, 30, 8]} />
         <meshStandardMaterial color="#4a4a4a" />
       </mesh>
       
-      {/* Zone 3 terminal (awards Source Code) */}
+      {/* Zone 3 terminal (awards Source Code) - adjusted to new corridor center */}
       <HackingTerminal
         id="terminal-zone3"
-        position={[20, 0, 0]}
+        position={[25, 0, 0]}
       />
       
       {/* TODO: Hazard area (steam vents, sparks) will be added here */}
@@ -191,27 +191,27 @@ function CoreAccessChamberZone() {
     <group name="Zone4_CoreAccessChamber">
       {/* TODO: Replace with actual level_blockout.glb geometry */}
       
-      {/* Circular arena ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[40, 0, 0]} receiveShadow>
-        <cylinderGeometry args={[12, 12, 0.1, 32]} />
+      {/* Circular arena ground - expanded */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[45, 0, 0]} receiveShadow>
+        <cylinderGeometry args={[16, 16, 0.1, 32]} />
         <meshStandardMaterial color="#1a1a1a" />
       </mesh>
       
-      {/* Arena walls (partial circle) */}
-      {Array.from({ length: 16 }).map((_, i) => {
-        const angle = (i / 16) * Math.PI * 2;
-        const x = Math.cos(angle) * 12;
-        const z = Math.sin(angle) * 12;
+      {/* Arena walls (partial circle) - expanded */}
+      {Array.from({ length: 20 }).map((_, i) => {
+        const angle = (i / 20) * Math.PI * 2;
+        const x = Math.cos(angle) * 16;
+        const z = Math.sin(angle) * 16;
         return (
-          <mesh key={i} position={[40 + x, 2, z]} castShadow>
+          <mesh key={i} position={[45 + x, 2, z]} castShadow>
             <boxGeometry args={[1.5, 4, 0.5]} />
             <meshStandardMaterial color="#2a2a2a" />
           </mesh>
         );
       })}
       
-      {/* Central server core / reactor structure */}
-      <mesh position={[40, 2, 0]} castShadow>
+      {/* Central server core / reactor structure - moved to new center */}
+      <mesh position={[45, 2, 0]} castShadow>
         <cylinderGeometry args={[2, 2, 4, 16]} />
         <meshStandardMaterial 
           color="#1a3a5a" 
@@ -219,7 +219,7 @@ function CoreAccessChamberZone() {
           emissiveIntensity={0.4} 
         />
       </mesh>
-      <mesh position={[40, 4, 0]}>
+      <mesh position={[45, 4, 0]}>
         <cylinderGeometry args={[2.5, 2, 0.5, 16]} />
         <meshStandardMaterial 
           color="#2a4a6a" 
@@ -231,13 +231,13 @@ function CoreAccessChamberZone() {
       {/* Center feature placeholder */}
       <group
         name="core_chamber_center"
-        position={[40, 0, 0]} // center of the room
+        position={[45, 0, 0]} // center of the room
       />
       
-      {/* Zone 4 terminal (awards Source Code) */}
+      {/* Zone 4 terminal (awards Source Code) - moved to new center */}
       <HackingTerminal
         id="terminal-zone4"
-        position={[40, 0, 5]}
+        position={[45, 0, 5]}
       />
     </group>
   );
@@ -281,20 +281,20 @@ export function LevelLayout() {
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
       
-      {/* Zone 2 to Zone 3 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[10, 0, 0]} receiveShadow>
+      {/* Zone 2 to Zone 3 - adjusted position */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[12, 0, 0]} receiveShadow>
         <planeGeometry args={[10, 8]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
       
-      {/* Door gating Zone 2 -> Zone 3 */}
+      {/* Door gating Zone 2 -> Zone 3 - adjusted position */}
       <Door
         id="zone2-zone3-main"
-        position={[10, 0, 0]}
+        position={[12, 0, 0]}
       />
       
-      {/* Zone 3 to Zone 4 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[30, 0, 0]} receiveShadow>
+      {/* Zone 3 to Zone 4 - adjusted position */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[35, 0, 0]} receiveShadow>
         <planeGeometry args={[10, 8]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
@@ -323,11 +323,11 @@ export function LevelLayout() {
       />
       
       {/* Trigger: Core chamber entry
-          Placed at the entrance to the final room */}
+          Placed at the entrance to the final room - adjusted position */}
       <TriggerVolume
         name="trigger_zone4_core_entry"
         size={[8, 4, 8]}
-        position={[35, 1, 0]}
+        position={[40, 1, 0]}
         onEnter={() => {
           setIsSentinelActivated(true);
           // Core entry - show coreEntry line
@@ -347,10 +347,10 @@ export function LevelLayout() {
         isActivated={isSentinelActivated}
       /> */}
       
-      {/* Final Terminal in Zone 4 (locked until Sentinel is defeated) */}
+      {/* Final Terminal in Zone 4 (locked until Sentinel is defeated) - moved to new center */}
       <HackingTerminal
         id="final_terminal"
-        position={[40, 0, -5]}
+        position={[45, 0, -5]}
         disabledUntilSentinelDefeated={true}
       />
     </group>
