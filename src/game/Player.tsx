@@ -37,6 +37,7 @@ import { BatonSFX } from './audio/BatonSFX';
 import type { BatonSFXHandle } from './audio/BatonSFX';
 import { BatonImpactSpark } from './Effects/BatonImpactSpark';
 import { AudioManager } from './audio/AudioManager';
+import { ZeekoModel } from './models/ZeekoModel';
 import * as THREE from 'three';
 
 // Type for tracking active spark effects
@@ -926,20 +927,19 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   return (
     <>
       <group ref={playerRef} position={initialPosition}>
-        {/* TODO: Replace this placeholder capsule with the actual player GLB model (mainChar.png) */}
-        <mesh position={[0, 1, 0]} castShadow>
+        {/* Keep the capsule collider for physics, but make it invisible */}
+        <mesh position={[0, 1, 0]} visible={false}>
           <capsuleGeometry args={[0.4, 1.2, 4, 8]} />
-          <meshStandardMaterial 
-            color="#6ab8ff" 
-            emissive="#2a5a99" 
-            emissiveIntensity={0.4}
-          />
+          <meshBasicMaterial transparent opacity={0} />
         </mesh>
-        {/* Simple visor glow effect placeholder */}
-        <mesh position={[0, 1.8, 0.2]} castShadow>
-          <planeGeometry args={[0.3, 0.2]} />
-          <meshStandardMaterial color="#00ffff" emissive="#00ffff" emissiveIntensity={1} />
-        </mesh>
+        
+        {/* New visual player model */}
+        <ZeekoModel
+          scale={0.8}
+          position={[0, -0.6, 0]}
+          rotation={[0, Math.PI, 0]}
+        />
+        
         {/* Shock Baton - wrapped in group for animation */}
         <BatonSFX ref={batonSfxRef}>
           <group ref={batonRef} position={[0.5, 1.1, 0.3]} rotation={[0, 0, -0.3]}>

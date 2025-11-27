@@ -11,7 +11,7 @@ Tone: cinematic sci-fi with light psychological horror about AI agents interpret
 **Working title:** *Prompt 41* (placeholder)
 
 ### Premise
-You play as **Zeeko Raines**, a cyber-security engineer investigating a compromised research site where autonomous AI agents have rewritten their directives. Although this prototype includes only a single level, it is designed to feel like the **opening playable zone** of a much larger world — with light branching, optional exploration, and a cinematic third-person presentation.
+You play as **Zeeko**, a cyber-security engineer investigating a compromised research site where autonomous AI agents have rewritten their directives. Although this prototype includes only a single level, it is designed to feel like the **opening playable zone** of a much larger world — with light branching, optional exploration, and a cinematic third-person presentation.
 
 ### Core Fantasy
 - Explore a semi-open environment in third-person.  
@@ -160,14 +160,14 @@ The level is organized as a **hub-and-spoke** environment: a broad central area 
 
 ## 6. Characters & Enemies (Final Merged Version)
 
-This section reflects the actual characters, enemies, and props created for the project while keeping the original narrative setup (Zeeko Raines, rogue AI, etc.).
+This section reflects the actual characters, enemies, and props created for the project while keeping the original narrative setup (Zeeko, rogue AI, etc.).
 
 ---
 
-### Player — Zeeko Raines (Hooded Operative, `mainChar.png`)
+### Player — Zeeko (Hooded Operative, `mainChar.png`)
 
 - **Identity:**  
-  - Name: **Zeeko Raines**  
+  - Name: **Zeeko**  
   - Role: Cyber-security engineer sent to investigate the rogue AI facility.  
 
 - **Appearance:**  
