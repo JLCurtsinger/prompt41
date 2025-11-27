@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
 import { Box3, Group, Vector3 } from 'three';
 
