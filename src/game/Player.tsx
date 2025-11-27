@@ -118,8 +118,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const ROTATION_SPEED = 8;
   
   // Footstep volume multipliers (as percentage of master volume)
-  const SNEAKING_FOOTSTEPS_VOLUME = 0.4; // 40% of master volume
-  const QUICK_FOOTSTEPS_VOLUME = 0.6; // 60% of master volume
+  const SNEAKING_FOOTSTEPS_VOLUME = 0.2; // 40% of master volume
+  const QUICK_FOOTSTEPS_VOLUME = 0.4; // 60% of master volume
   
   // Jump constants
   const JUMP_VELOCITY = 5; // m/s upward
