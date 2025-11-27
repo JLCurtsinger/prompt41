@@ -117,7 +117,7 @@ import { setPlayerSpawnTime, SPAWN_PROTECTION_MS } from '../game/Enemies/enemyDa
 const DEBUG_DAMAGE_LOGS = false;
 
 // Objective configuration
-export const SOURCE_CODE_GOAL = 10;
+export const SOURCE_CODE_GOAL = 3;
 
 interface HostMessage {
   id: string;

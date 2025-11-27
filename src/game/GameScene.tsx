@@ -30,7 +30,8 @@ import { SimpleShambler } from './Enemies/SimpleShambler';
 import { ScreenFade } from './Effects/ScreenFade';
 import { LootCrate } from './Interactables/LootCrate';
 import { EnergyCell } from './Pickups/EnergyCell';
-import { SourceCodePickup } from './Pickups/SourceCodePickup';
+// Source code pickups now come from hacking terminals only
+// import { SourceCodePickup } from './Pickups/SourceCodePickup';
 import { ZoneAudioController } from './audio/ZoneAudioController';
 import { BackgroundAtmosphere } from './audio/BackgroundAtmosphere';
 import { useGameState } from '../state/gameState';
@@ -54,16 +55,16 @@ const ENERGY_CELL_POSITIONS: [number, number, number][] = [
 ];
 
 
-// Energy Cell pickup positions (spread across zones)
-const SOURCE_CODE_POSITIONS: [number, number, number][] = [
-  [-12, 0.5, 2],    // Zone 1 - near spawn
-  [-14, 0.5, -2],   // Zone 1 - opposite corner
-  [-2, 0.5, 3],     // Zone 2 - near entrance
-  [4, 0.5, -4],     // Zone 2 - far corner
-  [0, 0.5, 0],      // Zone 2 - center
-  [14, 0.5, 2],     // Zone 3 - near entrance
-  // Removed one orb from Zone 3 middle position
-];
+// Source code pickups now come from hacking terminals only
+// Old world pickup positions removed - these were the cyan/blue glowing spheres
+// const SOURCE_CODE_POSITIONS: [number, number, number][] = [
+//   [-12, 0.5, 2],    // Zone 1 - near spawn
+//   [-14, 0.5, -2],   // Zone 1 - opposite corner
+//   [-2, 0.5, 3],     // Zone 2 - near entrance
+//   [4, 0.5, -4],     // Zone 2 - far corner
+//   [0, 0.5, 0],      // Zone 2 - center
+//   [14, 0.5, 2],     // Zone 3 - near entrance
+// ];
 
 // Zone transition marker positions (tied to trigger positions for easy GLB migration)
 // These are temporary guidance markers that will move with the future GLB environment
@@ -519,10 +520,8 @@ export function GameScene() {
           <EnergyCell key={`energy-cell-${index}`} position={pos} />
         ))}
         
-        {/* Source Code pickups spread across zones */}
-        {SOURCE_CODE_POSITIONS.map((pos, index) => (
-          <SourceCodePickup key={`source-code-${index}`} position={pos} />
-        ))}
+        {/* Source code pickups now come from hacking terminals only */}
+        {/* Old SourceCodePickup world pickups removed - these were the cyan/blue glowing spheres */}
         
         {/* Exit Portal at the end of Zone 4 */}
         <ExitPortal position={EXIT_PORTAL_POSITION} />

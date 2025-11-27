@@ -32,7 +32,7 @@ export function EnergyCell({ position }: EnergyCellProps) {
   const [isCollected, setIsCollected] = useState(false);
   const bobOffsetRef = useRef(0);
   
-  const addEnergyCell = useGameState((state) => state.addEnergyCell);
+  const healPlayer = useGameState((state) => state.healPlayer);
   const playHostLine = useGameState((state) => state.playHostLine);
   
   const PICKUP_RANGE = 1.5;
@@ -70,9 +70,10 @@ export function EnergyCell({ position }: EnergyCellProps) {
     if (distanceSq <= PICKUP_RANGE_SQ) {
       // Pick up the cell
       setIsCollected(true);
-      addEnergyCell(1);
-      playHostLine('pickup:energyCell');
+      // Energy cells are pure heal pickups, not tracked as score.
+      healPlayer(5);
       AudioManager.playSFX('pickupEnergyCell');
+      playHostLine('pickup:energyCell');
     }
   });
   
