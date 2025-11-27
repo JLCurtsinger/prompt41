@@ -1,5 +1,6 @@
-// Energy Cell Pickup - collectible data fragment
-// Glowing orb that player can collect to increment sourceCodeCount and heal +5 HP
+// Source Code Pickup - collectible data fragment
+// Collectible that increments sourceCodeCount and heals +5 HP
+// (Visual mesh temporarily removed to eliminate confusion with energy pickups)
 
 import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -47,7 +48,7 @@ export function SourceCodePickup({ position }: SourceCodePickupProps) {
     const distance = playerPosVec.distanceTo(pickupPosVec);
     
     if (distance <= PICKUP_RANGE) {
-      // Pick up the energy cell
+      // Pick up the source code
       setIsCollected(true);
       addSourceCode(1);
       healPlayer(5); // Heal +5 HP on pickup
@@ -59,37 +60,11 @@ export function SourceCodePickup({ position }: SourceCodePickupProps) {
     return null;
   }
   
+  // Visual mesh removed temporarily to eliminate green sphere confusion with energy pickups
+  // Pickup logic remains functional - can re-add visual later once energy pickup cleanup is confirmed
   return (
     <group ref={groupRef} position={[position[0], position[1], position[2]]}>
-      {/* Glowing orb core */}
-      <mesh castShadow>
-        <icosahedronGeometry args={[0.2, 1]} />
-        <meshStandardMaterial 
-          color="#00ff88"
-          emissive="#00ff88"
-          emissiveIntensity={2.0}
-        />
-      </mesh>
-      
-      {/* Outer glow shell */}
-      <mesh>
-        <icosahedronGeometry args={[0.3, 1]} />
-        <meshStandardMaterial 
-          color="#00ff88"
-          emissive="#00ff88"
-          emissiveIntensity={0.5}
-          transparent
-          opacity={0.3}
-        />
-      </mesh>
-      
-      {/* Point light for local glow effect */}
-      <pointLight 
-        color="#00ff88"
-        intensity={0.8}
-        distance={3}
-        decay={2}
-      />
+      {/* Visual removed - pickup logic still active */}
     </group>
   );
 }
