@@ -254,6 +254,31 @@ function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [
   return null;
 }
 
+// Component to handle enemy respawns - must be rendered inside Canvas
+function EnemyRespawnController({ 
+  onSpawnEnemies 
+}: { 
+  onSpawnEnemies: (enemies: Array<{ id: string; type: 'crawler' | 'drone' | 'shambler'; zoneId: string; position: [number, number, number] }>) => void 
+}) {
+  useFrame(() => {
+    const readyRespawns = enemyRespawnManager.getReadyRespawns();
+    if (readyRespawns.length > 0) {
+      const newEnemies = readyRespawns.map((respawn) => {
+        const enemyId = enemyRespawnManager.generateEnemyId(respawn.zoneId, respawn.enemyType);
+        return {
+          id: enemyId,
+          type: respawn.enemyType,
+          zoneId: respawn.zoneId,
+          position: respawn.spawnPosition,
+        };
+      });
+      onSpawnEnemies(newEnemies);
+    }
+  });
+  
+  return null;
+}
+
 export function GameScene() {
   const [_playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
   const [_isSentinelActivated, _setIsSentinelActivated] = useState(false);
@@ -277,22 +302,10 @@ export function GameScene() {
     setSpawnedEnemies([]);
   }, [resetPlayer]);
   
-  // Check for ready respawns and spawn enemies
-  useFrame(() => {
-    const readyRespawns = enemyRespawnManager.getReadyRespawns();
-    if (readyRespawns.length > 0) {
-      const newEnemies = readyRespawns.map((respawn) => {
-        const enemyId = enemyRespawnManager.generateEnemyId(respawn.zoneId, respawn.enemyType);
-        return {
-          id: enemyId,
-          type: respawn.enemyType,
-          zoneId: respawn.zoneId,
-          position: respawn.spawnPosition,
-        };
-      });
-      setSpawnedEnemies((prev) => [...prev, ...newEnemies]);
-    }
-  });
+  // Callback to handle enemy spawns from EnemyRespawnController
+  const handleSpawnEnemies = (newEnemies: Array<{ id: string; type: 'crawler' | 'drone' | 'shambler'; zoneId: string; position: [number, number, number] }>) => {
+    setSpawnedEnemies((prev) => [...prev, ...newEnemies]);
+  };
   
   // Count enemies after they spawn and set total for win condition
   useEffect(() => {
@@ -402,6 +415,9 @@ export function GameScene() {
         
         {/* Track player position for enemies */}
         <PlayerPositionTracker onPositionUpdate={setPlayerPosition} />
+        
+        {/* Handle enemy respawns - must be inside Canvas */}
+        <EnemyRespawnController onSpawnEnemies={handleSpawnEnemies} />
         
         {/* Enemy: Crawler Zombot in Zone 2 (Processing Yard) */}
         {/* TODO: This should be the first Crawler encounter from the design doc - add reveal micro-cutscene */}
