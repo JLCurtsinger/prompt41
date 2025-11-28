@@ -627,6 +627,16 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     player.position.x += deltaMovement.x;
     player.position.z += deltaMovement.z;
     
+    // Clamp player to a circular arena to avoid getting too close to HDR walls
+    const pos = player.position;
+    const maxRadius = 60; // Allow access to all gameplay elements (exit portal at x=55)
+    const radialDistance = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+    if (radialDistance > maxRadius) {
+      const scale = maxRadius / radialDistance;
+      pos.x *= scale;
+      pos.z *= scale;
+    }
+    
     // Looping footsteps sound - start/stop based on movement state and sprinting
     const isCurrentlyMoving = isMoving && isGrounded.current;
     const isCurrentlySprinting = isSprinting && isCurrentlyMoving;

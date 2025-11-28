@@ -13,7 +13,7 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { PerspectiveCamera } from '@react-three/drei';
+import { PerspectiveCamera, Environment } from '@react-three/drei';
 import { Player } from './Player';
 import { LevelLayout, PLAYER_SPAWN_POSITION } from './LevelLayout';
 import { TriggerVolume } from './Interactables/TriggerVolume';
@@ -228,6 +228,20 @@ function ExitPortal({ position }: { position: [number, number, number] }) {
   );
 }
 
+// Component to set up fog in the scene
+function FogSetup() {
+  const { scene } = useThree();
+  
+  useEffect(() => {
+    scene.fog = new THREE.FogExp2(0x000000, 0.03);
+    return () => {
+      scene.fog = null;
+    };
+  }, [scene]);
+  
+  return null;
+}
+
 // Component to track player position and provide it to enemies
 function PlayerPositionTracker({ onPositionUpdate }: { onPositionUpdate: (pos: [number, number, number]) => void }) {
   const { scene } = useThree();
@@ -332,6 +346,15 @@ export function GameScene() {
       shadows
     >
       <Suspense fallback={null}>
+        {/* HDR Environment - provides both lighting and background */}
+        <Environment
+          files="/models/Environment.hdr"
+          background
+        />
+        
+        {/* Fog setup - atmospheric distance fog */}
+        <FogSetup />
+        
         {/* Lighting Setup */}
         {/* Global ambient light - very low intensity for base visibility */}
         <ambientLight intensity={0.2} />
