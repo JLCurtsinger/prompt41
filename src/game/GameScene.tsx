@@ -341,8 +341,8 @@ export function GameScene() {
       <ScreenFade />
       <Canvas
       style={{ width: '100%', height: '100%', display: 'block' }}
-      gl={{ antialias: true, alpha: false }}
-      dpr={[1, 2]}
+      gl={{ antialias: false, powerPreference: 'high-performance', alpha: false }}
+      dpr={[1, 1.25]}
       shadows
     >
       <Suspense fallback={null}>
