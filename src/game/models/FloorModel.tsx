@@ -1,9 +1,8 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { GroupProps } from '@react-three/fiber';
-import * as THREE from 'three';
+import type { JSX } from 'react';
 
-type FloorModelProps = GroupProps & {
+type FloorModelProps = JSX.IntrinsicElements['group'] & {
   /** Allow overriding scale if needed */
   scaleMultiplier?: number;
 };
