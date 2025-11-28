@@ -13,7 +13,7 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { PerspectiveCamera, Environment } from '@react-three/drei';
+import { PerspectiveCamera, Environment, PerformanceMonitor } from '@react-three/drei';
 import { Player } from './Player';
 import { LevelLayout, PLAYER_SPAWN_POSITION } from './LevelLayout';
 import { TriggerVolume } from './Interactables/TriggerVolume';
@@ -294,6 +294,7 @@ function EnemyRespawnController({
 }
 
 export function GameScene() {
+  const [currentDpr, setCurrentDpr] = useState(1.25);
   const [_playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
   const [_isSentinelActivated, _setIsSentinelActivated] = useState(false);
   const [zone1Entered, setZone1Entered] = useState(false);
@@ -342,10 +343,21 @@ export function GameScene() {
       <Canvas
       style={{ width: '100%', height: '100%', display: 'block' }}
       gl={{ antialias: false, powerPreference: 'high-performance', alpha: false }}
-      dpr={[1, 1.25]}
+      dpr={currentDpr}
       shadows
     >
       <Suspense fallback={null}>
+        <PerformanceMonitor
+          onChange={({ factor }) => {
+            if (factor < 0.7) {
+              // Performance is low, decrease DPR toward 1.0
+              setCurrentDpr((prev) => Math.max(0.8, prev - 0.05));
+            } else if (factor > 0.9) {
+              // Performance is good, increase DPR toward 1.25
+              setCurrentDpr((prev) => Math.min(1.25, prev + 0.05));
+            }
+          }}
+        >
         {/* HDR Environment - provides both lighting and background */}
         <Environment
           files="/models/Environment.hdr"
@@ -733,6 +745,7 @@ export function GameScene() {
             </mesh>
           </group>
         )}
+        </PerformanceMonitor>
       </Suspense>
     </Canvas>
     </>
