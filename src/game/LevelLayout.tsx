@@ -312,11 +312,12 @@ export function LevelLayout() {
         const Z_START = -12;
         const Z_END = 12;
 
-        // Approximate spacing between tiles. Adjust if you see gaps/overlap.
-        const TILE_SPACING = 4;
+        // Tighter spacing to remove visible gaps between tiles.
+        const TILE_SPACING_X = 2;
+        const TILE_SPACING_Z = 2;
 
-        for (let x = X_START; x <= X_END; x += TILE_SPACING) {
-          for (let z = Z_START; z <= Z_END; z += TILE_SPACING) {
+        for (let x = X_START; x <= X_END; x += TILE_SPACING_X) {
+          for (let z = Z_START; z <= Z_END; z += TILE_SPACING_Z) {
             tiles.push(
               <FloorModel
                 key={`${x}-${z}`}
