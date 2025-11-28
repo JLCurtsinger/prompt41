@@ -48,26 +48,30 @@ function TimingBarMiniGame({
   onFailedAttempt: () => void;
 }) {
   const [cursorPosition, setCursorPosition] = useState(0);
+  const cursorPositionRef = useRef(0);
   const directionRef = useRef(1);
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  const isRunningRef = useRef(true);
 
   // Disable sentries uses a slow speed, wide zone (easy)
   const speed = 0.6;
   const zoneWidth = 0.25;
   
   // Success zone is centered (around 0.5)
-  const zoneStart = 0.5 - zoneWidth / 2;
-  const zoneEnd = 0.5 + zoneWidth / 2;
+  const greenStart = 0.5 - zoneWidth / 2;
+  const greenEnd = 0.5 + zoneWidth / 2;
 
   // Reset state when component mounts or attempts change (new minigame session)
   useEffect(() => {
+    cursorPositionRef.current = 0;
     setCursorPosition(0);
     directionRef.current = 1;
     lastTimeRef.current = null;
+    isRunningRef.current = true;
   }, [attemptsRemaining]);
 
-  // Animation loop
+  // Animation loop - update ref directly for accurate click detection
   useEffect(() => {
     const animate = (time: number) => {
       if (lastTimeRef.current === null) {
@@ -77,20 +81,20 @@ function TimingBarMiniGame({
       const deltaTime = (time - lastTimeRef.current) / 1000;
       lastTimeRef.current = time;
       
-      setCursorPosition((prev) => {
-        let next = prev + directionRef.current * speed * deltaTime;
-        
-        // Bounce at edges
-        if (next >= 1) {
-          next = 1;
-          directionRef.current = -1;
-        } else if (next <= 0) {
-          next = 0;
-          directionRef.current = 1;
-        }
-        
-        return next;
-      });
+      let next = cursorPositionRef.current + directionRef.current * speed * deltaTime;
+      
+      // Bounce at edges
+      if (next >= 1) {
+        next = 1;
+        directionRef.current = -1;
+      } else if (next <= 0) {
+        next = 0;
+        directionRef.current = 1;
+      }
+      
+      // Update ref first (for click handler), then state (for rendering)
+      cursorPositionRef.current = next;
+      setCursorPosition(next);
       
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -103,23 +107,30 @@ function TimingBarMiniGame({
         animationRef.current = null;
       }
       lastTimeRef.current = null;
+      isRunningRef.current = false;
     };
   }, []);
 
-  // Handle click - use ref to get current position to avoid stale closures
-  const cursorPositionRef = useRef(0);
-  cursorPositionRef.current = cursorPosition;
-  
+  // Simple, deterministic click handler
   const handleClick = useCallback(() => {
-    const currentPos = cursorPositionRef.current;
-    const isInZone = currentPos >= zoneStart && currentPos <= zoneEnd;
+    if (attemptsRemaining <= 0 || !isRunningRef.current) {
+      return;
+    }
+
+    const pos = cursorPositionRef.current;
     
-    if (isInZone) {
+    if (pos == null || typeof pos !== 'number') {
+      return;
+    }
+
+    const inGreen = pos >= greenStart && pos <= greenEnd;
+    
+    if (inGreen) {
       onSuccess();
     } else {
       onFailedAttempt();
     }
-  }, [zoneStart, zoneEnd, onSuccess, onFailedAttempt]);
+  }, [attemptsRemaining, greenStart, greenEnd, onSuccess, onFailedAttempt]);
 
   return (
     <div
@@ -155,8 +166,8 @@ function TimingBarMiniGame({
         <div
           style={{
             position: 'absolute',
-            left: `${zoneStart * 100}%`,
-            width: `${zoneWidth * 100}%`,
+            left: `${greenStart * 100}%`,
+            width: `${(greenEnd - greenStart) * 100}%`,
             height: '100%',
             backgroundColor: 'rgba(0, 255, 0, 0.3)',
             borderLeft: '2px solid #00ff00',
