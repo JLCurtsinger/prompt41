@@ -18,14 +18,18 @@ import { useGameState, getTerminalState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
 import * as THREE from 'three';
 
+type HackingMode = 'timing' | 'code';
+
 interface HackingTerminalProps {
   id: string;
   position: [number, number, number];
   disabledUntilSentinelDefeated?: boolean;
+  mode?: HackingMode; // Optional, defaults to 'timing'
 }
 
 
-export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = false }: HackingTerminalProps) {
+export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = false, mode }: HackingTerminalProps) {
+  const hackMode: HackingMode = mode ?? 'timing';
   const terminalRef = useRef<THREE.Group>(null);
   const [isInRange, setIsInRange] = useState(false);
   
@@ -140,7 +144,7 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
             
             // Open normal hacking overlay
             try {
-              openHackingOverlay(id, 'normal');
+              openHackingOverlay(id, 'normal', hackMode);
               AudioManager.playSFX('ActiveHacking');
               clearInteractionPrompt(id); // Clear prompt when overlay opens
               

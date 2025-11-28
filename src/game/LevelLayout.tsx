@@ -238,6 +238,7 @@ function CoreAccessChamberZone() {
       <HackingTerminal
         id="terminal-zone4"
         position={[45, 0, 5]}
+        mode="code"
       />
     </group>
   );

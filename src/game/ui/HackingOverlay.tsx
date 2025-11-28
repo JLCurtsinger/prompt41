@@ -26,6 +26,7 @@ import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useGameState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
 import directivesData from '../../assets/data/directives.json';
+import { CodeChallengeMiniGame } from './CodeChallengeMiniGame';
 
 interface DirectiveData {
   title: string;
@@ -557,7 +558,7 @@ export function HackingOverlay() {
   const playHostLine = useGameState((state) => state.playHostLine);
 
   // Extract values for easier use
-  const { isOpen, terminalId, mode, miniGamePhase, miniGameResult, attemptsRemaining, selectedAction } = hackingOverlay;
+  const { isOpen, terminalId, mode, hackMode, miniGamePhase, miniGameResult, attemptsRemaining, selectedAction } = hackingOverlay;
 
   // Track if we've already awarded source code for this result
   const hasAwardedRef = useRef(false);
@@ -569,10 +570,19 @@ export function HackingOverlay() {
     }
   }, [miniGamePhase]);
 
-  // Start/stop hacking loop based on mini-game phase
+  // Auto-start code challenge when hackMode is 'code' and we're in chooseAction phase
   useEffect(() => {
-    if (isOpen && miniGamePhase === 'playing') {
-      // Start hacking loop when entering playing phase
+    if (isOpen && hackMode === 'code' && miniGamePhase === 'chooseAction') {
+      // For code challenge, skip chooseAction and go directly to playing phase
+      // Use startHackingAction with a dummy action to transition to playing phase
+      startHackingAction('disableSentries'); // This will set miniGamePhase to 'playing'
+    }
+  }, [isOpen, hackMode, miniGamePhase, startHackingAction]);
+
+  // Start/stop hacking loop based on mini-game phase (only for timing mode)
+  useEffect(() => {
+    if (isOpen && miniGamePhase === 'playing' && hackMode === 'timing') {
+      // Start hacking loop when entering playing phase (only for timing mode)
       AudioManager.startHackingLoop();
     } else {
       // Stop hacking loop when not in playing phase or overlay closes
@@ -583,7 +593,7 @@ export function HackingOverlay() {
     return () => {
       AudioManager.stopHackingLoop();
     };
-  }, [isOpen, miniGamePhase]);
+  }, [isOpen, miniGamePhase, hackMode]);
 
   // Handle ESC key to close overlay - called unconditionally
   useEffect(() => {
@@ -817,11 +827,19 @@ export function HackingOverlay() {
         </button>
       </div>
     );
-  } else if (miniGamePhase === 'playing' && selectedAction) {
-    // Playing phase - render appropriate mini-game based on selectedAction
+  } else if (miniGamePhase === 'playing' && (selectedAction || hackMode === 'code')) {
+    // Playing phase - render appropriate mini-game based on hackMode or selectedAction
     let miniGameComponent: React.ReactNode = null;
 
-    if (selectedAction === 'disableSentries') {
+    if (hackMode === 'code') {
+      // Code challenge mode - render code challenge minigame
+      miniGameComponent = (
+        <CodeChallengeMiniGame
+          onSuccess={handleMiniGameSuccess}
+          onFailure={handleMiniGameMiss}
+        />
+      );
+    } else if (selectedAction === 'disableSentries') {
       // Disable local sentries uses the timing-bar mini-game
       miniGameComponent = (
         <TimingBarMiniGame
@@ -866,16 +884,19 @@ export function HackingOverlay() {
           alignItems: 'center',
         }}
       >
-        <div style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 'bold', color: '#00ff00' }}>
-          {title}
-        </div>
+        {hackMode !== 'code' && (
+          <div style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 'bold', color: '#00ff00' }}>
+            {title}
+          </div>
+        )}
         {miniGameComponent}
         <div style={{ marginTop: '24px', fontSize: '12px', color: '#00ff00', opacity: 0.6 }}>
           Press ESC to cancel
         </div>
       </div>
     );
-  } else {
+  } else if (hackMode !== 'code') {
+    // Choose action phase (normal mode) - skip for code mode
     // Choose action phase (normal mode) - main hacking interface with 3 buttons
     body = (
       <div

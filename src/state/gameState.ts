@@ -186,6 +186,7 @@ interface GameState {
     isOpen: boolean;
     terminalId: string | null;
     mode: 'normal' | 'locked' | 'alreadyHacked' | 'success';
+    hackMode: 'timing' | 'code'; // Type of minigame: timing bar or code challenge
     // Mini-game state
     selectedAction: 'disableSentries' | 'overrideGate' | 'convertWatcher' | null;
     miniGamePhase: 'chooseAction' | 'playing' | 'result';
@@ -254,7 +255,7 @@ interface GameState {
   clearInteractionPrompt: (sourceId?: string) => void;
   
   // Hacking overlay actions
-  openHackingOverlay: (terminalId: string, mode?: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
+  openHackingOverlay: (terminalId: string, mode?: 'normal' | 'locked' | 'alreadyHacked' | 'success', hackMode?: 'timing' | 'code') => void;
   setHackingOverlayMode: (mode: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
   closeHackingOverlay: () => void;
   // Mini-game actions
@@ -389,6 +390,7 @@ export const useGameState = create<GameState>((set, get) => {
     isOpen: false,
     terminalId: null,
     mode: 'normal',
+    hackMode: 'timing',
     selectedAction: null,
     miniGamePhase: 'chooseAction' as const,
     miniGameResult: null,
@@ -536,6 +538,7 @@ export const useGameState = create<GameState>((set, get) => {
         isOpen: false,
         terminalId: null,
         mode: 'normal',
+        hackMode: 'timing',
         selectedAction: null,
         miniGamePhase: 'chooseAction' as const,
         miniGameResult: null,
@@ -845,12 +848,13 @@ export const useGameState = create<GameState>((set, get) => {
   },
   
   // Hacking overlay actions
-  openHackingOverlay: (terminalId, mode = 'normal') => {
+  openHackingOverlay: (terminalId, mode = 'normal', hackMode: 'timing' | 'code' = 'timing') => {
     set({
       hackingOverlay: {
         isOpen: true,
         terminalId,
         mode,
+        hackMode,
         // Reset mini-game state when opening
         selectedAction: null,
         miniGamePhase: 'chooseAction',
@@ -914,6 +918,7 @@ export const useGameState = create<GameState>((set, get) => {
         isOpen: false,
         terminalId: null,
         mode: 'normal',
+        hackMode: 'timing',
         selectedAction: null,
         miniGamePhase: 'chooseAction',
         miniGameResult: null,
@@ -929,6 +934,7 @@ export const useGameState = create<GameState>((set, get) => {
         isOpen: false,
         terminalId: null,
         mode: 'normal',
+        hackMode: 'timing',
         selectedAction: null,
         miniGamePhase: 'chooseAction',
         miniGameResult: null,
