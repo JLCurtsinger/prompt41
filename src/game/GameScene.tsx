@@ -676,8 +676,8 @@ export function GameScene() {
           />
         </mesh>
         
-        {/* Simple ground plane for reference (can be removed once level geometry is complete) */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
+        {/* Simple ground plane for reference - hidden, FloorModel now provides visual floor */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow visible={false}>
           <planeGeometry args={[100, 100]} />
           <meshStandardMaterial 
             color="#2a2a2a" 

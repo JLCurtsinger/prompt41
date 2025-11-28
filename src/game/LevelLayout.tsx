@@ -7,6 +7,7 @@ import { Door } from './Interactables/Door';
 // TODO: Deprecated - EnemySentinel replaced by Simple enemy architecture
 // import { EnemySentinel } from './Enemies/EnemySentinel';
 import hostLinesData from '../assets/data/hostLines.json';
+import { FloorModel } from './models/FloorModel';
 
 // TODO: Wire this layout to match Zones 1–4 from CoreGameDetails.md (perimeter → yard → conduit → core chamber)
 
@@ -29,8 +30,8 @@ function PerimeterZone() {
           ====================== */}
       <group name="zone1_spawn" position={[-15, 0, 0]} />
       
-      {/* Ground plane for Zone 1 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-15, 0, 0]} receiveShadow>
+      {/* Ground plane for Zone 1 - replaced with FloorModel */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-15, 0, 0]} receiveShadow visible={false}>
         <planeGeometry args={[20, 20]} />
         <meshStandardMaterial color="#3a3a3a" />
       </mesh>
@@ -78,8 +79,8 @@ function ProcessingYardZone() {
     <group name="Zone2_ProcessingYard">
       {/* TODO: Replace with actual level_blockout.glb geometry */}
       
-      {/* Ground plane for Zone 2 - expanded */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+      {/* Ground plane for Zone 2 - replaced with FloorModel */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow visible={false}>
         <planeGeometry args={[40, 35]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
@@ -126,8 +127,8 @@ function ConduitHallZone() {
     <group name="Zone3_ConduitHall">
       {/* TODO: Replace with actual level_blockout.glb geometry */}
       
-      {/* Main corridor ground - expanded */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[20, 0, 0]} receiveShadow>
+      {/* Main corridor ground - replaced with FloorModel */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[20, 0, 0]} receiveShadow visible={false}>
         <planeGeometry args={[30, 12]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
@@ -144,7 +145,7 @@ function ConduitHallZone() {
       
       {/* Side room (branch path) */}
       <group position={[25, 0, -6]}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow visible={false}>
           <planeGeometry args={[6, 6]} />
           <meshStandardMaterial color="#2a2a2a" />
         </mesh>
@@ -191,8 +192,8 @@ function CoreAccessChamberZone() {
     <group name="Zone4_CoreAccessChamber">
       {/* TODO: Replace with actual level_blockout.glb geometry */}
       
-      {/* Circular arena ground - expanded */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[45, 0, 0]} receiveShadow>
+      {/* Circular arena ground - replaced with FloorModel */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[45, 0, 0]} receiveShadow visible={false}>
         <cylinderGeometry args={[16, 16, 0.1, 32]} />
         <meshStandardMaterial color="#1a1a1a" />
       </mesh>
@@ -275,15 +276,15 @@ export function LevelLayout() {
       <ConduitHallZone />
       <CoreAccessChamberZone />
       
-      {/* Transition connectors between zones */}
+      {/* Transition connectors between zones - replaced with FloorModel */}
       {/* Zone 1 to Zone 2 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-5, 0, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-5, 0, 0]} receiveShadow visible={false}>
         <planeGeometry args={[10, 10]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
       
       {/* Zone 2 to Zone 3 - adjusted position */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[12, 0, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[12, 0, 0]} receiveShadow visible={false}>
         <planeGeometry args={[10, 8]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
@@ -295,10 +296,18 @@ export function LevelLayout() {
       />
       
       {/* Zone 3 to Zone 4 - adjusted position */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[35, 0, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[35, 0, 0]} receiveShadow visible={false}>
         <planeGeometry args={[10, 8]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
+      
+      {/* New FloorModel covering the entire play area */}
+      {/* Positioned to cover all zones: roughly x=-15 to x=55, z=-10 to z=10 */}
+      <FloorModel
+        position={[20, 0, 0]}
+        rotation={[0, 0, 0]}
+        scaleMultiplier={1}
+      />
       
       {/* ======================
           TRIGGER VOLUMES
