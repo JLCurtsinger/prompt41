@@ -37,6 +37,7 @@ import { BatonSFX } from './audio/BatonSFX';
 import type { BatonSFXHandle } from './audio/BatonSFX';
 import { BatonImpactSpark } from './Effects/BatonImpactSpark';
 import { ZeekoModel } from './models/ZeekoModel';
+import { AudioManager } from './audio/AudioManager';
 import * as THREE from 'three';
 
 // Type for tracking active spark effects
@@ -56,6 +57,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const velocity = useRef(new THREE.Vector3());
   const direction = useRef(new THREE.Vector3());
   const isGrounded = useRef(true);
+  const wasGroundedRef = useRef(true);
   const verticalVelocity = useRef(0);
   
   // Impact spark state
@@ -544,6 +546,13 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       player.position.y = newY;
       isGrounded.current = false;
     }
+    
+    // Detect landing: transition from airborne to grounded
+    const wasGrounded = wasGroundedRef.current;
+    if (!wasGrounded && isGrounded.current) {
+      AudioManager.playSFX('JumpLanding');
+    }
+    wasGroundedRef.current = isGrounded.current;
     
     // Calculate camera forward and right vectors for movement
     const cameraForward = new THREE.Vector3();

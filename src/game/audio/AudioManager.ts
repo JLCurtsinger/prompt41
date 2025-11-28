@@ -29,7 +29,7 @@
 //    - Game should continue running even if audio fails
 
 type ZoneId = 'zone1' | 'zone2' | 'zone3' | 'zone4';
-type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'hackingFail' | 'pickupEnergyCell' | 'pickupSourceCode' | 'shutdownStart' | 'footstep' | 'gameOver' | 'ActiveHacking' | 'HackingSuccess' | 'ZeekoDamage' | 'EnemyDying' | 'SneakingFootsteps' | 'QuickFootsteps' | 'CrawlerVoice' | 'DroneAttack';
+type SFXType = 'hitPlayer' | 'enemyDeath' | 'hackingStart' | 'hackingSuccess' | 'hackingFail' | 'pickupEnergyCell' | 'pickupSourceCode' | 'shutdownStart' | 'footstep' | 'gameOver' | 'ActiveHacking' | 'HackingSuccess' | 'ZeekoDamage' | 'EnemyDying' | 'SneakingFootsteps' | 'QuickFootsteps' | 'CrawlerVoice' | 'DroneAttack' | 'JumpLanding';
 
 interface AmbientLayer {
   audio: HTMLAudioElement;
@@ -81,6 +81,7 @@ class AudioManagerClass {
   private readonly SFX_QUICK_FOOTSTEPS_PATH = '/audio/Quick-Footsteps.ogg';
   private readonly SFX_CRAWLER_VOICE_PATH = '/audio/crawler-voice.ogg';
   private readonly SFX_DRONE_ATTACK_PATH = '/audio/drone-attack.ogg';
+  private readonly SFX_JUMP_LANDING_PATH = '/audio/Jump-Landing.ogg';
 
   private readonly FADE_DURATION = 0.9; // seconds
 
@@ -178,6 +179,7 @@ class AudioManagerClass {
       QuickFootsteps: this.SFX_QUICK_FOOTSTEPS_PATH,
       CrawlerVoice: this.SFX_CRAWLER_VOICE_PATH,
       DroneAttack: this.SFX_DRONE_ATTACK_PATH,
+      JumpLanding: this.SFX_JUMP_LANDING_PATH,
     };
 
     for (const [type, path] of Object.entries(sfxMap)) {
