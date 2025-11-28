@@ -12,17 +12,56 @@ export function FloorModel({ scaleMultiplier = 1, ...groupProps }: FloorModelPro
 
   const clonedScene = useMemo(() => {
     const clone = gltf.scene.clone(true);
+
+    type MeshWithHeight = {
+      mesh: any;
+      height: number;
+    };
+
+    const meshes: MeshWithHeight[] = [];
+
+    // First pass: collect all meshes and compute their heights
     clone.traverse((obj) => {
-      // Ensure all materials are mesh standard/physical and cast/receive shadows correctly
-      // without changing their look.
-      // Only do minimal adjustments, no color/roughness reworks.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mesh = obj as any;
-      if (mesh.isMesh) {
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
+      if (mesh.isMesh && mesh.geometry) {
+        mesh.geometry.computeBoundingBox();
+        const bbox = mesh.geometry.boundingBox;
+        if (bbox) {
+          const height = bbox.max.y - bbox.min.y;
+          meshes.push({ mesh, height });
+        }
       }
     });
+
+    if (meshes.length === 0) {
+      return clone;
+    }
+
+    // Find the minimum height among all meshes (assumed to be the floor tile)
+    let minHeight = meshes[0].height;
+    for (const entry of meshes) {
+      if (entry.height < minHeight) {
+        minHeight = entry.height;
+      }
+    }
+
+    // Define a tolerance so slightly thicker floor pieces are still kept
+    const TOLERANCE = 1.25; // keep meshes whose height <= minHeight * TOLERANCE
+
+    // Second pass: configure visibility and shadows
+    for (const { mesh, height } of meshes) {
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
+      const isFloorLike = height <= minHeight * TOLERANCE;
+
+      // Keep only the flattest meshes (floor); hide everything else (e.g., pillar)
+      if (!isFloorLike) {
+        mesh.visible = false;
+      }
+    }
+
     return clone;
   }, [gltf.scene]);
 

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { useState } from 'react';
+import type { JSX } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { TriggerVolume } from './Interactables/TriggerVolume';
 import { HackingTerminal } from './Interactables/HackingTerminal';
@@ -301,13 +302,33 @@ export function LevelLayout() {
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
       
-      {/* New FloorModel covering the entire play area */}
-      {/* Positioned to cover all zones: roughly x=-15 to x=55, z=-10 to z=10 */}
-      <FloorModel
-        position={[20, 0, 0]}
-        rotation={[0, 0, 0]}
-        scaleMultiplier={1}
-      />
+      {/* Tiled FloorModel covering the entire play area */}
+      {(() => {
+        const tiles: JSX.Element[] = [];
+
+        // Approximate play area bounds.
+        const X_START = -20;
+        const X_END = 60;
+        const Z_START = -12;
+        const Z_END = 12;
+
+        // Approximate spacing between tiles. Adjust if you see gaps/overlap.
+        const TILE_SPACING = 4;
+
+        for (let x = X_START; x <= X_END; x += TILE_SPACING) {
+          for (let z = Z_START; z <= Z_END; z += TILE_SPACING) {
+            tiles.push(
+              <FloorModel
+                key={`${x}-${z}`}
+                position={[x, 0, z]}
+                scaleMultiplier={1}
+              />
+            );
+          }
+        }
+
+        return tiles;
+      })()}
       
       {/* ======================
           TRIGGER VOLUMES
