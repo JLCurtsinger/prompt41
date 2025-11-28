@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 
 interface CodeChallengeMiniGameProps {
   onSuccess: () => void;
-  onFailure?: () => void;
 }
 
 interface Question {
@@ -30,7 +29,7 @@ const questions: Question[] = [
   },
 ];
 
-export function CodeChallengeMiniGame({ onSuccess, onFailure }: CodeChallengeMiniGameProps) {
+export function CodeChallengeMiniGame({ onSuccess }: CodeChallengeMiniGameProps) {
   // Select a random question on mount
   const question = useMemo(() => {
     return questions[Math.floor(Math.random() * questions.length)];

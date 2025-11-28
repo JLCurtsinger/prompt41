@@ -836,7 +836,6 @@ export function HackingOverlay() {
       miniGameComponent = (
         <CodeChallengeMiniGame
           onSuccess={handleMiniGameSuccess}
-          onFailure={handleMiniGameMiss}
         />
       );
     } else if (selectedAction === 'disableSentries') {
