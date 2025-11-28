@@ -76,6 +76,21 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
     // ================================================================
     const canHack = nowInRange && terminalState === 'locked' && !isLockedBySentinel;
     
+    // Debug block for terminal-zone4
+    if (id === 'terminal-zone4') {
+      const distanceToPlayer = distance;
+      if (distanceToPlayer < 6) {
+        console.log('[terminal-zone4 debug]', {
+          distanceToPlayer,
+          isPlayerNear: nowInRange,
+          terminalState,
+          disabledUntilSentinelDefeated,
+          sentinelDefeated,
+          canHack,
+        });
+      }
+    }
+    
     if (nowInRange && !wasInRange) {
       // Just entered range
       console.log(`[HackingTerminal ${id}] Player entered range (distance: ${distance.toFixed(2)})`);
