@@ -76,26 +76,9 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
     // ================================================================
     const canHack = nowInRange && terminalState === 'locked' && !isLockedBySentinel;
     
-    // Debug block for terminal-zone4
-    if (id === 'terminal-zone4') {
-      const distanceToPlayer = distance;
-      if (distanceToPlayer < 6) {
-        console.log('[terminal-zone4 debug]', {
-          distanceToPlayer,
-          isPlayerNear: nowInRange,
-          terminalState,
-          disabledUntilSentinelDefeated,
-          sentinelDefeated,
-          canHack,
-        });
-      }
-    }
-    
     if (nowInRange && !wasInRange) {
       // Just entered range
-      console.log(`[HackingTerminal ${id}] Player entered range (distance: ${distance.toFixed(2)})`);
       if (canHack) {
-        console.log(`[HackingTerminal ${id}] Showing interaction prompt`);
         showInteractionPrompt({
           message: 'Hack terminal',
           actionKey: 'E',
@@ -104,18 +87,15 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
         promptShownRef.current = true;
       } else if (isLockedBySentinel) {
         // Don't show prompt if locked by Sentinel
-        console.log(`[HackingTerminal ${id}] Locked by Sentinel - no prompt`);
         clearInteractionPrompt(id);
         promptShownRef.current = false;
       } else {
         // Already hacked - no prompt
-        console.log(`[HackingTerminal ${id}] Already hacked - no prompt`);
         clearInteractionPrompt(id);
         promptShownRef.current = false;
       }
     } else if (!nowInRange && wasInRange) {
       // Just left range
-      console.log(`[HackingTerminal ${id}] Player left range`);
       clearInteractionPrompt(id);
       promptShownRef.current = false;
     } else if (nowInRange) {
@@ -126,7 +106,6 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
         // Check current state to see if our prompt is active
         const currentPrompt = useGameState.getState().interactionPrompt;
         if (currentPrompt.sourceId !== id || !currentPrompt.message) {
-          console.log(`[HackingTerminal ${id}] Re-showing interaction prompt (current sourceId: ${currentPrompt.sourceId})`);
           showInteractionPrompt({
             message: 'Hack terminal',
             actionKey: 'E',
@@ -151,23 +130,16 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   // Handle E key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Log all E key presses for debugging
-      if (e.key.toLowerCase() === 'e') {
-        console.log(`[HackingTerminal ${id}] E key pressed - isInRange: ${isInRange}, hackingOverlay.isOpen: ${hackingOverlay.isOpen}, terminalState: ${terminalState}`);
-      }
-      
       if (e.key.toLowerCase() === 'e' && isInRange && !hackingOverlay.isOpen) {
         try {
           if (terminalState === 'locked') {
             // Check if terminal is locked by Sentinel
             if (isLockedBySentinel) {
-              console.log(`[HackingTerminal ${id}] Terminal locked by Sentinel - cannot hack`);
               return;
             }
             
             // Open normal hacking overlay
             try {
-              console.log(`[HackingTerminal ${id}] Opening hacking overlay...`);
               openHackingOverlay(id, 'normal');
               AudioManager.playSFX('ActiveHacking');
               clearInteractionPrompt(id); // Clear prompt when overlay opens

@@ -435,12 +435,6 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     const touchAttackJustPressed = touchAttackPressed && !prevTouchAttackRef.current;
     prevTouchAttackRef.current = touchAttackPressed;
     
-    // Debug: Log attack input detection
-    const attackInputDetected = mouseJustPressed || enterJustPressed || touchAttackJustPressed;
-    if (attackInputDetected) {
-      console.log('[Combat] Attack input detected, mouseJustPressed =', mouseJustPressed, 'enterJustPressed =', enterJustPressed, 'touchAttackJustPressed =', touchAttackJustPressed, 'canAttack =', canAttack, 'isSwinging =', isSwinging);
-    }
-    
     // Perform attack on mouse click, Enter key press, or touch attack button
     // Note: We check canAttack for cooldown, but allow animation even if isSwinging is true
     // (the animation should play every time an attack input is detected)
@@ -449,8 +443,6 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       lastAttackTime.current = currentTime;
       setIsSwinging(true);
       setTimeout(() => setIsSwinging(false), 300);
-      
-      console.log('[Combat] Baton swing started');
       
       batonIsSwingingRef.current = true;
       batonSwingTimeRef.current = 0;
@@ -944,11 +936,26 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       // Find enemies in range during swing
       const enemiesInRange = getEnemiesInRange(playerPos, BATON_RANGE);
       
-      if (enemiesInRange.length > 0) {
-        // Hit the first enemy in range
-        const hitEnemy = enemiesInRange[0];
+      // Filter out dead enemies explicitly (defensive check)
+      const aliveEnemies = enemiesInRange.filter(enemy => {
+        if (enemy.isDead && enemy.isDead()) {
+          return false;
+        }
+        return true;
+      });
+      
+      if (aliveEnemies.length > 0) {
+        // Hit the first alive enemy in range
+        const hitEnemy = aliveEnemies[0];
+        
+        // Double-check enemy is still alive before applying damage
+        if (hitEnemy.isDead && hitEnemy.isDead()) {
+          // Enemy died between check and hit, skip this swing
+          hasHitThisSwing.current = true;
+          return;
+        }
+        
         const enemyPos = hitEnemy.getPosition();
-        const distance = playerPos.distanceTo(enemyPos);
         
         // Get enemy info before applying damage
         const enemyName = hitEnemy.getEnemyName ? hitEnemy.getEnemyName() : 
@@ -960,37 +967,24 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         hitEnemy.takeDamage(BATON_DAMAGE);
         hasHitThisSwing.current = true; // Prevent multiple hits in one swing
         
-        // Spawn impact spark at enemy position
-        const sparkId = sparkIdCounter.current++;
-        const sparkPos: [number, number, number] = [enemyPos.x, enemyPos.y + 1, enemyPos.z];
-        setActiveSparks(prev => [...prev, { id: sparkId, position: sparkPos }]);
+        // Verify enemy is still alive after damage (might have died)
+        const isStillAlive = !hitEnemy.isDead || !hitEnemy.isDead();
         
-        // Play impact audio
-        const sfx = batonSfxRef.current;
-        sfx?.playImpact();
-        
-        // Update target enemy for HUD (get health after damage)
-        const currentHealth = hitEnemy.getHealth ? hitEnemy.getHealth() : (maxHealth - BATON_DAMAGE);
-        setCurrentTargetEnemy(hitEnemy.id, enemyName, currentHealth, maxHealth);
-        
-        console.log('[Combat] Melee hit detected:', {
-          enemyId: hitEnemy.id,
-          enemyName,
-          distance: distance.toFixed(2),
-          damage: BATON_DAMAGE,
-          healthAfter: currentHealth,
-          maxHealth
-        });
+        if (isStillAlive) {
+          // Spawn impact spark at enemy position
+          const sparkId = sparkIdCounter.current++;
+          const sparkPos: [number, number, number] = [enemyPos.x, enemyPos.y + 1, enemyPos.z];
+          setActiveSparks(prev => [...prev, { id: sparkId, position: sparkPos }]);
+          
+          // Play impact audio
+          const sfx = batonSfxRef.current;
+          sfx?.playImpact();
+          
+          // Update target enemy for HUD (get health after damage)
+          const currentHealth = hitEnemy.getHealth ? hitEnemy.getHealth() : (maxHealth - BATON_DAMAGE);
+          setCurrentTargetEnemy(hitEnemy.id, enemyName, currentHealth, maxHealth);
+        }
       }
-    }
-
-    // Debug: Log baton animation state every frame during swing
-    if (batonIsSwingingRef.current) {
-      console.log(
-        '[Combat] Baton anim tick:',
-        'isSwinging =', batonIsSwingingRef.current,
-        'time =', batonSwingTimeRef.current.toFixed(3)
-      );
     }
 
     if (batonIsSwingingRef.current) {
@@ -1004,10 +998,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       const angle = -SWING_ARC / 2 + eased * SWING_ARC;
       const idleZ = -0.3; // keep the same idle angle you used before
 
-      // Apply swing rotation on Z axis (preserve debug Y rotation above)
+      // Apply swing rotation on Z axis
       baton.rotation.z = idleZ + angle;
-      
-      console.log('[Combat] Baton anim angle:', angle.toFixed(2));
 
       if (t >= 1) {
         // End of swing: reset and stop
@@ -1015,7 +1007,6 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         batonSwingTimeRef.current = 0;
         hasHitThisSwing.current = false; // Reset hit flag for next swing
         baton.rotation.z = idleZ;
-        console.log('[Combat] Baton swing ended');
       }
     } else {
       // Not swinging: ensure baton is in idle pose

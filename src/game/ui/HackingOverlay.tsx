@@ -60,6 +60,13 @@ function TimingBarMiniGame({
   const zoneStart = 0.5 - zoneWidth / 2;
   const zoneEnd = 0.5 + zoneWidth / 2;
 
+  // Reset state when component mounts or attempts change (new minigame session)
+  useEffect(() => {
+    setCursorPosition(0);
+    directionRef.current = 1;
+    lastTimeRef.current = null;
+  }, [attemptsRemaining]);
+
   // Animation loop
   useEffect(() => {
     const animate = (time: number) => {
@@ -93,20 +100,26 @@ function TimingBarMiniGame({
     return () => {
       if (animationRef.current !== null) {
         cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
       }
+      lastTimeRef.current = null;
     };
   }, []);
 
-  // Handle click
+  // Handle click - use ref to get current position to avoid stale closures
+  const cursorPositionRef = useRef(0);
+  cursorPositionRef.current = cursorPosition;
+  
   const handleClick = useCallback(() => {
-    const isInZone = cursorPosition >= zoneStart && cursorPosition <= zoneEnd;
+    const currentPos = cursorPositionRef.current;
+    const isInZone = currentPos >= zoneStart && currentPos <= zoneEnd;
     
     if (isInZone) {
       onSuccess();
     } else {
       onFailedAttempt();
     }
-  }, [cursorPosition, zoneStart, zoneEnd, onSuccess, onFailedAttempt]);
+  }, [zoneStart, zoneEnd, onSuccess, onFailedAttempt]);
 
   return (
     <div
@@ -206,6 +219,15 @@ function OverrideGateMiniGame({
   const zone1 = { start: 0.3, end: 0.55 };
   const zone2 = { start: 0.45, end: 0.75 };
 
+  // Reset state when component mounts or attempts change (new minigame session)
+  useEffect(() => {
+    setCursorPos1(0);
+    setCursorPos2(0.3);
+    direction1Ref.current = 1;
+    direction2Ref.current = 1;
+    lastTimeRef.current = null;
+  }, [attemptsRemaining]);
+
   // Animation loop
   useEffect(() => {
     const animate = (time: number) => {
@@ -250,21 +272,30 @@ function OverrideGateMiniGame({
     return () => {
       if (animationRef.current !== null) {
         cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
       }
+      lastTimeRef.current = null;
     };
   }, []);
 
-  // Handle click - both cursors must be in their zones
+  // Handle click - both cursors must be in their zones - use refs to avoid stale closures
+  const cursorPos1Ref = useRef(0);
+  const cursorPos2Ref = useRef(0.3);
+  cursorPos1Ref.current = cursorPos1;
+  cursorPos2Ref.current = cursorPos2;
+  
   const handleClick = useCallback(() => {
-    const cursor1InZone = cursorPos1 >= zone1.start && cursorPos1 <= zone1.end;
-    const cursor2InZone = cursorPos2 >= zone2.start && cursorPos2 <= zone2.end;
+    const currentPos1 = cursorPos1Ref.current;
+    const currentPos2 = cursorPos2Ref.current;
+    const cursor1InZone = currentPos1 >= zone1.start && currentPos1 <= zone1.end;
+    const cursor2InZone = currentPos2 >= zone2.start && currentPos2 <= zone2.end;
     
     if (cursor1InZone && cursor2InZone) {
       onSuccess();
     } else {
       onFailedAttempt();
     }
-  }, [cursorPos1, cursorPos2, onSuccess, onFailedAttempt]);
+  }, [onSuccess, onFailedAttempt]);
 
   // Shared bar style
   const barStyle: React.CSSProperties = {

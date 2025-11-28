@@ -144,28 +144,6 @@ export function SimpleCrawler({
 
         healthRef.current = Math.max(0, before - amount);
 
-        console.log(
-
-          "[Combat] Baton hit",
-
-          enemyName,
-
-          enemyId,
-
-          "for",
-
-          amount,
-
-          "=> hp:",
-
-          healthRef.current,
-
-          "/",
-
-          maxHealth,
-
-        );
-
       },
 
       isDead: () => healthRef.current <= 0,
@@ -197,10 +175,10 @@ export function SimpleCrawler({
 
     if (!root || hasFinishedDeathRef.current) return;
 
-    // Death handling
-
+    // Death handling - check health first and handle death sequence
     if (healthRef.current <= 0) {
 
+      // Start death sequence (only once)
       if (!isDyingRef.current) {
 
         isDyingRef.current = true;
@@ -217,12 +195,7 @@ export function SimpleCrawler({
         // Hide enemy mesh immediately
         root.visible = false;
 
-        console.log("[Crawler]", enemyId, "death sequence started");
-
-      }
-
-      if (!hasFinishedDeathRef.current) {
-
+        // Complete death sequence immediately (unregister, notify, etc.)
         hasFinishedDeathRef.current = true;
 
         unregisterEnemy(enemyId);
@@ -234,10 +207,9 @@ export function SimpleCrawler({
 
         checkWinCondition();
 
-        console.log("[Crawler]", enemyId, "unregistered after death");
-
       }
 
+      // Stop all processing once dead
       return;
 
     }
