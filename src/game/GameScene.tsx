@@ -294,7 +294,10 @@ function EnemyRespawnController({
 }
 
 export function GameScene() {
-  const [currentDpr, setCurrentDpr] = useState(1.25);
+  // Detect mobile once at startup
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  
+  const [currentDpr, setCurrentDpr] = useState(isMobile ? 1.0 : 1.25);
   const [_playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
   const [_isSentinelActivated, _setIsSentinelActivated] = useState(false);
   const [zone1Entered, setZone1Entered] = useState(false);
@@ -335,6 +338,13 @@ export function GameScene() {
     return () => clearTimeout(timeoutId);
   }, [setTotalEnemiesForLevelStart]);
   
+  // Ensure DPR stays within mobile/desktop bounds
+  useEffect(() => {
+    const minDpr = isMobile ? 0.7 : 0.8;
+    const maxDpr = isMobile ? 1.0 : 1.25;
+    setCurrentDpr((prev) => Math.max(minDpr, Math.min(maxDpr, prev)));
+  }, [isMobile]);
+  
   return (
     <>
       <ZoneAudioController />
@@ -344,17 +354,19 @@ export function GameScene() {
       style={{ width: '100%', height: '100%', display: 'block' }}
       gl={{ antialias: false, powerPreference: 'high-performance', alpha: false }}
       dpr={currentDpr}
-      shadows
+      shadows={!isMobile}
     >
       <Suspense fallback={null}>
         <PerformanceMonitor
           onChange={({ factor }) => {
+            const minDpr = isMobile ? 0.7 : 0.8;
+            const maxDpr = isMobile ? 1.0 : 1.25;
             if (factor < 0.7) {
-              // Performance is low, decrease DPR toward 1.0
-              setCurrentDpr((prev) => Math.max(0.8, prev - 0.05));
+              // Performance is low, decrease DPR
+              setCurrentDpr((prev) => Math.max(minDpr, prev - 0.05));
             } else if (factor > 0.9) {
-              // Performance is good, increase DPR toward 1.25
-              setCurrentDpr((prev) => Math.min(1.25, prev + 0.05));
+              // Performance is good, increase DPR
+              setCurrentDpr((prev) => Math.min(maxDpr, prev + 0.05));
             }
           }}
         >
@@ -375,7 +387,7 @@ export function GameScene() {
         <directionalLight 
           position={[0, 8, 5]} 
           intensity={1.2} 
-          castShadow
+          castShadow={!isMobile}
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
           shadow-camera-far={50}
@@ -392,7 +404,7 @@ export function GameScene() {
           intensity={1.5} 
           distance={15}
           decay={2}
-          castShadow
+          castShadow={!isMobile}
         />
         
         {/* Zone 2 (Processing Yard) - Large point light */}
@@ -401,7 +413,7 @@ export function GameScene() {
           intensity={1.8} 
           distance={18}
           decay={2}
-          castShadow
+          castShadow={!isMobile}
         />
         
         {/* Zone 3 (Conduit Hall) - Large point light */}
@@ -410,7 +422,7 @@ export function GameScene() {
           intensity={1.5} 
           distance={15}
           decay={2}
-          castShadow
+          castShadow={!isMobile}
         />
         
         {/* Zone 4 (Core Chamber) - Dramatic red/orange point light */}
@@ -420,7 +432,7 @@ export function GameScene() {
           distance={20}
           decay={2}
           color="#ff4400"
-          castShadow
+          castShadow={!isMobile}
         />
         
         {/* Camera is controlled by Player component's useFrame hook */}
@@ -442,7 +454,7 @@ export function GameScene() {
         )}
         
         {/* Level layout with all four zones */}
-        <LevelLayout />
+        <LevelLayout isMobile={isMobile} />
         
         {/* Player component - camera rig is handled inside Player */}
         {/* Player spawns at Zone 1 position defined in LevelLayout */}

@@ -5,9 +5,11 @@ import type { JSX } from 'react';
 type FloorModelProps = JSX.IntrinsicElements['group'] & {
   /** Allow overriding scale if needed */
   scaleMultiplier?: number;
+  /** Mobile device flag for performance optimizations */
+  isMobile?: boolean;
 };
 
-export function FloorModel({ scaleMultiplier = 1, ...groupProps }: FloorModelProps) {
+export function FloorModel({ scaleMultiplier = 1, isMobile = false, ...groupProps }: FloorModelProps) {
   const gltf = useGLTF('/models/Floor.glb');
 
   const clonedScene = useMemo(() => {
@@ -51,7 +53,7 @@ export function FloorModel({ scaleMultiplier = 1, ...groupProps }: FloorModelPro
 
     // Second pass: configure visibility and shadows
     for (const { mesh, height } of meshes) {
-      mesh.castShadow = true;
+      mesh.castShadow = !isMobile;
       mesh.receiveShadow = true;
 
       const isFloorLike = height <= minHeight * TOLERANCE;

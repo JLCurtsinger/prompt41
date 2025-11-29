@@ -247,7 +247,7 @@ function CoreAccessChamberZone() {
 }
 
 // Main level layout component combining all zones
-export function LevelLayout() {
+export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
   const { scene } = useThree();
   const [_playerPosition, setPlayerPosition] = useState<[number, number, number]>([-15, 0, 0]);
   const [_isSentinelActivated, setIsSentinelActivated] = useState(false);
@@ -323,6 +323,7 @@ export function LevelLayout() {
                 key={`${x}-${z}`}
                 position={[x, 0, z]}
                 scaleMultiplier={1}
+                isMobile={isMobile}
               />
             );
           }
