@@ -947,7 +947,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       const enemiesInRange = getEnemiesInRange(playerPos, BATON_RANGE);
       
       // Find the first valid, alive enemy (list is already nearest-first)
-      let target: EnemyInstance | null = null;
+      let target = null;
       for (const enemy of enemiesInRange) {
         if (!enemy.isDead()) {
           target = enemy;
