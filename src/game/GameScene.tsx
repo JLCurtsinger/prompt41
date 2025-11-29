@@ -298,6 +298,7 @@ export function GameScene() {
   const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
   
   const [currentDpr, setCurrentDpr] = useState(isMobile ? 1.0 : 1.25);
+  const hasAdjustedDprRef = useRef(false);
   const [_playerPosition, setPlayerPosition] = useState<[number, number, number]>(PLAYER_SPAWN_POSITION);
   const [_isSentinelActivated, _setIsSentinelActivated] = useState(false);
   const [zone1Entered, setZone1Entered] = useState(false);
@@ -359,14 +360,30 @@ export function GameScene() {
       <Suspense fallback={null}>
         <PerformanceMonitor
           onChange={({ factor }) => {
-            const minDpr = isMobile ? 0.7 : 0.8;
-            const maxDpr = isMobile ? 1.0 : 1.25;
+            // If we've already adjusted DPR once, do nothing.
+            if (hasAdjustedDprRef.current) return;
+
+            // Only react if performance is clearly poor.
             if (factor < 0.7) {
-              // Performance is low, decrease DPR
-              setCurrentDpr((prev) => Math.max(minDpr, prev - 0.05));
-            } else if (factor > 0.9) {
-              // Performance is good, increase DPR
-              setCurrentDpr((prev) => Math.min(maxDpr, prev + 0.05));
+              setCurrentDpr((prev) => {
+                // Use the existing mobile-aware ranges.
+                const minDpr = isMobile ? 0.7 : 0.8;
+                const maxDpr = isMobile ? 1.0 : 1.25;
+
+                // Reduce DPR a bit, but clamp to min/max.
+                let next = prev - 0.25;
+                if (next < minDpr) next = minDpr;
+                if (next > maxDpr) next = maxDpr;
+
+                // If nothing effectively changed, don't mark as adjusted.
+                if (next === prev) {
+                  return prev;
+                }
+
+                // Mark that we've adjusted once and lock in.
+                hasAdjustedDprRef.current = true;
+                return next;
+              });
             }
           }}
         >
