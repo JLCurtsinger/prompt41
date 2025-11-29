@@ -30,16 +30,38 @@ export function getEnemiesInRange(
   maxDistance: number
 ): EnemyInstance[] {
   const results: EnemyInstance[] = [];
+  const maxDistanceSq = maxDistance * maxDistance;
   
   enemies.forEach((enemy) => {
     if (enemy.isDead()) return; // Skip dead enemies
     if (enemy.isActive && !enemy.isActive()) return; // Skip inactive enemies
     
     const enemyPos = enemy.getPosition();
-    const distance = enemyPos.distanceTo(center);
-    if (distance <= maxDistance) {
+    // Use squared distance to avoid Math.sqrt
+    const dx = enemyPos.x - center.x;
+    const dy = enemyPos.y - center.y;
+    const dz = enemyPos.z - center.z;
+    const distSq = dx * dx + dy * dy + dz * dz;
+    if (distSq <= maxDistanceSq) {
       results.push(enemy);
     }
+  });
+  
+  // Sort by squared distance (nearest first)
+  results.sort((a, b) => {
+    const aPos = a.getPosition();
+    const bPos = b.getPosition();
+    const aDx = aPos.x - center.x;
+    const aDy = aPos.y - center.y;
+    const aDz = aPos.z - center.z;
+    const aDistSq = aDx * aDx + aDy * aDy + aDz * aDz;
+    
+    const bDx = bPos.x - center.x;
+    const bDy = bPos.y - center.y;
+    const bDz = bPos.z - center.z;
+    const bDistSq = bDx * bDx + bDy * bDy + bDz * bDz;
+    
+    return aDistSq - bDistSq;
   });
   
   return results;

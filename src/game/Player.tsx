@@ -943,57 +943,51 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     // Melee hit detection during swing window
     // Check for hits during the active swing period (not just at the start)
     if (batonIsSwingingRef.current && !hasHitThisSwing.current) {
-      // Find enemies in range during swing
+      // Find enemies in range during swing (already sorted nearest-first)
       const enemiesInRange = getEnemiesInRange(playerPos, BATON_RANGE);
       
-      // Filter out dead enemies explicitly (defensive check)
-      const aliveEnemies = enemiesInRange.filter(enemy => {
-        if (enemy.isDead && enemy.isDead()) {
-          return false;
+      // Find the first valid, alive enemy (list is already nearest-first)
+      let target: EnemyInstance | null = null;
+      for (const enemy of enemiesInRange) {
+        if (!enemy.isDead()) {
+          target = enemy;
+          break;
         }
-        return true;
-      });
+      }
       
-      if (aliveEnemies.length > 0) {
-        // Hit the first alive enemy in range
-        const hitEnemy = aliveEnemies[0];
+      if (!target) {
+        // No valid enemy to hit; do not consume the swing
+        return;
+      }
+      
+      const enemyPos = target.getPosition();
+      
+      // Get enemy info before applying damage
+      const enemyName = target.getEnemyName ? target.getEnemyName() : 
+                       (target.id.includes('crawler') ? 'Crawler' : 
+                        target.id.includes('shambler') ? 'Shambler' : 'Enemy');
+      const maxHealth = target.getMaxHealth ? target.getMaxHealth() : 100;
+      
+      // Apply damage
+      target.takeDamage(BATON_DAMAGE);
+      hasHitThisSwing.current = true; // Consume the swing only after successful hit
+      
+      // Verify enemy is still alive after damage (might have died)
+      const isStillAlive = !target.isDead();
+      
+      if (isStillAlive) {
+        // Spawn impact spark at enemy position
+        const sparkId = sparkIdCounter.current++;
+        const sparkPos: [number, number, number] = [enemyPos.x, enemyPos.y + 1, enemyPos.z];
+        setActiveSparks(prev => [...prev, { id: sparkId, position: sparkPos }]);
         
-        // Double-check enemy is still alive before applying damage
-        if (hitEnemy.isDead && hitEnemy.isDead()) {
-          // Enemy died between check and hit, skip this swing
-          hasHitThisSwing.current = true;
-          return;
-        }
+        // Play impact audio
+        const sfx = batonSfxRef.current;
+        sfx?.playImpact();
         
-        const enemyPos = hitEnemy.getPosition();
-        
-        // Get enemy info before applying damage
-        const enemyName = hitEnemy.getEnemyName ? hitEnemy.getEnemyName() : 
-                         (hitEnemy.id.includes('crawler') ? 'Crawler' : 
-                          hitEnemy.id.includes('shambler') ? 'Shambler' : 'Enemy');
-        const maxHealth = hitEnemy.getMaxHealth ? hitEnemy.getMaxHealth() : 100;
-        
-        // Apply damage
-        hitEnemy.takeDamage(BATON_DAMAGE);
-        hasHitThisSwing.current = true; // Prevent multiple hits in one swing
-        
-        // Verify enemy is still alive after damage (might have died)
-        const isStillAlive = !hitEnemy.isDead || !hitEnemy.isDead();
-        
-        if (isStillAlive) {
-          // Spawn impact spark at enemy position
-          const sparkId = sparkIdCounter.current++;
-          const sparkPos: [number, number, number] = [enemyPos.x, enemyPos.y + 1, enemyPos.z];
-          setActiveSparks(prev => [...prev, { id: sparkId, position: sparkPos }]);
-          
-          // Play impact audio
-          const sfx = batonSfxRef.current;
-          sfx?.playImpact();
-          
-          // Update target enemy for HUD (get health after damage)
-          const currentHealth = hitEnemy.getHealth ? hitEnemy.getHealth() : (maxHealth - BATON_DAMAGE);
-          setCurrentTargetEnemy(hitEnemy.id, enemyName, currentHealth, maxHealth);
-        }
+        // Update target enemy for HUD (get health after damage)
+        const currentHealth = target.getHealth ? target.getHealth() : (maxHealth - BATON_DAMAGE);
+        setCurrentTargetEnemy(target.id, enemyName, currentHealth, maxHealth);
       }
     }
 
