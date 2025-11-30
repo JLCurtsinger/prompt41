@@ -44,5 +44,6 @@ export function SentinelMiniBossModel(props: SentinelMiniBossModelProps) {
   );
 }
 
-useGLTF.preload('/models/Sentinel-Mini-Boss.glb');
+// Deferred preload - only preload when player approaches Zone 4
+// useGLTF.preload('/models/Sentinel-Mini-Boss.glb');
 

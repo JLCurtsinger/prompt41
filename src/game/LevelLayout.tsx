@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { JSX } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { TriggerVolume } from './Interactables/TriggerVolume';
@@ -105,8 +105,9 @@ function ProcessingYardZone() {
       </mesh>
       
       {/* Machinery / equipment blocks creating paths */}
+      {/* Adjusted position to ensure clear path from spawn to crawler */}
       <WallColliderWrapper debugId="zone2-machinery-block-1">
-        <mesh position={[-5, 1.5, 2]} castShadow>
+        <mesh position={[-5, 1.5, 3]} castShadow>
           <boxGeometry args={[4, 3, 4]} />
           <meshStandardMaterial color="#3a3a3a" />
         </mesh>
@@ -338,8 +339,8 @@ export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
       
-      {/* Tiled FloorModel covering the entire play area */}
-      {(() => {
+      {/* Tiled FloorModel covering the entire play area - memoized for performance */}
+      {useMemo(() => {
         const tiles: JSX.Element[] = [];
 
         // Approximate play area bounds.
@@ -366,7 +367,7 @@ export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
         }
 
         return tiles;
-      })()}
+      }, [isMobile])}
       
       {/* ======================
           TRIGGER VOLUMES

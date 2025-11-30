@@ -20,7 +20,9 @@ export function WinOverlay() {
     if (hasPlayedWinSfxRef.current) return;
     hasPlayedWinSfxRef.current = true;
 
-    // Play both sounds simultaneously
+    // Use AudioManager for win sounds (lazy load if needed)
+    // Note: These are special win sounds, so we create them on-demand
+    // but only once per win state
     const tone = new Audio('/audio/win-sound.ogg');
     const clap = new Audio('/audio/win-clap.ogg');
 

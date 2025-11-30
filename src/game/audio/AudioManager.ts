@@ -157,10 +157,30 @@ class AudioManagerClass {
   }
 
   /**
-   * Preload SFX files
+   * Preload SFX files - only critical ones on startup, defer others
    */
   private preloadSFX(): void {
-    const sfxMap: Record<SFXType, string> = {
+    // Critical SFX that are needed immediately (player movement, combat, early game)
+    const criticalSFX: Record<string, string> = {
+      ZeekoDamage: this.SFX_ZEEKO_DAMAGE_PATH,
+      EnemyDying: this.SFX_ENEMY_DYING_PATH,
+      QuickFootsteps: this.SFX_QUICK_FOOTSTEPS_PATH,
+      SneakingFootsteps: this.SFX_SNEAKING_FOOTSTEPS_PATH,
+      CrawlerVoice: this.SFX_CRAWLER_VOICE_PATH,
+      JumpLanding: this.SFX_JUMP_LANDING_PATH,
+    };
+
+    // Preload critical SFX immediately
+    for (const [type, path] of Object.entries(criticalSFX)) {
+      const audio = this.createAudio(path, true);
+      if (audio) {
+        this.sfxCache.set(type as SFXType, audio);
+      }
+    }
+    
+    // Defer non-critical SFX loading until first use
+    // These will be loaded lazily in playSFX if not already cached
+    const deferredSFX: Record<SFXType, string> = {
       hitPlayer: this.SFX_HIT_PLAYER_PATH,
       enemyDeath: this.SFX_ENEMY_DEATH_PATH,
       hackingStart: this.SFX_HACKING_START_PATH,
@@ -173,35 +193,19 @@ class AudioManagerClass {
       gameOver: this.SFX_GAME_OVER_PATH,
       ActiveHacking: this.SFX_ACTIVE_HACKING_PATH,
       HackingSuccess: this.SFX_HACKING_SUCCESS_NEW_PATH,
-      ZeekoDamage: this.SFX_ZEEKO_DAMAGE_PATH,
-      EnemyDying: this.SFX_ENEMY_DYING_PATH,
-      SneakingFootsteps: this.SFX_SNEAKING_FOOTSTEPS_PATH,
-      QuickFootsteps: this.SFX_QUICK_FOOTSTEPS_PATH,
-      CrawlerVoice: this.SFX_CRAWLER_VOICE_PATH,
       DroneAttack: this.SFX_DRONE_ATTACK_PATH,
-      JumpLanding: this.SFX_JUMP_LANDING_PATH,
     };
-
-    for (const [type, path] of Object.entries(sfxMap)) {
-      const audio = this.createAudio(path, true);
-      if (audio) {
-        this.sfxCache.set(type as SFXType, audio);
-      }
-    }
     
-    // Create hacking loop (separate from SFX cache as it loops)
-    this.hackingLoop = this.createAudio(this.SFX_HACKING_LOOP_PATH, true);
-    if (this.hackingLoop) {
-      this.hackingLoop.loop = true;
-      this.hackingLoop.volume = 0;
-    }
+    // Store deferred paths for lazy loading
+    (this as any).deferredSFXPaths = deferredSFX;
     
-    // Create drone attack loop (separate from SFX cache as it loops)
-    this.droneAttackLoop = this.createAudio(this.SFX_DRONE_ATTACK_PATH, true);
-    if (this.droneAttackLoop) {
-      this.droneAttackLoop.loop = true;
-      this.droneAttackLoop.volume = 0;
-    }
+    // Create hacking loop (separate from SFX cache as it loops) - defer loading
+    // Will be created on first use
+    this.hackingLoop = null;
+    
+    // Create drone attack loop (separate from SFX cache as it loops) - defer loading
+    // Will be created on first use
+    this.droneAttackLoop = null;
   }
 
   /**
@@ -299,15 +303,27 @@ class AudioManagerClass {
   }
 
   /**
-   * Play an SFX sound
+   * Play an SFX sound (lazy loads if not already cached)
    */
   playSFX(type: SFXType): void {
     if (this.muted) return;
 
-    const audio = this.sfxCache.get(type);
+    let audio = this.sfxCache.get(type);
+    
+    // Lazy load if not cached
     if (!audio) {
-      console.warn(`AudioManager: SFX not found: ${type}`);
-      return;
+      const deferredPaths = (this as any).deferredSFXPaths as Record<SFXType, string> | undefined;
+      if (deferredPaths && deferredPaths[type]) {
+        audio = this.createAudio(deferredPaths[type], true);
+        if (audio) {
+          this.sfxCache.set(type, audio);
+        }
+      }
+      
+      if (!audio) {
+        console.warn(`AudioManager: SFX not found: ${type}`);
+        return;
+      }
     }
 
     try {
@@ -323,10 +339,21 @@ class AudioManagerClass {
   }
 
   /**
-   * Start the hacking loop (plays during mini-game)
+   * Start the hacking loop (plays during mini-game) - lazy loads if needed
    */
   startHackingLoop(): void {
-    if (this.isHackingLoopPlaying || this.muted || !this.hackingLoop) return;
+    if (this.isHackingLoopPlaying || this.muted) return;
+    
+    // Lazy load if not created yet
+    if (!this.hackingLoop) {
+      this.hackingLoop = this.createAudio(this.SFX_HACKING_LOOP_PATH, true);
+      if (this.hackingLoop) {
+        this.hackingLoop.loop = true;
+        this.hackingLoop.volume = 0;
+      }
+    }
+    
+    if (!this.hackingLoop) return;
     
     try {
       this.hackingLoop.currentTime = 0;
@@ -357,10 +384,21 @@ class AudioManagerClass {
   }
 
   /**
-   * Start the drone attack loop (plays during drone combat)
+   * Start the drone attack loop (plays during drone combat) - lazy loads if needed
    */
   startDroneAttackLoop(): void {
-    if (this.isDroneAttackLoopPlaying || this.muted || !this.droneAttackLoop) return;
+    if (this.isDroneAttackLoopPlaying || this.muted) return;
+    
+    // Lazy load if not created yet
+    if (!this.droneAttackLoop) {
+      this.droneAttackLoop = this.createAudio(this.SFX_DRONE_ATTACK_PATH, true);
+      if (this.droneAttackLoop) {
+        this.droneAttackLoop.loop = true;
+        this.droneAttackLoop.volume = 0;
+      }
+    }
+    
+    if (!this.droneAttackLoop) return;
     
     try {
       this.droneAttackLoop.currentTime = 0;

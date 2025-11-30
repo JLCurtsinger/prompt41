@@ -37,5 +37,6 @@ export function ShamblerModel(props: ShamblerModelProps) {
   );
 }
 
-useGLTF.preload('/models/Shambler.glb');
+// Deferred preload - only preload when player approaches Zone 3
+// useGLTF.preload('/models/Shambler.glb');
 

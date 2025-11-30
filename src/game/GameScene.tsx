@@ -37,6 +37,7 @@ import { BackgroundAtmosphere } from './audio/BackgroundAtmosphere';
 import { useGameState } from '../state/gameState';
 import { getAllEnemies } from './Enemies/enemyRegistry';
 import { enemyRespawnManager } from './Enemies/EnemyRespawnManager';
+import { getAllWallColliders, getColliderDebugInfo } from './colliders/wallColliders';
 import * as THREE from 'three';
 
 // Exit Portal position (at the far end of Zone 4) - adjusted for expanded zone
@@ -44,6 +45,8 @@ const EXIT_PORTAL_POSITION: [number, number, number] = [55, 0, 0];
 
 // DEBUG: Toggle world debug helpers visibility
 const DEBUG_SHOW_WORLD_HELPERS = true;
+// DEBUG: Toggle collider debug visualization (dev only)
+const DEBUG_SHOW_COLLIDERS = process.env.NODE_ENV === 'development';
 
 // Loot and pickup positions (easily adjustable for future GLB integration)
 const LOOT_CRATE_ZONE2_POSITION: [number, number, number] = [2, 0, -3]; // Zone 2 (Processing Yard)
@@ -772,6 +775,36 @@ export function GameScene() {
                 side={THREE.DoubleSide}
               />
             </mesh>
+          </group>
+        )}
+        
+        {/* DEBUG: Collider visualization (dev only) */}
+        {DEBUG_SHOW_COLLIDERS && (
+          <group name="debug_colliders">
+            {getAllWallColliders().map((collider, index) => {
+              const centerX = (collider.min[0] + collider.max[0]) / 2;
+              const centerZ = (collider.min[2] + collider.max[2]) / 2;
+              const centerY = (collider.min[1] + collider.max[1]) / 2;
+              const width = collider.max[0] - collider.min[0];
+              const depth = collider.max[2] - collider.min[2];
+              const height = collider.max[1] - collider.min[1];
+              
+              return (
+                <mesh
+                  key={`collider-${index}-${collider.debugId || 'unknown'}`}
+                  position={[centerX, centerY, centerZ]}
+                  visible={true}
+                >
+                  <boxGeometry args={[width, height, depth]} />
+                  <meshBasicMaterial
+                    color="#ff0000"
+                    transparent
+                    opacity={0.3}
+                    wireframe={true}
+                  />
+                </mesh>
+              );
+            })}
           </group>
         )}
         </PerformanceMonitor>

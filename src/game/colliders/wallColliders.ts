@@ -40,6 +40,8 @@ const manualWallColliders: Aabb[] = [
 ];
 
 const dynamicWallColliders: Aabb[] = [];
+// Track registered objects to prevent duplicates
+const registeredObjects = new WeakSet<THREE.Object3D>();
 
 export function getAllWallColliders(): Aabb[] {
   return [...manualWallColliders, ...dynamicWallColliders];
@@ -47,6 +49,11 @@ export function getAllWallColliders(): Aabb[] {
 
 export function registerWallColliderFromObject(object: THREE.Object3D, debugId?: string) {
   if (!object) return;
+  
+  // Prevent duplicate registration
+  if (registeredObjects.has(object)) {
+    return;
+  }
 
   const box = new THREE.Box3().setFromObject(object);
   if (box.isEmpty()) return;
@@ -71,9 +78,39 @@ export function registerWallColliderFromObject(object: THREE.Object3D, debugId?:
   const clampedMinY = 0;
   const clampedMaxY = FLOOR_BAND_TOP;
 
-  dynamicWallColliders.push({
+  // Check for duplicate colliders by comparing bounds and debugId
+  const newCollider: Aabb = {
     min: [box.min.x, clampedMinY, box.min.z],
     max: [box.max.x, clampedMaxY, box.max.z],
     debugId,
+  };
+  
+  // Check if a collider with the same bounds and debugId already exists
+  const isDuplicate = dynamicWallColliders.some((existing) => {
+    if (existing.debugId !== debugId) return false;
+    const tolerance = 0.1;
+    return (
+      Math.abs(existing.min[0] - newCollider.min[0]) < tolerance &&
+      Math.abs(existing.min[2] - newCollider.min[2]) < tolerance &&
+      Math.abs(existing.max[0] - newCollider.max[0]) < tolerance &&
+      Math.abs(existing.max[2] - newCollider.max[2]) < tolerance
+    );
   });
+  
+  if (!isDuplicate) {
+    dynamicWallColliders.push(newCollider);
+    registeredObjects.add(object);
+  }
+}
+
+// Dev-only function to get collider debug info
+export function getColliderDebugInfo(): { manual: number; dynamic: number; total: number } {
+  if (process.env.NODE_ENV !== 'development') {
+    return { manual: 0, dynamic: 0, total: 0 };
+  }
+  return {
+    manual: manualWallColliders.length,
+    dynamic: dynamicWallColliders.length,
+    total: manualWallColliders.length + dynamicWallColliders.length,
+  };
 }

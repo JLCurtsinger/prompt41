@@ -56,7 +56,7 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   // Track if we've shown the prompt for this terminal to avoid unnecessary updates
   const promptShownRef = useRef(false);
   
-  // Check if player is in range
+  // Check if player is in range - optimized to reduce per-frame work
   useFrame(() => {
     if (!terminalRef.current) return;
     
@@ -70,6 +70,11 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
     const distance = playerPos.distanceTo(terminalWorldPos);
     const wasInRange = wasInRangeRef.current;
     const nowInRange = distance <= INTERACTION_RANGE;
+    
+    // Early exit if player is far away and not in range (skip expensive state lookups)
+    if (!nowInRange && !wasInRange && distance > INTERACTION_RANGE * 2) {
+      return;
+    }
     
     // Update interaction prompt based on range and state
     // ================================================================
@@ -133,23 +138,18 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
           promptShownRef.current = true;
         }
       } else if (isOnCooldown) {
-        // Update cooldown message with remaining time
+        // Update cooldown message with remaining time (throttle updates to once per second)
         const remaining = Math.ceil(getTerminalCooldownRemaining(id));
         const currentPrompt = useGameState.getState().interactionPrompt;
-        if (currentPrompt.sourceId !== id || !currentPrompt.message || !currentPrompt.message.includes('Shutdown')) {
+        // Only update if message changed or not shown
+        if (currentPrompt.sourceId !== id || !currentPrompt.message || !currentPrompt.message.includes('Shutdown') || 
+            !currentPrompt.message.includes(`${remaining}s`)) {
           showInteractionPrompt({
             message: `Shutdown in progress. Reboot in ${remaining}s.`,
             actionKey: undefined,
             sourceId: id,
           });
           promptShownRef.current = true;
-        } else {
-          // Update message with new remaining time
-          showInteractionPrompt({
-            message: `Shutdown in progress. Reboot in ${remaining}s.`,
-            actionKey: undefined,
-            sourceId: id,
-          });
         }
       } else {
         // Clear prompt if we're in range but can't hack (hacked or locked by Sentinel)
