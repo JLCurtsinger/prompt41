@@ -836,13 +836,21 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     const horizontalDistance = CAMERA_DISTANCE * Math.cos(verticalAngle);
     const verticalOffset = CAMERA_DISTANCE * Math.sin(verticalAngle);
     
-    const baseOffset = new THREE.Vector3(
-      CAMERA_SHOULDER_OFFSET * Math.cos(horizontalAngle), // Right offset rotated
+    // Create base offset vector (original orientation: behind player)
+    const BASE_CAMERA_OFFSET = new THREE.Vector3(
+      CAMERA_SHOULDER_OFFSET, // Right offset
       CAMERA_HEIGHT + verticalOffset, // Height with vertical tilt
       horizontalDistance // Distance behind with vertical tilt
     );
     
-    // Rotate the Z component around Y axis by horizontal angle
+    // Rotate the base offset 90° to the right around Y-axis
+    const CAMERA_OFFSET = BASE_CAMERA_OFFSET.clone().applyAxisAngle(
+      new THREE.Vector3(0, 1, 0),
+      Math.PI / 2 // 90° rotation to the right
+    );
+    
+    // Now apply horizontal rotation to the rotated offset
+    const baseOffset = CAMERA_OFFSET.clone();
     const rotatedZ = baseOffset.z * Math.cos(horizontalAngle) - baseOffset.x * Math.sin(horizontalAngle);
     const rotatedX = baseOffset.z * Math.sin(horizontalAngle) + baseOffset.x * Math.cos(horizontalAngle);
     baseOffset.x = rotatedX;
@@ -1083,7 +1091,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   
   return (
     <>
-      <group ref={playerRef} position={initialPosition} rotation={[0, 0, 0]}>
+      <group ref={playerRef} position={initialPosition} rotation={[0, Math.PI, 0]}>
         {/* Keep the capsule collider for physics, but make it invisible */}
         <mesh position={[0, 1, 0]} visible={false}>
           <capsuleGeometry args={[0.4, 1.2, 4, 8]} />

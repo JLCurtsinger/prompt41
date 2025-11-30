@@ -9,7 +9,7 @@ interface ShamblerModelProps {
   rotation?: [number, number, number];
 }
 
-const MODEL_Y_OFFSET = -0.6; // Visual offset to align Shambler feet with floor
+const MODEL_Y_OFFSET = -1.0; // Visual offset to align Shambler feet with floor
 
 export function ShamblerModel(props: ShamblerModelProps) {
   const { scene } = useGLTF('/models/Shambler.glb');
