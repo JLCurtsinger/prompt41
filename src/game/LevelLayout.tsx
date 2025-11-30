@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { JSX } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { TriggerVolume } from './Interactables/TriggerVolume';
@@ -9,9 +9,26 @@ import { Door } from './Interactables/Door';
 // import { EnemySentinel } from './Enemies/EnemySentinel';
 import hostLinesData from '../assets/data/hostLines.json';
 import { FloorModel } from './models/FloorModel';
-import { WALL_COLLIDERS } from './colliders/wallColliders';
+import { getAllWallColliders, registerWallColliderFromObject } from './colliders/wallColliders';
 
 const DEBUG_COLLIDERS = true; // set false for final build
+
+function WallColliderWrapper({
+  children,
+  debugId,
+}: {
+  children: React.ReactNode;
+  debugId: string;
+}) {
+  const groupRef = React.useRef<THREE.Group>(null);
+  React.useEffect(() => {
+    if (groupRef.current) {
+      registerWallColliderFromObject(groupRef.current, debugId);
+    }
+  }, [debugId]);
+
+  return <group ref={groupRef}>{children}</group>;
+}
 
 // TODO: Wire this layout to match Zones 1–4 from CoreGameDetails.md (perimeter → yard → conduit → core chamber)
 
@@ -41,10 +58,12 @@ function PerimeterZone() {
       </mesh>
       
       {/* Broken wall / breach opening */}
-      <mesh position={[-15, 2, -8]} castShadow>
-        <boxGeometry args={[12, 4, 0.5]} />
-        <meshStandardMaterial color="#2a2a2a" />
-      </mesh>
+      <WallColliderWrapper debugId="zone1-breach-wall">
+        <mesh position={[-15, 2, -8]} castShadow>
+          <boxGeometry args={[12, 4, 0.5]} />
+          <meshStandardMaterial color="#2a2a2a" />
+        </mesh>
+      </WallColliderWrapper>
       {/* Breach gap in wall */}
       <mesh position={[-15, 2, -8]} castShadow>
         <boxGeometry args={[4, 4, 0.5]} />
@@ -52,10 +71,12 @@ function PerimeterZone() {
       </mesh>
       
       {/* Broken gate / fencing on right side */}
-      <mesh position={[-8, 1.5, -5]} rotation={[0, Math.PI / 4, 0]} castShadow>
-        <boxGeometry args={[8, 3, 0.2]} />
-        <meshStandardMaterial color="#4a4a4a" />
-      </mesh>
+      <WallColliderWrapper debugId="zone1-broken-gate">
+        <mesh position={[-8, 1.5, -5]} rotation={[0, Math.PI / 4, 0]} castShadow>
+          <boxGeometry args={[8, 3, 0.2]} />
+          <meshStandardMaterial color="#4a4a4a" />
+        </mesh>
+      </WallColliderWrapper>
       
       {/* Debris / collapsed structure */}
       <mesh position={[-20, 0.5, 3]} rotation={[0, 0, Math.PI / 6]} castShadow>
@@ -90,20 +111,26 @@ function ProcessingYardZone() {
       </mesh>
       
       {/* Machinery / equipment blocks creating paths */}
-      <mesh position={[-5, 1.5, 2]} castShadow>
-        <boxGeometry args={[4, 3, 4]} />
-        <meshStandardMaterial color="#3a3a3a" />
-      </mesh>
+      <WallColliderWrapper debugId="zone2-machinery-block-1">
+        <mesh position={[-5, 1.5, 2]} castShadow>
+          <boxGeometry args={[4, 3, 4]} />
+          <meshStandardMaterial color="#3a3a3a" />
+        </mesh>
+      </WallColliderWrapper>
       
-      <mesh position={[5, 1.5, -3]} castShadow>
-        <boxGeometry args={[5, 3, 3]} />
-        <meshStandardMaterial color="#3a3a3a" />
-      </mesh>
+      <WallColliderWrapper debugId="zone2-machinery-block-2">
+        <mesh position={[5, 1.5, -3]} castShadow>
+          <boxGeometry args={[5, 3, 3]} />
+          <meshStandardMaterial color="#3a3a3a" />
+        </mesh>
+      </WallColliderWrapper>
       
-      <mesh position={[0, 1, -8]} castShadow>
-        <boxGeometry args={[6, 2, 4]} />
-        <meshStandardMaterial color="#3a3a3a" />
-      </mesh>
+      <WallColliderWrapper debugId="zone2-machinery-block-3">
+        <mesh position={[0, 1, -8]} castShadow>
+          <boxGeometry args={[6, 2, 4]} />
+          <meshStandardMaterial color="#3a3a3a" />
+        </mesh>
+      </WallColliderWrapper>
       
       {/* Central path marker (where terminal will be) */}
       <mesh position={[0, 0.1, -5]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -138,14 +165,18 @@ function ConduitHallZone() {
       </mesh>
       
       {/* Corridor walls - expanded */}
-      <mesh position={[20, 2, -6]} castShadow>
-        <boxGeometry args={[30, 4, 0.5]} />
-        <meshStandardMaterial color="#3a3a3a" />
-      </mesh>
-      <mesh position={[20, 2, 6]} castShadow>
-        <boxGeometry args={[30, 4, 0.5]} />
-        <meshStandardMaterial color="#3a3a3a" />
-      </mesh>
+      <WallColliderWrapper debugId="zone3-corridor-wall-left">
+        <mesh position={[20, 2, -6]} castShadow>
+          <boxGeometry args={[30, 4, 0.5]} />
+          <meshStandardMaterial color="#3a3a3a" />
+        </mesh>
+      </WallColliderWrapper>
+      <WallColliderWrapper debugId="zone3-corridor-wall-right">
+        <mesh position={[20, 2, 6]} castShadow>
+          <boxGeometry args={[30, 4, 0.5]} />
+          <meshStandardMaterial color="#3a3a3a" />
+        </mesh>
+      </WallColliderWrapper>
       
       {/* Side room (branch path) */}
       <group position={[25, 0, -6]}>
@@ -153,18 +184,24 @@ function ConduitHallZone() {
           <planeGeometry args={[6, 6]} />
           <meshStandardMaterial color="#2a2a2a" />
         </mesh>
-        <mesh position={[0, 2, -3]} castShadow>
-          <boxGeometry args={[6, 4, 0.5]} />
-          <meshStandardMaterial color="#3a3a3a" />
-        </mesh>
-        <mesh position={[0, 2, 3]} castShadow>
-          <boxGeometry args={[6, 4, 0.5]} />
-          <meshStandardMaterial color="#3a3a3a" />
-        </mesh>
-        <mesh position={[-3, 2, 0]} castShadow>
-          <boxGeometry args={[0.5, 4, 6]} />
-          <meshStandardMaterial color="#3a3a3a" />
-        </mesh>
+        <WallColliderWrapper debugId="zone3-side-room-wall-left">
+          <mesh position={[0, 2, -3]} castShadow>
+            <boxGeometry args={[6, 4, 0.5]} />
+            <meshStandardMaterial color="#3a3a3a" />
+          </mesh>
+        </WallColliderWrapper>
+        <WallColliderWrapper debugId="zone3-side-room-wall-right">
+          <mesh position={[0, 2, 3]} castShadow>
+            <boxGeometry args={[6, 4, 0.5]} />
+            <meshStandardMaterial color="#3a3a3a" />
+          </mesh>
+        </WallColliderWrapper>
+        <WallColliderWrapper debugId="zone3-side-room-wall-back">
+          <mesh position={[-3, 2, 0]} castShadow>
+            <boxGeometry args={[0.5, 4, 6]} />
+            <meshStandardMaterial color="#3a3a3a" />
+          </mesh>
+        </WallColliderWrapper>
         {/* TODO: Environmental log or collectible will be placed here */}
       </group>
       
@@ -208,10 +245,12 @@ function CoreAccessChamberZone() {
         const x = Math.cos(angle) * 16;
         const z = Math.sin(angle) * 16;
         return (
-          <mesh key={i} position={[45 + x, 2, z]} castShadow>
-            <boxGeometry args={[1.5, 4, 0.5]} />
-            <meshStandardMaterial color="#2a2a2a" />
-          </mesh>
+          <WallColliderWrapper key={i} debugId={`zone4-arena-wall-${i}`}>
+            <mesh position={[45 + x, 2, z]} castShadow>
+              <boxGeometry args={[1.5, 4, 0.5]} />
+              <meshStandardMaterial color="#2a2a2a" />
+            </mesh>
+          </WallColliderWrapper>
         );
       })}
       
@@ -392,7 +431,7 @@ export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
       
       {/* Debug: Render collider boxes */}
       {DEBUG_COLLIDERS &&
-        WALL_COLLIDERS.map((box, index) => {
+        getAllWallColliders().map((box, index) => {
           const [minX, minY, minZ] = box.min;
           const [maxX, maxY, maxZ] = box.max;
           const width = maxX - minX;
@@ -402,10 +441,16 @@ export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
           const centerY = minY + height / 2;
           const centerZ = minZ + depth / 2;
           return (
-            <mesh key={index} position={[centerX, centerY, centerZ]}>
-              <boxGeometry args={[width, height, depth]} />
-              <meshBasicMaterial wireframe transparent opacity={0.3} color="red" />
-            </mesh>
+            <group key={`collider-${index}`} position={[centerX, centerY, centerZ]}>
+              <mesh>
+                <boxGeometry args={[width, height, depth]} />
+                <meshBasicMaterial wireframe transparent opacity={0.3} color="red" />
+              </mesh>
+              {/* Optional: visual label if you're already using drei/Text; otherwise skip */}
+              {/* <Text fontSize={0.4} position={[0, height / 2 + 0.2, 0]}>
+                {box.debugId ?? index.toString()}
+              </Text> */}
+            </group>
           );
         })}
     </group>

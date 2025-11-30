@@ -1,5 +1,5 @@
 import type { Aabb } from "./wallColliders";
-import { WALL_COLLIDERS } from "./wallColliders";
+import { getAllWallColliders } from "./wallColliders";
 import * as THREE from "three";
 
 const DEBUG_COLLISIONS = true; // set to false for production
@@ -29,13 +29,14 @@ function pointInsideAabb2D(
 function positionBlockedByWalls(pos: THREE.Vector3): { blocked: boolean; index: number } {
   const x = pos.x;
   const z = pos.z;
-  for (let i = 0; i < WALL_COLLIDERS.length; i += 1) {
-    const box = WALL_COLLIDERS[i];
+  const wallColliders = getAllWallColliders();
+  for (let i = 0; i < wallColliders.length; i += 1) {
+    const box = wallColliders[i];
     if (pointInsideAabb2D(x, z, box, PLAYER_RADIUS)) {
       if (DEBUG_COLLISIONS) {
         // Keep this lightweight; it only runs when debugging.
         // eslint-disable-next-line no-console
-        console.log("Collision blocked at", { x, z, colliderIndex: i, box });
+        console.log("Collision blocked at", { x, z, colliderIndex: i, box, debugId: box.debugId });
       }
       return { blocked: true, index: i };
     }
