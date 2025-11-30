@@ -57,26 +57,22 @@ function PerimeterZone() {
         <meshStandardMaterial color="#3a3a3a" />
       </mesh>
       
-      {/* Broken wall / breach opening */}
-      <WallColliderWrapper debugId="zone1-breach-wall">
-        <mesh position={[-15, 2, -8]} castShadow>
-          <boxGeometry args={[12, 4, 0.5]} />
-          <meshStandardMaterial color="#2a2a2a" />
-        </mesh>
-      </WallColliderWrapper>
+      {/* Broken wall / breach opening (manual colliders in wallColliders.ts) */}
+      <mesh position={[-15, 2, -8]} castShadow>
+        <boxGeometry args={[12, 4, 0.5]} />
+        <meshStandardMaterial color="#2a2a2a" />
+      </mesh>
       {/* Breach gap in wall */}
       <mesh position={[-15, 2, -8]} castShadow>
         <boxGeometry args={[4, 4, 0.5]} />
         <meshStandardMaterial color="#1a1a1a" opacity={0.3} transparent />
       </mesh>
       
-      {/* Broken gate / fencing on right side */}
-      <WallColliderWrapper debugId="zone1-broken-gate">
-        <mesh position={[-8, 1.5, -5]} rotation={[0, Math.PI / 4, 0]} castShadow>
-          <boxGeometry args={[8, 3, 0.2]} />
-          <meshStandardMaterial color="#4a4a4a" />
-        </mesh>
-      </WallColliderWrapper>
+      {/* Broken gate / fencing on right side (visual only, no collider - has rotation) */}
+      <mesh position={[-8, 1.5, -5]} rotation={[0, Math.PI / 4, 0]} castShadow>
+        <boxGeometry args={[8, 3, 0.2]} />
+        <meshStandardMaterial color="#4a4a4a" />
+      </mesh>
       
       {/* Debris / collapsed structure */}
       <mesh position={[-20, 0.5, 3]} rotation={[0, 0, Math.PI / 6]} castShadow>

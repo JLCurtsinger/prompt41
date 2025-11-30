@@ -6,7 +6,38 @@ export type Aabb = {
   debugId?: string; // optional label for debugging
 };
 
-const manualWallColliders: Aabb[] = [];
+const manualWallColliders: Aabb[] = [
+  // Zone 1 - Breach wall segments (position [-15, 2, -8], size [12, 4, 0.5])
+  // Wall spans x=-21 to x=-9, with breach gap at x=-17 to x=-13
+  // Left segment (before breach gap)
+  { 
+    min: [-21, 0, -8.25], 
+    max: [-17, 2.5, -7.75],
+    debugId: "zone1-breach-wall-left"
+  },
+  // Right segment (after breach gap)
+  { 
+    min: [-13, 0, -8.25], 
+    max: [-9, 2.5, -7.75],
+    debugId: "zone1-breach-wall-right"
+  },
+  
+  // Zone 3 - Corridor walls (critical zone transition)
+  // Left corridor wall (position [20, 2, -6], size [30, 4, 0.5])
+  // Adjusted to start at x=12 (door position) to allow entry from Zone 2
+  { 
+    min: [12, 0, -6.25], 
+    max: [35, 2.5, -5.75],
+    debugId: "zone3-corridor-wall-left-manual"
+  },
+  // Right corridor wall (position [20, 2, 6], size [30, 4, 0.5])
+  // Adjusted to start at x=12 (door position) to allow entry from Zone 2
+  { 
+    min: [12, 0, 5.75], 
+    max: [35, 2.5, 6.25],
+    debugId: "zone3-corridor-wall-right-manual"
+  },
+];
 
 const dynamicWallColliders: Aabb[] = [];
 
