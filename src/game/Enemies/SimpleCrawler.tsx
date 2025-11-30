@@ -18,6 +18,8 @@ import { EnemyDeathFragments } from "../Effects/EnemyDeathFragments";
 
 import { AudioManager } from "../audio/AudioManager";
 
+import { CrawlerModel } from "../models/CrawlerModel";
+
 // Attack constants - ensure melee range is tight and reasonable
 const CRAWLER_MELEE_RANGE = 1.25; // Tighter melee range - must be very close for melee hit
 const CRAWLER_ATTACK_COOLDOWN = 1.0; // seconds between attacks
@@ -311,15 +313,7 @@ export function SimpleCrawler({
   return (
     <>
       <group ref={enemyRef}>
-
-        <mesh>
-
-          <boxGeometry args={[1, 0.6, 1]} />
-
-          <meshStandardMaterial color={color} />
-
-        </mesh>
-
+        <CrawlerModel scale={[1, 1, 1]} />
       </group>
       
       {/* Death fragment effect */}
