@@ -38,6 +38,7 @@ import type { BatonSFXHandle } from './audio/BatonSFX';
 import { BatonImpactSpark } from './Effects/BatonImpactSpark';
 import { ZeekoModel } from './models/ZeekoModel';
 import { AudioManager } from './audio/AudioManager';
+import { applyWallCollisions } from './colliders/collision';
 import * as THREE from 'three';
 
 // Type for tracking active spark effects
@@ -622,10 +623,14 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     }
     
     // Update horizontal position (Y is handled separately by jump/gravity)
+    // Movement with wall collisions
     const horizontalVelocity = new THREE.Vector3(velocity.current.x, 0, velocity.current.z);
     const deltaMovement = horizontalVelocity.clone().multiplyScalar(delta);
-    player.position.x += deltaMovement.x;
-    player.position.z += deltaMovement.z;
+    const prevPos = player.position.clone();
+    const proposedPos = prevPos.clone().add(deltaMovement);
+    const resolvedPos = applyWallCollisions(prevPos, proposedPos);
+    player.position.x = resolvedPos.x;
+    player.position.z = resolvedPos.z;
     
     // Clamp player to a circular arena to avoid getting too close to HDR walls
     const pos = player.position;
