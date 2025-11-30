@@ -191,7 +191,9 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
             
             // Open hacking overlay with terminal mode
             try {
-              openHackingOverlay(id, 'normal', hackMode, terminalMode, doorId);
+              // Determine hackMiniGameKind: doors use 'door-bars', SourceCode terminals use 'code-quiz'
+              const hackMiniGameKind = terminalMode === 'door' ? 'door-bars' : 'code-quiz';
+              openHackingOverlay(id, 'normal', hackMode, terminalMode, doorId, hackMiniGameKind);
               AudioManager.playSFX('ActiveHacking');
               clearInteractionPrompt(id); // Clear prompt when overlay opens
               

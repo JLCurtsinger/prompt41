@@ -564,7 +564,7 @@ export function HackingOverlay() {
   const showDoorObjectiveHintIfNeeded = useGameState((state) => state.showDoorObjectiveHintIfNeeded);
 
   // Extract values for easier use
-  const { isOpen, terminalId, mode, hackMode, terminalMode, doorId, miniGamePhase, miniGameResult, attemptsRemaining, selectedAction } = hackingOverlay;
+  const { isOpen, terminalId, mode, hackMiniGameKind, doorId, miniGamePhase, miniGameResult, attemptsRemaining, selectedAction } = hackingOverlay;
 
   // Track if we've already awarded source code for this result
   const hasAwardedRef = useRef(false);
@@ -576,19 +576,25 @@ export function HackingOverlay() {
     }
   }, [miniGamePhase]);
 
-  // Auto-start code challenge when hackMode is 'code' and we're in chooseAction phase
+  // Auto-start mini-game based on hackMiniGameKind
   useEffect(() => {
-    if (isOpen && hackMode === 'code' && miniGamePhase === 'chooseAction') {
-      // For code challenge, skip chooseAction and go directly to playing phase
-      // Use startHackingAction with a dummy action to transition to playing phase
+    if (!isOpen || miniGamePhase !== 'chooseAction') return;
+    
+    if (hackMiniGameKind === 'code-quiz') {
+      // For code quiz, skip chooseAction and go directly to playing phase
       startHackingAction('disableSentries'); // This will set miniGamePhase to 'playing'
+    } else if (hackMiniGameKind === 'door-bars') {
+      // For door bars, skip chooseAction and go directly to playing phase with a random action
+      const actions: HackingActionType[] = ['disableSentries', 'overrideGate', 'convertWatcher'];
+      const randomAction = actions[Math.floor(Math.random() * actions.length)];
+      startHackingAction(randomAction);
     }
-  }, [isOpen, hackMode, miniGamePhase, startHackingAction]);
+  }, [isOpen, hackMiniGameKind, miniGamePhase, startHackingAction]);
 
-  // Start/stop hacking loop based on mini-game phase (only for timing mode)
+  // Start/stop hacking loop based on mini-game phase (only for door-bars)
   useEffect(() => {
-    if (isOpen && miniGamePhase === 'playing' && hackMode === 'timing') {
-      // Start hacking loop when entering playing phase (only for timing mode)
+    if (isOpen && miniGamePhase === 'playing' && hackMiniGameKind === 'door-bars') {
+      // Start hacking loop when entering playing phase (only for door-bars)
       AudioManager.startHackingLoop();
     } else {
       // Stop hacking loop when not in playing phase or overlay closes
@@ -599,7 +605,7 @@ export function HackingOverlay() {
     return () => {
       AudioManager.stopHackingLoop();
     };
-  }, [isOpen, miniGamePhase, hackMode]);
+  }, [isOpen, miniGamePhase, hackMiniGameKind]);
 
   // Handle ESC key to close overlay - called unconditionally
   useEffect(() => {
@@ -626,8 +632,8 @@ export function HackingOverlay() {
     hasAwardedRef.current = true;
 
     if (miniGameResult === 'success') {
-      // Handle door mode terminals
-      if (terminalMode === 'door' && doorId) {
+      // Handle door-bars mini-game (doors)
+      if (hackMiniGameKind === 'door-bars' && doorId) {
         // Open the door
         openDoor(doorId);
         
@@ -650,8 +656,8 @@ export function HackingOverlay() {
         } catch (error) {
           console.warn('HackingOverlay: Error playing success feedback:', error);
         }
-      } else {
-        // Source code mode (existing behavior)
+      } else if (hackMiniGameKind === 'code-quiz') {
+        // Code-quiz mini-game (SourceCode terminals)
         // Mark terminal as hacked (this awards source code once per terminal)
         markTerminalHacked(terminalId);
         
@@ -689,7 +695,7 @@ export function HackingOverlay() {
         console.warn('HackingOverlay: Error playing failure SFX:', error);
       }
     }
-  }, [isOpen, miniGamePhase, miniGameResult, terminalId, terminalMode, doorId, markTerminalHacked, setTerminalState, unlockZone2Door, completeLevel, playHostLine, setTerminalCooldown, openDoor, grantDoorReward, showDoorObjectiveHintIfNeeded]);
+  }, [isOpen, miniGamePhase, miniGameResult, terminalId, hackMiniGameKind, doorId, markTerminalHacked, setTerminalState, unlockZone2Door, completeLevel, playHostLine, setTerminalCooldown, openDoor, grantDoorReward, showDoorObjectiveHintIfNeeded]);
 
   // Auto-close after result is shown (optional)
   useEffect(() => {
@@ -865,18 +871,19 @@ export function HackingOverlay() {
         </button>
       </div>
     );
-  } else if (miniGamePhase === 'playing' && (selectedAction || hackMode === 'code')) {
-    // Playing phase - render appropriate mini-game based on hackMode or selectedAction
+  } else if (miniGamePhase === 'playing' && (selectedAction || hackMiniGameKind === 'code-quiz')) {
+    // Playing phase - render appropriate mini-game based on hackMiniGameKind
     let miniGameComponent: React.ReactNode = null;
 
-    if (hackMode === 'code') {
-      // Code challenge mode - render code challenge minigame
+    if (hackMiniGameKind === 'code-quiz') {
+      // Code quiz mode - render code challenge minigame
       miniGameComponent = (
         <CodeChallengeMiniGame
           onSuccess={handleMiniGameSuccess}
+          terminalId={terminalId}
         />
       );
-    } else if (selectedAction === 'disableSentries') {
+    } else if (hackMiniGameKind === 'door-bars' && selectedAction === 'disableSentries') {
       // Disable local sentries uses the timing-bar mini-game
       miniGameComponent = (
         <TimingBarMiniGame
@@ -886,7 +893,7 @@ export function HackingOverlay() {
           onFailedAttempt={handleMiniGameMiss}
         />
       );
-    } else if (selectedAction === 'overrideGate') {
+    } else if (hackMiniGameKind === 'door-bars' && selectedAction === 'overrideGate') {
       // Override access gate uses the dual timing-bar mini-game
       miniGameComponent = (
         <OverrideGateMiniGame
@@ -896,7 +903,7 @@ export function HackingOverlay() {
           onFailedAttempt={handleMiniGameMiss}
         />
       );
-    } else if (selectedAction === 'convertWatcher') {
+    } else if (hackMiniGameKind === 'door-bars' && selectedAction === 'convertWatcher') {
       // Convert watcher node uses the pattern-matching grid mini-game
       miniGameComponent = (
         <ConvertWatcherMiniGame
@@ -921,7 +928,7 @@ export function HackingOverlay() {
           alignItems: 'center',
         }}
       >
-        {hackMode !== 'code' && (
+        {hackMiniGameKind !== 'code-quiz' && (
           <div style={{ marginBottom: '24px', fontSize: '24px', fontWeight: 'bold', color: '#00ff00' }}>
             {title}
           </div>
@@ -932,8 +939,8 @@ export function HackingOverlay() {
         </div>
       </div>
     );
-  } else if (hackMode !== 'code') {
-    // Choose action phase (normal mode) - skip for code mode
+  } else if (hackMiniGameKind !== 'code-quiz' && hackMiniGameKind !== 'door-bars') {
+    // Choose action phase (legacy mode - should not happen with new routing)
     // Choose action phase (normal mode) - main hacking interface with 3 buttons
     body = (
       <div

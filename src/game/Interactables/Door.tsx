@@ -148,7 +148,7 @@ export function Door({ doorId, position, rotation = [0, 0, 0], scale = [1, 1, 1]
       </mesh>
       
       {/* Main door panel - slides up when opening */}
-      <mesh ref={doorPanelRef} position={[0, 2, 0]} castShadow visible={!isDoorOpen || doorPanelRef.current?.position.y < normalizedPosition[1] + 3.5}>
+      <mesh ref={doorPanelRef} position={[0, 2, 0]} castShadow visible={!isDoorOpen || (doorPanelRef.current?.position.y ?? 0) < normalizedPosition[1] + 3.5}>
         <boxGeometry args={[2, 4, 0.3]} />
         <meshStandardMaterial 
           color={isDoorOpen ? "#1a1a1a" : "#3a3a3a"}

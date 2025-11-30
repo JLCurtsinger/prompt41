@@ -196,9 +196,10 @@ interface GameState {
     isOpen: boolean;
     terminalId: string | null;
     mode: 'normal' | 'locked' | 'alreadyHacked' | 'success';
-    hackMode: 'timing' | 'code'; // Type of minigame: timing bar or code challenge
-    terminalMode: 'sourcecode' | 'door'; // Terminal mode: sourcecode or door
-    doorId: string | null; // Door ID when terminalMode is 'door'
+    hackMode: 'timing' | 'code'; // Type of minigame: timing bar or code challenge (deprecated, use hackMiniGameKind)
+    terminalMode: 'sourcecode' | 'door'; // Terminal mode: sourcecode or door (deprecated, use hackMiniGameKind)
+    hackMiniGameKind: 'door-bars' | 'code-quiz' | null; // Which mini-game to use: door-bars (timing) or code-quiz (coding)
+    doorId: string | null; // Door ID when hackMiniGameKind is 'door-bars'
     // Mini-game state
     selectedAction: 'disableSentries' | 'overrideGate' | 'convertWatcher' | null;
     miniGamePhase: 'chooseAction' | 'playing' | 'result';
@@ -276,7 +277,7 @@ interface GameState {
   clearInteractionPrompt: (sourceId?: string) => void;
   
   // Hacking overlay actions
-  openHackingOverlay: (terminalId: string, mode?: 'normal' | 'locked' | 'alreadyHacked' | 'success', hackMode?: 'timing' | 'code', terminalMode?: 'sourcecode' | 'door', doorId?: string) => void;
+  openHackingOverlay: (terminalId: string, mode?: 'normal' | 'locked' | 'alreadyHacked' | 'success', hackMode?: 'timing' | 'code', terminalMode?: 'sourcecode' | 'door', doorId?: string, hackMiniGameKind?: 'door-bars' | 'code-quiz') => void;
   setHackingOverlayMode: (mode: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
   closeHackingOverlay: () => void;
   // Mini-game actions
@@ -423,6 +424,7 @@ export const useGameState = create<GameState>((set, get) => {
     mode: 'normal',
     hackMode: 'timing',
     terminalMode: 'sourcecode',
+    hackMiniGameKind: null,
     doorId: null,
     selectedAction: null,
     miniGamePhase: 'chooseAction' as const,
@@ -580,6 +582,7 @@ export const useGameState = create<GameState>((set, get) => {
         mode: 'normal',
         hackMode: 'timing',
         terminalMode: 'sourcecode',
+        hackMiniGameKind: null,
         doorId: null,
         selectedAction: null,
         miniGamePhase: 'chooseAction' as const,
@@ -998,7 +1001,20 @@ export const useGameState = create<GameState>((set, get) => {
   },
   
   // Hacking overlay actions
-  openHackingOverlay: (terminalId, mode = 'normal', hackMode: 'timing' | 'code' = 'timing', terminalMode: 'sourcecode' | 'door' = 'sourcecode', doorId?: string) => {
+  openHackingOverlay: (terminalId, mode = 'normal', hackMode: 'timing' | 'code' = 'timing', terminalMode: 'sourcecode' | 'door' = 'sourcecode', doorId?: string, hackMiniGameKind?: 'door-bars' | 'code-quiz') => {
+    // Determine hackMiniGameKind if not provided (backward compatibility)
+    let kind: 'door-bars' | 'code-quiz' | null = hackMiniGameKind || null;
+    if (!kind) {
+      // Legacy: derive from terminalMode
+      if (terminalMode === 'door') {
+        kind = 'door-bars';
+      } else if (hackMode === 'code') {
+        kind = 'code-quiz';
+      } else {
+        kind = 'door-bars'; // Default to door-bars for timing mode
+      }
+    }
+    
     set({
       hackingOverlay: {
         isOpen: true,
@@ -1006,7 +1022,8 @@ export const useGameState = create<GameState>((set, get) => {
         mode,
         hackMode,
         terminalMode,
-        doorId: terminalMode === 'door' ? (doorId || null) : null,
+        hackMiniGameKind: kind,
+        doorId: kind === 'door-bars' ? (doorId || null) : null,
         // Reset mini-game state when opening
         selectedAction: null,
         miniGamePhase: 'chooseAction',
@@ -1072,6 +1089,7 @@ export const useGameState = create<GameState>((set, get) => {
         mode: 'normal',
         hackMode: 'timing',
         terminalMode: 'sourcecode',
+        hackMiniGameKind: null,
         doorId: null,
         selectedAction: null,
         miniGamePhase: 'chooseAction',
@@ -1090,6 +1108,7 @@ export const useGameState = create<GameState>((set, get) => {
         mode: 'normal',
         hackMode: 'timing',
         terminalMode: 'sourcecode',
+        hackMiniGameKind: null,
         doorId: null,
         selectedAction: null,
         miniGamePhase: 'chooseAction',

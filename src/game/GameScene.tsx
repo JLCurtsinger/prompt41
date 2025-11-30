@@ -677,7 +677,7 @@ export function GameScene() {
         {/* Hacking Terminal in Zone 2 is now in LevelLayout.tsx */}
         
         {/* Door between Zone 1 and Zone 2 */}
-        <Door id="zone1-zone2-main" position={[-7, 0, 0]} />
+        <Door doorId="zone1-zone2-main" position={[-7, 0, 0]} />
         
         {/* Loot Crate in Zone 2 (Processing Yard) */}
         <LootCrate id="crate-zone2-1" position={LOOT_CRATE_ZONE2_POSITION} />
