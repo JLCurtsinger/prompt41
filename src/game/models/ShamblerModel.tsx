@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { Box3, Group, Vector3 } from 'three';
+import { Box3, Group } from 'three';
 import * as THREE from 'three';
 
 interface ShamblerModelProps {
@@ -12,9 +12,10 @@ interface ShamblerModelProps {
 export function ShamblerModel(props: ShamblerModelProps) {
   const { scene } = useGLTF('/models/Shambler.glb');
   const groupRef = useRef<Group>(null);
+  const innerGroupRef = useRef<Group>(null);
 
   useLayoutEffect(() => {
-    if (!groupRef.current) return;
+    if (!groupRef.current || !innerGroupRef.current) return;
 
     // Enable shadows on all meshes in the model
     groupRef.current.traverse((child) => {
@@ -25,21 +26,20 @@ export function ShamblerModel(props: ShamblerModelProps) {
       }
     });
 
-    // Optionally adjust model position so it sits on the ground
-    const box = new Box3().setFromObject(groupRef.current);
-    const size = new Vector3();
-    const center = new Vector3();
-    box.getSize(size);
-    box.getCenter(center);
-
-    // Move the model so its lowest point sits at y = 0
+    // Calculate the bounding box of the model to determine ground offset
+    const box = new Box3().setFromObject(innerGroupRef.current);
     const minY = box.min.y;
-    groupRef.current.position.y -= minY;
+    
+    // Apply local Y offset to bring feet to ground level
+    // The inner group's position is relative to the outer group
+    innerGroupRef.current.position.y = -minY;
   }, []);
 
   return (
     <group ref={groupRef} {...props} dispose={null} frustumCulled={true}>
-      <primitive object={scene} />
+      <group ref={innerGroupRef}>
+        <primitive object={scene} />
+      </group>
     </group>
   );
 }
