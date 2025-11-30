@@ -76,7 +76,7 @@ export function HUD() {
           fontSize: '16px',
         }}
       >
-        Source Codes: {sourceCodeCount} / {totalSourceCodes}
+        Source Codes v2: {sourceCodeCount} / {totalSourceCodes}
       </div>
       
       {/* Objective complete message */}
