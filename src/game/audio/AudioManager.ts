@@ -63,7 +63,7 @@ class AudioManagerClass {
   private readonly AMBIENT_ZONE3_PATH = '/audio/ambient_zone3_conduit.ogg'; // Conduit buzz
   private readonly AMBIENT_ZONE4_PATH = '/audio/ambient_zone4_core.ogg'; // Core pulse
   private readonly SFX_HIT_PLAYER_PATH = '/audio/sfx_hit_player.ogg';
-  private readonly SFX_ENEMY_DEATH_PATH = '/audio/sfx_enemy_death.ogg';
+  private readonly SFX_ENEMY_DEATH_PATH = '/audio/Enemy-Dying.ogg';
   private readonly SFX_HACKING_START_PATH = '/audio/sfx_hacking_start.ogg';
   private readonly SFX_HACKING_SUCCESS_PATH = '/audio/sfx_hacking_success.ogg';
   private readonly SFX_HACKING_FAIL_PATH = '/audio/sfx_hacking_fail.ogg';
