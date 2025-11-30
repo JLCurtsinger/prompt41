@@ -105,7 +105,7 @@ export function registerWallColliderFromObject(object: THREE.Object3D, debugId?:
 
 // Dev-only function to get collider debug info
 export function getColliderDebugInfo(): { manual: number; dynamic: number; total: number } {
-  if (process.env.NODE_ENV !== 'development') {
+  if (!import.meta.env.DEV) {
     return { manual: 0, dynamic: 0, total: 0 };
   }
   return {

@@ -37,7 +37,7 @@ import { BackgroundAtmosphere } from './audio/BackgroundAtmosphere';
 import { useGameState } from '../state/gameState';
 import { getAllEnemies } from './Enemies/enemyRegistry';
 import { enemyRespawnManager } from './Enemies/EnemyRespawnManager';
-import { getAllWallColliders, getColliderDebugInfo } from './colliders/wallColliders';
+import { getAllWallColliders } from './colliders/wallColliders';
 import * as THREE from 'three';
 
 // Exit Portal position (at the far end of Zone 4) - adjusted for expanded zone
@@ -46,7 +46,7 @@ const EXIT_PORTAL_POSITION: [number, number, number] = [55, 0, 0];
 // DEBUG: Toggle world debug helpers visibility
 const DEBUG_SHOW_WORLD_HELPERS = true;
 // DEBUG: Toggle collider debug visualization (dev only)
-const DEBUG_SHOW_COLLIDERS = process.env.NODE_ENV === 'development';
+const DEBUG_SHOW_COLLIDERS = import.meta.env.DEV;
 
 // Loot and pickup positions (easily adjustable for future GLB integration)
 const LOOT_CRATE_ZONE2_POSITION: [number, number, number] = [2, 0, -3]; // Zone 2 (Processing Yard)

@@ -160,27 +160,8 @@ class AudioManagerClass {
    * Preload SFX files - only critical ones on startup, defer others
    */
   private preloadSFX(): void {
-    // Critical SFX that are needed immediately (player movement, combat, early game)
-    const criticalSFX: Record<string, string> = {
-      ZeekoDamage: this.SFX_ZEEKO_DAMAGE_PATH,
-      EnemyDying: this.SFX_ENEMY_DYING_PATH,
-      QuickFootsteps: this.SFX_QUICK_FOOTSTEPS_PATH,
-      SneakingFootsteps: this.SFX_SNEAKING_FOOTSTEPS_PATH,
-      CrawlerVoice: this.SFX_CRAWLER_VOICE_PATH,
-      JumpLanding: this.SFX_JUMP_LANDING_PATH,
-    };
-
-    // Preload critical SFX immediately
-    for (const [type, path] of Object.entries(criticalSFX)) {
-      const audio = this.createAudio(path, true);
-      if (audio) {
-        this.sfxCache.set(type as SFXType, audio);
-      }
-    }
-    
-    // Defer non-critical SFX loading until first use
-    // These will be loaded lazily in playSFX if not already cached
-    const deferredSFX: Record<SFXType, string> = {
+    // Complete SFX mapping - single source of truth for all SFX paths
+    const allSFXPaths: Record<SFXType, string> = {
       hitPlayer: this.SFX_HIT_PLAYER_PATH,
       enemyDeath: this.SFX_ENEMY_DEATH_PATH,
       hackingStart: this.SFX_HACKING_START_PATH,
@@ -193,11 +174,36 @@ class AudioManagerClass {
       gameOver: this.SFX_GAME_OVER_PATH,
       ActiveHacking: this.SFX_ACTIVE_HACKING_PATH,
       HackingSuccess: this.SFX_HACKING_SUCCESS_NEW_PATH,
+      ZeekoDamage: this.SFX_ZEEKO_DAMAGE_PATH,
+      EnemyDying: this.SFX_ENEMY_DYING_PATH,
+      SneakingFootsteps: this.SFX_SNEAKING_FOOTSTEPS_PATH,
+      QuickFootsteps: this.SFX_QUICK_FOOTSTEPS_PATH,
+      CrawlerVoice: this.SFX_CRAWLER_VOICE_PATH,
       DroneAttack: this.SFX_DRONE_ATTACK_PATH,
+      JumpLanding: this.SFX_JUMP_LANDING_PATH,
     };
     
-    // Store deferred paths for lazy loading
-    (this as any).deferredSFXPaths = deferredSFX;
+    // Critical SFX that are needed immediately (player movement, combat, early game)
+    const criticalSFXTypes: SFXType[] = [
+      'ZeekoDamage',
+      'EnemyDying',
+      'QuickFootsteps',
+      'SneakingFootsteps',
+      'CrawlerVoice',
+      'JumpLanding',
+    ];
+
+    // Preload critical SFX immediately
+    for (const type of criticalSFXTypes) {
+      const path = allSFXPaths[type];
+      const audio = this.createAudio(path, true);
+      if (audio) {
+        this.sfxCache.set(type, audio);
+      }
+    }
+    
+    // Store all paths for lazy loading (deferred SFX will load on first use)
+    (this as any).deferredSFXPaths = allSFXPaths;
     
     // Create hacking loop (separate from SFX cache as it loops) - defer loading
     // Will be created on first use
@@ -308,7 +314,7 @@ class AudioManagerClass {
   playSFX(type: SFXType): void {
     if (this.muted) return;
 
-    let audio = this.sfxCache.get(type);
+    let audio: HTMLAudioElement | null = this.sfxCache.get(type) || null;
     
     // Lazy load if not cached
     if (!audio) {
