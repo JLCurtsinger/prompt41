@@ -138,6 +138,14 @@ function ProcessingYardZone() {
         id="terminal-zone2-main"
         position={[0, 0, -5]}
       />
+      
+      {/* Door terminal for Zone 1 -> Zone 2 door (placed near the door) */}
+      <HackingTerminal
+        id="terminal-zone1-door"
+        position={[-5, 0, 2]}
+        terminalMode="door"
+        doorId="zone1-door"
+      />
     </group>
   );
 }
@@ -321,6 +329,12 @@ export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
       
+      {/* Door between Zone 1 and Zone 2 */}
+      <Door
+        doorId="zone1-door"
+        position={[-5, 0, 0]}
+      />
+      
       {/* Zone 2 to Zone 3 - adjusted position */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[12, 0, 0]} receiveShadow visible={false}>
         <planeGeometry args={[10, 8]} />
@@ -329,8 +343,16 @@ export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
       
       {/* Door gating Zone 2 -> Zone 3 - adjusted position */}
       <Door
-        id="zone2-zone3-main"
+        doorId="zone2-door"
         position={[12, 0, 0]}
+      />
+      
+      {/* Door terminal for Zone 2 -> Zone 3 door (placed near the door) */}
+      <HackingTerminal
+        id="terminal-zone2-door"
+        position={[12, 0, 2]}
+        terminalMode="door"
+        doorId="zone2-door"
       />
       
       {/* Zone 3 to Zone 4 - adjusted position */}

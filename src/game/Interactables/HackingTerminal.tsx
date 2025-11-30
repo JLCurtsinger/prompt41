@@ -25,11 +25,18 @@ interface HackingTerminalProps {
   position: [number, number, number];
   disabledUntilSentinelDefeated?: boolean;
   mode?: HackingMode; // Optional, defaults to 'timing'
+  terminalMode?: 'sourcecode' | 'door'; // Optional, defaults to 'sourcecode'
+  doorId?: string; // Required when terminalMode is 'door'
 }
 
 
-export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = false, mode }: HackingTerminalProps) {
+export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = false, mode, terminalMode = 'sourcecode', doorId }: HackingTerminalProps) {
   const hackMode: HackingMode = mode ?? 'timing';
+  
+  // Validate door mode
+  if (terminalMode === 'door' && !doorId) {
+    console.warn(`HackingTerminal ${id}: doorMode is 'door' but doorId is not provided`);
+  }
   const terminalRef = useRef<THREE.Group>(null);
   const [isInRange, setIsInRange] = useState(false);
   
@@ -182,9 +189,9 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
               return;
             }
             
-            // Open normal hacking overlay
+            // Open hacking overlay with terminal mode
             try {
-              openHackingOverlay(id, 'normal', hackMode);
+              openHackingOverlay(id, 'normal', hackMode, terminalMode, doorId);
               AudioManager.playSFX('ActiveHacking');
               clearInteractionPrompt(id); // Clear prompt when overlay opens
               
@@ -228,7 +235,7 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isInRange, terminalState, hackingOverlay.isOpen, isLockedBySentinel, id, clearInteractionPrompt, sentinelDefeated, playHostLine, openHackingOverlay, closeHackingOverlay, canHackTerminal, getTerminalCooldownRemaining, hackMode]);
+  }, [isInRange, terminalState, hackingOverlay.isOpen, isLockedBySentinel, id, clearInteractionPrompt, sentinelDefeated, playHostLine, openHackingOverlay, closeHackingOverlay, canHackTerminal, getTerminalCooldownRemaining, hackMode, terminalMode, doorId]);
   
   
   const isHacked = terminalState === 'hacked';

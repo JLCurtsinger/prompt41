@@ -103,6 +103,14 @@ export function registerWallColliderFromObject(object: THREE.Object3D, debugId?:
   }
 }
 
+// Unregister a collider by debugId
+export function unregisterWallCollider(debugId: string) {
+  const index = dynamicWallColliders.findIndex(collider => collider.debugId === debugId);
+  if (index !== -1) {
+    dynamicWallColliders.splice(index, 1);
+  }
+}
+
 // Dev-only function to get collider debug info
 export function getColliderDebugInfo(): { manual: number; dynamic: number; total: number } {
   if (!import.meta.env.DEV) {

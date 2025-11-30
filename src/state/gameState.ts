@@ -139,6 +139,15 @@ interface GameState {
   doorStates: Record<string, 'closed' | 'open'>;
   terminalStates: Record<string, 'locked' | 'hacked'>;
   
+  // Extended door state with reward tracking
+  doors: {
+    [doorId: string]: {
+      isOpen: boolean;
+      hasGivenReward: boolean;
+    };
+  };
+  hasShownDoorObjectiveHint: boolean;
+  
   // Game pause state (for hacking overlay, etc.)
   isPaused: boolean;
   
@@ -188,6 +197,8 @@ interface GameState {
     terminalId: string | null;
     mode: 'normal' | 'locked' | 'alreadyHacked' | 'success';
     hackMode: 'timing' | 'code'; // Type of minigame: timing bar or code challenge
+    terminalMode: 'sourcecode' | 'door'; // Terminal mode: sourcecode or door
+    doorId: string | null; // Door ID when terminalMode is 'door'
     // Mini-game state
     selectedAction: 'disableSentries' | 'overrideGate' | 'convertWatcher' | null;
     miniGamePhase: 'chooseAction' | 'playing' | 'result';
@@ -227,6 +238,12 @@ interface GameState {
   setDoorState: (id: string, state: 'closed' | 'open') => void;
   setTerminalState: (id: string, state: 'locked' | 'hacked') => void;
   
+  // Extended door actions
+  openDoor: (doorId: string) => void;
+  isDoorOpen: (doorId: string) => boolean;
+  grantDoorReward: (doorId: string, amount: number) => void;
+  showDoorObjectiveHintIfNeeded: () => void;
+  
   // Pause actions
   setPaused: (paused: boolean) => void;
   
@@ -259,7 +276,7 @@ interface GameState {
   clearInteractionPrompt: (sourceId?: string) => void;
   
   // Hacking overlay actions
-  openHackingOverlay: (terminalId: string, mode?: 'normal' | 'locked' | 'alreadyHacked' | 'success', hackMode?: 'timing' | 'code') => void;
+  openHackingOverlay: (terminalId: string, mode?: 'normal' | 'locked' | 'alreadyHacked' | 'success', hackMode?: 'timing' | 'code', terminalMode?: 'sourcecode' | 'door', doorId?: string) => void;
   setHackingOverlayMode: (mode: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
   closeHackingOverlay: () => void;
   // Mini-game actions
@@ -352,6 +369,10 @@ export const useGameState = create<GameState>((set, get) => {
     'terminal-zone4-final': 'locked'
   },
   
+  // Extended door state initial state
+  doors: {},
+  hasShownDoorObjectiveHint: false,
+  
   // Pause state
   isPaused: false,
   
@@ -401,6 +422,8 @@ export const useGameState = create<GameState>((set, get) => {
     terminalId: null,
     mode: 'normal',
     hackMode: 'timing',
+    terminalMode: 'sourcecode',
+    doorId: null,
     selectedAction: null,
     miniGamePhase: 'chooseAction' as const,
     miniGameResult: null,
@@ -518,6 +541,9 @@ export const useGameState = create<GameState>((set, get) => {
         'terminal-zone4': 'locked',
         'terminal-zone4-final': 'locked'
       },
+      // Reset extended door state
+      doors: {},
+      hasShownDoorObjectiveHint: false,
       // Reset Sentinel and shutdown
       sentinelDefeated: false,
       isShuttingDown: false,
@@ -553,6 +579,8 @@ export const useGameState = create<GameState>((set, get) => {
         terminalId: null,
         mode: 'normal',
         hackMode: 'timing',
+        terminalMode: 'sourcecode',
+        doorId: null,
         selectedAction: null,
         miniGamePhase: 'chooseAction' as const,
         miniGameResult: null,
@@ -604,6 +632,103 @@ export const useGameState = create<GameState>((set, get) => {
       terminalStates: { ...prev.terminalStates, [id]: state }
     }));
     console.log(`Terminal ${id} set to ${state}`);
+  },
+  
+  // Extended door actions
+  openDoor: (doorId) => {
+    set((prev) => {
+      // Initialize door if it doesn't exist
+      const door = prev.doors[doorId] || { isOpen: false, hasGivenReward: false };
+      return {
+        doors: {
+          ...prev.doors,
+          [doorId]: {
+            ...door,
+            isOpen: true,
+          },
+        },
+        doorStates: {
+          ...prev.doorStates,
+          [doorId]: 'open',
+        },
+      };
+    });
+    console.log(`Door ${doorId} opened`);
+  },
+  
+  isDoorOpen: (doorId) => {
+    const state = get();
+    // Return false if door doesn't exist (defaults to closed)
+    // Door will be initialized when opened
+    return state.doors[doorId]?.isOpen ?? false;
+  },
+  
+  grantDoorReward: (doorId, amount) => {
+    const state = get();
+    // Initialize door if it doesn't exist
+    if (!state.doors[doorId]) {
+      set((prev) => ({
+        doors: {
+          ...prev.doors,
+          [doorId]: {
+            isOpen: false,
+            hasGivenReward: false,
+          },
+        },
+      }));
+    }
+    
+    const door = get().doors[doorId];
+    
+    // If door has already given reward, do nothing
+    if (door.hasGivenReward) {
+      return;
+    }
+    
+    // Grant health reward (respects max health)
+    state.healPlayer(amount);
+    
+    // Mark reward as given
+    set((prev) => ({
+      doors: {
+        ...prev.doors,
+        [doorId]: {
+          ...prev.doors[doorId],
+          hasGivenReward: true,
+        },
+      },
+    }));
+    
+    console.log(`Door ${doorId} granted ${amount} HP reward`);
+  },
+  
+  showDoorObjectiveHintIfNeeded: () => {
+    const state = get();
+    
+    // If already shown, do nothing
+    if (state.hasShownDoorObjectiveHint) {
+      return;
+    }
+    
+    // Show objective message via host line system
+    const message = "Objective updated: Collect all SourceCodes to stop the rogue agent.";
+    const now = Date.now();
+    const hostMessage: HostMessage = {
+      id: `objective-${now}`,
+      text: message,
+      timestamp: now,
+    };
+    
+    set((prev) => {
+      const newMessages = [...prev.hostMessages, hostMessage];
+      const trimmedMessages = newMessages.slice(-MAX_MESSAGES);
+      return {
+        hostMessages: trimmedMessages,
+        hasShownDoorObjectiveHint: true,
+      };
+    });
+    
+    console.log('Door objective hint shown');
   },
   
   // Pause actions
@@ -873,13 +998,15 @@ export const useGameState = create<GameState>((set, get) => {
   },
   
   // Hacking overlay actions
-  openHackingOverlay: (terminalId, mode = 'normal', hackMode: 'timing' | 'code' = 'timing') => {
+  openHackingOverlay: (terminalId, mode = 'normal', hackMode: 'timing' | 'code' = 'timing', terminalMode: 'sourcecode' | 'door' = 'sourcecode', doorId?: string) => {
     set({
       hackingOverlay: {
         isOpen: true,
         terminalId,
         mode,
         hackMode,
+        terminalMode,
+        doorId: terminalMode === 'door' ? (doorId || null) : null,
         // Reset mini-game state when opening
         selectedAction: null,
         miniGamePhase: 'chooseAction',
@@ -944,6 +1071,8 @@ export const useGameState = create<GameState>((set, get) => {
         terminalId: null,
         mode: 'normal',
         hackMode: 'timing',
+        terminalMode: 'sourcecode',
+        doorId: null,
         selectedAction: null,
         miniGamePhase: 'chooseAction',
         miniGameResult: null,
@@ -960,6 +1089,8 @@ export const useGameState = create<GameState>((set, get) => {
         terminalId: null,
         mode: 'normal',
         hackMode: 'timing',
+        terminalMode: 'sourcecode',
+        doorId: null,
         selectedAction: null,
         miniGamePhase: 'chooseAction',
         miniGameResult: null,

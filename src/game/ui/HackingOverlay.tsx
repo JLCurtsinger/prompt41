@@ -559,9 +559,12 @@ export function HackingOverlay() {
   const completeLevel = useGameState((state) => state.completeLevel);
   const playHostLine = useGameState((state) => state.playHostLine);
   const setTerminalCooldown = useGameState((state) => state.setTerminalCooldown);
+  const openDoor = useGameState((state) => state.openDoor);
+  const grantDoorReward = useGameState((state) => state.grantDoorReward);
+  const showDoorObjectiveHintIfNeeded = useGameState((state) => state.showDoorObjectiveHintIfNeeded);
 
   // Extract values for easier use
-  const { isOpen, terminalId, mode, hackMode, miniGamePhase, miniGameResult, attemptsRemaining, selectedAction } = hackingOverlay;
+  const { isOpen, terminalId, mode, hackMode, terminalMode, doorId, miniGamePhase, miniGameResult, attemptsRemaining, selectedAction } = hackingOverlay;
 
   // Track if we've already awarded source code for this result
   const hasAwardedRef = useRef(false);
@@ -623,28 +626,55 @@ export function HackingOverlay() {
     hasAwardedRef.current = true;
 
     if (miniGameResult === 'success') {
-      // Mark terminal as hacked (this awards source code once per terminal)
-      markTerminalHacked(terminalId);
-      
-      // Mark terminal state as hacked
-      setTerminalState(terminalId, 'hacked');
-      
-      // Zone-specific effects
-      if (terminalId === 'terminal-zone2-main') {
-        unlockZone2Door();
-      } else if (terminalId === 'final_terminal') {
-        completeLevel();
-      }
-      
-      // Play host line and SFX
-      try {
-        AudioManager.playSFX('pickupSourceCode');
-        playHostLine('pickup:sourceCode');
-        playHostLine('hacking:success');
-        AudioManager.playSFX('hackingSuccess');
-        AudioManager.playSFX('HackingSuccess');
-      } catch (error) {
-        console.warn('HackingOverlay: Error playing success feedback:', error);
+      // Handle door mode terminals
+      if (terminalMode === 'door' && doorId) {
+        // Open the door
+        openDoor(doorId);
+        
+        // Grant +10 HP reward
+        grantDoorReward(doorId, 10);
+        
+        // Show objective hint if this is the first door (zone1-door)
+        if (doorId === 'zone1-door') {
+          showDoorObjectiveHintIfNeeded();
+        }
+        
+        // Mark terminal state as hacked
+        setTerminalState(terminalId, 'hacked');
+        
+        // Play success SFX
+        try {
+          playHostLine('hacking:success');
+          AudioManager.playSFX('hackingSuccess');
+          AudioManager.playSFX('HackingSuccess');
+        } catch (error) {
+          console.warn('HackingOverlay: Error playing success feedback:', error);
+        }
+      } else {
+        // Source code mode (existing behavior)
+        // Mark terminal as hacked (this awards source code once per terminal)
+        markTerminalHacked(terminalId);
+        
+        // Mark terminal state as hacked
+        setTerminalState(terminalId, 'hacked');
+        
+        // Zone-specific effects
+        if (terminalId === 'terminal-zone2-main') {
+          unlockZone2Door();
+        } else if (terminalId === 'final_terminal') {
+          completeLevel();
+        }
+        
+        // Play host line and SFX
+        try {
+          AudioManager.playSFX('pickupSourceCode');
+          playHostLine('pickup:sourceCode');
+          playHostLine('hacking:success');
+          AudioManager.playSFX('hackingSuccess');
+          AudioManager.playSFX('HackingSuccess');
+        } catch (error) {
+          console.warn('HackingOverlay: Error playing success feedback:', error);
+        }
       }
     } else {
       // Failure: Set terminal cooldown instead of resetting game
@@ -659,7 +689,7 @@ export function HackingOverlay() {
         console.warn('HackingOverlay: Error playing failure SFX:', error);
       }
     }
-  }, [isOpen, miniGamePhase, miniGameResult, terminalId, markTerminalHacked, setTerminalState, unlockZone2Door, completeLevel, playHostLine, setTerminalCooldown]);
+  }, [isOpen, miniGamePhase, miniGameResult, terminalId, terminalMode, doorId, markTerminalHacked, setTerminalState, unlockZone2Door, completeLevel, playHostLine, setTerminalCooldown, openDoor, grantDoorReward, showDoorObjectiveHintIfNeeded]);
 
   // Auto-close after result is shown (optional)
   useEffect(() => {
