@@ -102,7 +102,7 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
         const remaining = Math.ceil(getTerminalCooldownRemaining(id));
         showInteractionPrompt({
           message: `Shutdown in progress. Reboot in ${remaining}s.`,
-          actionKey: null,
+          actionKey: undefined,
           sourceId: id,
         });
         promptShownRef.current = true;
@@ -139,7 +139,7 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
         if (currentPrompt.sourceId !== id || !currentPrompt.message || !currentPrompt.message.includes('Shutdown')) {
           showInteractionPrompt({
             message: `Shutdown in progress. Reboot in ${remaining}s.`,
-            actionKey: null,
+            actionKey: undefined,
             sourceId: id,
           });
           promptShownRef.current = true;
@@ -147,7 +147,7 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
           // Update message with new remaining time
           showInteractionPrompt({
             message: `Shutdown in progress. Reboot in ${remaining}s.`,
-            actionKey: null,
+            actionKey: undefined,
             sourceId: id,
           });
         }
