@@ -61,7 +61,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const wasGroundedRef = useRef(true);
   const verticalVelocity = useRef(0);
   // Player heading (Y rotation) - initialized to spawn orientation
-  const heading = useRef(Math.PI);
+  const SPAWN_HEADING = Math.PI; // Original spawn rotation from commit c758f574
+  const heading = useRef(SPAWN_HEADING);
   
   // Impact spark state
   const [activeSparks, setActiveSparks] = useState<ActiveSpark[]>([]);
@@ -766,7 +767,9 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     player.rotation.x = 0;
     player.rotation.z = 0;
     
-    if (velocity.current.length() > 0.1) {
+    // Only update heading when there's actual movement (non-zero velocity)
+    const speedSq = velocity.current.lengthSq();
+    if (speedSq > 1e-4) {
       const targetRotation = Math.atan2(velocity.current.x, velocity.current.z);
       const currentRotation = heading.current;
       
