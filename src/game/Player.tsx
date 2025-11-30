@@ -1099,7 +1099,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         </mesh>
         
         {/* New visual player model */}
-        <group rotation={[0, Math.PI / 2, 0]}>
+        <group rotation={[0, -Math.PI / 2, 0]}>
           <ZeekoModel
             scale={0.8}
             position={[0, 0, 0]}
