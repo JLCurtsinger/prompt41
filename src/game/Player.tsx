@@ -846,7 +846,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     // Rotate the base offset 90° to the right around Y-axis
     const CAMERA_OFFSET = BASE_CAMERA_OFFSET.clone().applyAxisAngle(
       new THREE.Vector3(0, 1, 0),
-      Math.PI / 2 // 90° rotation to the right
+      -Math.PI / 2 // 90° rotation to the right
     );
     
     // Now apply horizontal rotation to the rotated offset
