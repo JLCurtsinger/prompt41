@@ -9,6 +9,9 @@ import { Door } from './Interactables/Door';
 // import { EnemySentinel } from './Enemies/EnemySentinel';
 import hostLinesData from '../assets/data/hostLines.json';
 import { FloorModel } from './models/FloorModel';
+import { WALL_COLLIDERS } from './colliders/wallColliders';
+
+const DEBUG_COLLIDERS = true; // set false for final build
 
 // TODO: Wire this layout to match Zones 1–4 from CoreGameDetails.md (perimeter → yard → conduit → core chamber)
 
@@ -386,6 +389,25 @@ export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
         position={[45, 0, -5]}
         disabledUntilSentinelDefeated={true}
       />
+      
+      {/* Debug: Render collider boxes */}
+      {DEBUG_COLLIDERS &&
+        WALL_COLLIDERS.map((box, index) => {
+          const [minX, minY, minZ] = box.min;
+          const [maxX, maxY, maxZ] = box.max;
+          const width = maxX - minX;
+          const height = maxY - minY;
+          const depth = maxZ - minZ;
+          const centerX = minX + width / 2;
+          const centerY = minY + height / 2;
+          const centerZ = minZ + depth / 2;
+          return (
+            <mesh key={index} position={[centerX, centerY, centerZ]}>
+              <boxGeometry args={[width, height, depth]} />
+              <meshBasicMaterial wireframe transparent opacity={0.3} color="red" />
+            </mesh>
+          );
+        })}
     </group>
   );
 }

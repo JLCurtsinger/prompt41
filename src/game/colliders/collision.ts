@@ -2,6 +2,8 @@ import type { Aabb } from "./wallColliders";
 import { WALL_COLLIDERS } from "./wallColliders";
 import * as THREE from "three";
 
+const DEBUG_COLLISIONS = true; // set to false for production
+
 export const PLAYER_RADIUS = 0.5;
 
 function pointInsideAabb2D(
@@ -24,40 +26,45 @@ function pointInsideAabb2D(
   );
 }
 
-function positionBlockedByWalls(pos: THREE.Vector3): boolean {
+function positionBlockedByWalls(pos: THREE.Vector3): { blocked: boolean; index: number } {
   const x = pos.x;
   const z = pos.z;
-  for (const box of WALL_COLLIDERS) {
+  for (let i = 0; i < WALL_COLLIDERS.length; i += 1) {
+    const box = WALL_COLLIDERS[i];
     if (pointInsideAabb2D(x, z, box, PLAYER_RADIUS)) {
-      return true;
+      if (DEBUG_COLLISIONS) {
+        // Keep this lightweight; it only runs when debugging.
+        // eslint-disable-next-line no-console
+        console.log("Collision blocked at", { x, z, colliderIndex: i, box });
+      }
+      return { blocked: true, index: i };
     }
   }
-  return false;
+  return { blocked: false, index: -1 };
 }
 
 export function applyWallCollisions(
   prevPos: THREE.Vector3,
   proposedPos: THREE.Vector3
 ): THREE.Vector3 {
-  // If the fully proposed move is not blocked, just accept it.
-  if (!positionBlockedByWalls(proposedPos)) {
+  // Check full move
+  const fullCheck = positionBlockedByWalls(proposedPos);
+  if (!fullCheck.blocked) {
     return proposedPos;
   }
 
-  // Compute the attempted movement on each axis.
   const dx = proposedPos.x - prevPos.x;
   const dz = proposedPos.z - prevPos.z;
 
-  // Candidate positions for sliding along walls:
-  // 1. Move only along X, keep Z from previous position.
   const slideX = new THREE.Vector3(prevPos.x + dx, proposedPos.y, prevPos.z);
-  // 2. Move only along Z, keep X from previous position.
   const slideZ = new THREE.Vector3(prevPos.x, proposedPos.y, prevPos.z + dz);
 
-  const canMoveX = !positionBlockedByWalls(slideX);
-  const canMoveZ = !positionBlockedByWalls(slideZ);
+  const checkX = positionBlockedByWalls(slideX);
+  const checkZ = positionBlockedByWalls(slideZ);
 
-  // Prefer a valid slide over reverting all movement.
+  const canMoveX = !checkX.blocked;
+  const canMoveZ = !checkZ.blocked;
+
   if (canMoveX && !canMoveZ) {
     return slideX;
   }
@@ -65,16 +72,13 @@ export function applyWallCollisions(
     return slideZ;
   }
   if (canMoveX && canMoveZ) {
-    // If both are valid, choose the direction with the larger component
-    // so it feels more natural (slide in the main direction of travel).
     if (Math.abs(dx) >= Math.abs(dz)) {
       return slideX;
-    } else {
-      return slideZ;
     }
+    return slideZ;
   }
 
-  // If both slide attempts are blocked, stay in the previous position.
+  // Both directions blocked, stay where we were
   return prevPos;
 }
 

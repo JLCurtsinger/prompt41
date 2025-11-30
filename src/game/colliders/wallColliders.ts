@@ -22,9 +22,11 @@ export const WALL_COLLIDERS: Aabb[] = [
   
   // Zone 3 - Conduit Hall corridor walls
   // Left corridor wall at [20, 2, -6] with size [30, 4, 0.5]
-  { min: [5, 0, -6.25], max: [35, 3, -5.75] },
+  // Adjusted to start at x=12 (door position) to allow entry from Zone 2
+  { min: [12, 0, -6.25], max: [35, 3, -5.75] },
   // Right corridor wall at [20, 2, 6] with size [30, 4, 0.5]
-  { min: [5, 0, 5.75], max: [35, 3, 6.25] },
+  // Adjusted to start at x=12 (door position) to allow entry from Zone 2
+  { min: [12, 0, 5.75], max: [35, 3, 6.25] },
   
   // Zone 3 - Side room walls (relative to [25, 0, -6])
   // Left wall of side room at [25, 2, -9] with size [6, 4, 0.5]
