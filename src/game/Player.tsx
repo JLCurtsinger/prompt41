@@ -1083,7 +1083,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   
   return (
     <>
-      <group ref={playerRef} position={initialPosition} rotation={[0, Math.PI, 0]}>
+      <group ref={playerRef} position={initialPosition} rotation={[0, -Math.PI / 2, 0]}>
         {/* Keep the capsule collider for physics, but make it invisible */}
         <mesh position={[0, 1, 0]} visible={false}>
           <capsuleGeometry args={[0.4, 1.2, 4, 8]} />
