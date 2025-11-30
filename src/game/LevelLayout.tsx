@@ -9,9 +9,9 @@ import { Door } from './Interactables/Door';
 // import { EnemySentinel } from './Enemies/EnemySentinel';
 import hostLinesData from '../assets/data/hostLines.json';
 import { FloorModel } from './models/FloorModel';
-import { getAllWallColliders, registerWallColliderFromObject } from './colliders/wallColliders';
+import { registerWallColliderFromObject } from './colliders/wallColliders';
 
-const DEBUG_COLLIDERS = true; // set false for final build
+const DEBUG_COLLIDERS = false;
 
 function WallColliderWrapper({
   children,
@@ -424,31 +424,6 @@ export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
         position={[45, 0, -5]}
         disabledUntilSentinelDefeated={true}
       />
-      
-      {/* Debug: Render collider boxes */}
-      {DEBUG_COLLIDERS &&
-        getAllWallColliders().map((box, index) => {
-          const [minX, minY, minZ] = box.min;
-          const [maxX, maxY, maxZ] = box.max;
-          const width = maxX - minX;
-          const height = maxY - minY;
-          const depth = maxZ - minZ;
-          const centerX = minX + width / 2;
-          const centerY = minY + height / 2;
-          const centerZ = minZ + depth / 2;
-          return (
-            <group key={`collider-${index}`} position={[centerX, centerY, centerZ]}>
-              <mesh>
-                <boxGeometry args={[width, height, depth]} />
-                <meshBasicMaterial wireframe transparent opacity={0.3} color="red" />
-              </mesh>
-              {/* Optional: visual label if you're already using drei/Text; otherwise skip */}
-              {/* <Text fontSize={0.4} position={[0, height / 2 + 0.2, 0]}>
-                {box.debugId ?? index.toString()}
-              </Text> */}
-            </group>
-          );
-        })}
     </group>
   );
 }

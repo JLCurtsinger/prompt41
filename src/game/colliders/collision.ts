@@ -2,7 +2,7 @@ import type { Aabb } from "./wallColliders";
 import { getAllWallColliders } from "./wallColliders";
 import * as THREE from "three";
 
-const DEBUG_COLLISIONS = true; // set to false for production
+const DEBUG_COLLISIONS = false;
 
 export const PLAYER_RADIUS = 0.5;
 
