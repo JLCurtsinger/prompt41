@@ -1,11 +1,38 @@
 // Win Overlay - displays "Transmission Complete" when player collects all 3 SourceCodes
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGameState } from '../../state/gameState';
 
 export function WinOverlay() {
   const hasWon = useGameState((state) => state.hasWon);
   const resetPlayer = useGameState((state) => state.resetPlayer);
+  const hasPlayedWinSfxRef = useRef(false);
+
+  // Play win SFX when hasWon transitions from false → true
+  useEffect(() => {
+    if (!hasWon) {
+      // Reset guard when hasWon becomes false (for restart)
+      hasPlayedWinSfxRef.current = false;
+      return;
+    }
+
+    // Prevent repeated playback
+    if (hasPlayedWinSfxRef.current) return;
+    hasPlayedWinSfxRef.current = true;
+
+    // Play both sounds simultaneously
+    const tone = new Audio('/audio/win-sound.ogg');
+    const clap = new Audio('/audio/win-clap.ogg');
+
+    // Normal volume for tone
+    tone.volume = 1.0;
+
+    // Reduced volume for clapping so it doesn't overpower the sci-fi sound
+    clap.volume = 0.18;
+
+    tone.play().catch(() => {});
+    clap.play().catch(() => {});
+  }, [hasWon]);
 
   useEffect(() => {
     if (!hasWon) return;
