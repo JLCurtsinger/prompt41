@@ -60,6 +60,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const isGrounded = useRef(true);
   const wasGroundedRef = useRef(true);
   const verticalVelocity = useRef(0);
+  // Player heading (Y rotation) - initialized to spawn orientation
+  const heading = useRef(Math.PI);
   
   // Impact spark state
   const [activeSparks, setActiveSparks] = useState<ActiveSpark[]>([]);
@@ -766,7 +768,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     
     if (velocity.current.length() > 0.1) {
       const targetRotation = Math.atan2(velocity.current.x, velocity.current.z);
-      const currentRotation = player.rotation.y;
+      const currentRotation = heading.current;
       
       let rotationDiff = targetRotation - currentRotation;
       // Normalize to [-PI, PI]
@@ -774,8 +776,11 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       if (rotationDiff < -Math.PI) rotationDiff += 2 * Math.PI;
       
       // Smoothly interpolate to target rotation
-      player.rotation.y = currentRotation + rotationDiff * ROTATION_SPEED * delta;
+      heading.current = currentRotation + rotationDiff * ROTATION_SPEED * delta;
     }
+    
+    // Apply heading to player rotation
+    player.rotation.y = heading.current;
     
     // Update camera rotation from mouse input
     if (document.pointerLockElement !== null) {
@@ -1091,7 +1096,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   
   return (
     <>
-      <group ref={playerRef} position={initialPosition} rotation={[0, Math.PI, 0]}>
+      <group ref={playerRef} position={initialPosition} rotation={[0, heading.current, 0]}>
         {/* Keep the capsule collider for physics, but make it invisible */}
         <mesh position={[0, 1, 0]} visible={false}>
           <capsuleGeometry args={[0.4, 1.2, 4, 8]} />
@@ -1099,13 +1104,11 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         </mesh>
         
         {/* New visual player model */}
-        <group rotation={[0, -Math.PI / 2, 0]}>
-          <ZeekoModel
-            scale={0.8}
-            position={[0, 0, 0]}
-            rotation={[0, 0, 0]}
-          />
-        </group>
+        <ZeekoModel
+          scale={0.8}
+          position={[0, 0, 0]}
+          rotation={[0, 0, 0]}
+        />
         
         {/* Shock Baton - wrapped in group for animation */}
         <BatonSFX ref={batonSfxRef}>
