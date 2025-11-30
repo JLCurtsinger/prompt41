@@ -29,6 +29,7 @@ import { applyDamageToPlayer } from './enemyDamage';
 import { useGameState } from '../../state/gameState';
 import { registerEnemy, unregisterEnemy } from './enemyRegistry';
 import { EnemyHealthBar } from './EnemyHealthBar';
+import { SentinelMiniBossModel } from '../models/SentinelMiniBossModel';
 import * as THREE from 'three';
 
 interface EnemySentinelProps {
@@ -258,55 +259,8 @@ export function EnemySentinel({ initialPosition, playerPosition, isActivated }: 
       {/* Health bar above enemy */}
       <EnemyHealthBar health={health} maxHealth={maxHealth} getHealth={getHealth} />
       
-      {/* TODO: Replace this placeholder with sentinelZombot.glb model */}
-      {/* Sentinel: Larger than Shambler, amber/red core */}
-      
-      {/* Main body - large, taller box */}
-      <mesh position={[0, 1.5, 0]} castShadow>
-        <boxGeometry args={[0.8, 2, 0.7]} />
-        <meshStandardMaterial 
-          ref={materialRef}
-          color="#2a2a2a" 
-          emissive="#ffaa00" 
-          emissiveIntensity={0.3}
-        />
-      </mesh>
-      
-      {/* Core/chest - large amber/red glowing core */}
-      <mesh position={[0, 1.5, 0.4]} castShadow>
-        <sphereGeometry args={[0.3, 12, 12]} />
-        <meshStandardMaterial 
-          color="#1a1a1a" 
-          emissive="#ff8800" 
-          emissiveIntensity={1.2}
-        />
-      </mesh>
-      
-      {/* Head - medium box on top */}
-      <mesh position={[0, 2.8, 0]} castShadow>
-        <boxGeometry args={[0.5, 0.4, 0.5]} />
-        <meshStandardMaterial color="#1a1a1a" />
-      </mesh>
-      
-      {/* Arms - wider stance */}
-      <mesh position={[-0.5, 1.3, 0]} castShadow>
-        <boxGeometry args={[0.2, 1.0, 0.2]} />
-        <meshStandardMaterial color="#1a1a1a" />
-      </mesh>
-      <mesh position={[0.5, 1.3, 0]} castShadow>
-        <boxGeometry args={[0.2, 1.0, 0.2]} />
-        <meshStandardMaterial color="#1a1a1a" />
-      </mesh>
-      
-      {/* Legs - wider stance */}
-      <mesh position={[-0.3, 0.6, 0]} castShadow>
-        <boxGeometry args={[0.25, 1.2, 0.25]} />
-        <meshStandardMaterial color="#1a1a1a" />
-      </mesh>
-      <mesh position={[0.3, 0.6, 0]} castShadow>
-        <boxGeometry args={[0.25, 1.2, 0.25]} />
-        <meshStandardMaterial color="#1a1a1a" />
-      </mesh>
+      {/* Sentinel Mini-Boss GLB model */}
+      <SentinelMiniBossModel scale={[1, 1, 1]} />
       
     </group>
   );
