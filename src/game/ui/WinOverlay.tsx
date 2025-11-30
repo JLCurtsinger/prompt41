@@ -1,93 +1,58 @@
-// Win Overlay - displays "You Win" when player exits after completing objective
+// Win Overlay - displays "Transmission Complete" when player collects all 3 SourceCodes
 
-import { useEffect, useState } from 'react';
-import { useGameState, SOURCE_CODE_GOAL } from '../../state/gameState';
+import { useEffect } from 'react';
+import { useGameState } from '../../state/gameState';
 
 export function WinOverlay() {
-  const { hasWon, sourceCodeCount, resetPlayer } = useGameState();
-  const [opacity, setOpacity] = useState(0);
-  
-  // Fade in effect
-  useEffect(() => {
-    if (hasWon) {
-      // Start fade in
-      const timer = setTimeout(() => {
-        setOpacity(1);
-      }, 50);
-      return () => clearTimeout(timer);
-    } else {
-      setOpacity(0);
-    }
-  }, [hasWon]);
-  
-  // Handle R key to restart
+  const hasWon = useGameState((state) => state.hasWon);
+  const resetPlayer = useGameState((state) => state.resetPlayer);
+
   useEffect(() => {
     if (!hasWon) return;
-    
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === 'r') {
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 'r') {
         resetPlayer();
       }
     };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, [hasWon, resetPlayer]);
-  
+
   if (!hasWon) return null;
-  
+
   return (
     <div
       style={{
         position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        inset: 0,
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 2100, // Above VictoryOverlay
-        fontFamily: 'monospace',
-        color: '#00ff88',
-        opacity: opacity,
-        transition: 'opacity 0.5s ease-in',
+        justifyContent: 'center',
+        background:
+          'radial-gradient(circle at center, rgba(0,255,200,0.25), rgba(0,0,0,0.95))',
+        color: '#e6fffa',
+        fontFamily: 'system-ui, sans-serif',
+        zIndex: 9999,
       }}
     >
       <div
         style={{
-          fontSize: '64px',
-          fontWeight: 'bold',
-          marginBottom: '24px',
-          textShadow: '0 0 20px rgba(0, 255, 136, 0.8), 2px 2px 4px rgba(0,0,0,0.9)',
-          letterSpacing: '4px',
+          fontSize: '2.8rem',
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          marginBottom: '1rem',
         }}
       >
-        You Win
+        Transmission Complete
       </div>
-      
-      <div
-        style={{
-          fontSize: '18px',
-          color: '#ffffff',
-          textShadow: '1px 1px 2px rgba(0,0,0,0.9)',
-          marginBottom: '16px',
-        }}
-      >
-        Energy Cells Collected: {sourceCodeCount} / {SOURCE_CODE_GOAL}
+      <div style={{ fontSize: '1.1rem', opacity: 0.9, marginBottom: '2rem' }}>
+        All 3 SourceCodes secured. Neural rogue contained.
       </div>
-      
-      <div
-        style={{
-          fontSize: '20px',
-          color: '#00ffff',
-          textShadow: '0 0 8px rgba(0, 255, 255, 0.5), 1px 1px 2px rgba(0,0,0,0.9)',
-          marginTop: '20px',
-        }}
-      >
-        Press R to restart
+      <div style={{ fontSize: '0.95rem', opacity: 0.8 }}>
+        Press <span style={{ fontWeight: 700 }}>R</span> to restart.
       </div>
     </div>
   );

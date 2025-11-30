@@ -155,6 +155,7 @@ interface GameState {
   // Objective state
   objectiveComplete: boolean;
   hasWon: boolean;
+  winTriggeredAt: number | null;
   
   // Host message bus
   hostMessages: HostMessage[];
@@ -196,6 +197,9 @@ interface GameState {
   
   // Zone 2 -> Zone 3 door unlock flag
   hasZone2DoorUnlocked: boolean;
+  
+  // Terminal cooldown state (for failed hacks)
+  terminalCooldowns: Record<string, number | null>;
   
   // Current target enemy for HUD display
   currentTargetEnemyId: string | null;
@@ -285,6 +289,11 @@ interface GameState {
   // Objective actions
   setHasWon: (won: boolean) => void;
   
+  // Terminal cooldown actions
+  setTerminalCooldown: (terminalId: string, seconds: number) => void;
+  getTerminalCooldownRemaining: (terminalId: string) => number;
+  canHackTerminal: (terminalId: string) => boolean;
+  
   // Touch mode actions
   setTouchMode: (enabled: boolean) => void;
   
@@ -359,6 +368,7 @@ export const useGameState = create<GameState>((set, get) => {
   // Objective initial state
   objectiveComplete: false,
   hasWon: false,
+  winTriggeredAt: null,
   
   // Host message bus initial state
   hostMessages: [],
@@ -399,6 +409,9 @@ export const useGameState = create<GameState>((set, get) => {
   
   // Zone 2 door unlock initial state
   hasZone2DoorUnlocked: false,
+  
+  // Terminal cooldown initial state
+  terminalCooldowns: {},
   
   // Current target enemy initial state
   currentTargetEnemyId: null,
@@ -516,6 +529,7 @@ export const useGameState = create<GameState>((set, get) => {
       // Reset objective state
       objectiveComplete: false,
       hasWon: false,
+      winTriggeredAt: null,
       isPaused: false,
       // Reset host messages
       hostMessages: [],
@@ -546,6 +560,8 @@ export const useGameState = create<GameState>((set, get) => {
       },
       // Reset Zone 2 door unlock
       hasZone2DoorUnlocked: false,
+      // Reset terminal cooldowns
+      terminalCooldowns: {},
       // Reset target enemy
       currentTargetEnemyId: null,
       currentTargetEnemyName: null,
@@ -767,12 +783,16 @@ export const useGameState = create<GameState>((set, get) => {
     const newCount = Math.min(state.sourceCodeCount + 1, state.totalSourceCodes);
     const wasComplete = state.objectiveComplete;
     const isNowComplete = newCount >= state.totalSourceCodes;
+    const shouldWin = newCount >= SOURCE_CODE_GOAL && !state.hasWon;
     
     set({
       hackedTerminalIds: newHackedSet,
       sourceCodeCount: newCount,
       // Only trigger objectiveComplete once
       objectiveComplete: wasComplete || isNowComplete,
+      // Trigger win state when all 3 SourceCodes are collected
+      hasWon: shouldWin ? true : state.hasWon,
+      winTriggeredAt: shouldWin ? Date.now() : state.winTriggeredAt,
     });
     
     console.log(`Terminal ${id} hacked - Source codes: ${newCount}/${state.totalSourceCodes}`);
@@ -780,6 +800,11 @@ export const useGameState = create<GameState>((set, get) => {
     // Log objective completion only the first time
     if (!wasComplete && isNowComplete) {
       console.log('[Objective] Source code goal reached! Proceed to exit.');
+    }
+    
+    // Log win state trigger
+    if (shouldWin) {
+      console.log('[Win] All 3 SourceCodes secured! Transmission complete.');
     }
   },
   
@@ -1004,6 +1029,30 @@ export const useGameState = create<GameState>((set, get) => {
   setHasWon: (won) => {
     set({ hasWon: won });
     console.log(`[Objective] Player has won: ${won}`);
+  },
+  
+  // Terminal cooldown actions
+  setTerminalCooldown: (terminalId, seconds) => {
+    const unlockAt = Date.now() + seconds * 1000;
+    set((state) => ({
+      terminalCooldowns: {
+        ...state.terminalCooldowns,
+        [terminalId]: unlockAt,
+      },
+    }));
+    console.log(`[Terminal] ${terminalId} shutdown for ${seconds}s`);
+  },
+  
+  getTerminalCooldownRemaining: (terminalId) => {
+    const unlockAt = get().terminalCooldowns?.[terminalId] ?? null;
+    if (!unlockAt) return 0;
+    const remainingMs = unlockAt - Date.now();
+    return remainingMs > 0 ? remainingMs / 1000 : 0;
+  },
+  
+  canHackTerminal: (terminalId) => {
+    const remaining = get().getTerminalCooldownRemaining(terminalId);
+    return remaining <= 0;
   },
   
   // Touch mode actions

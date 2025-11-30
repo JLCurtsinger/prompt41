@@ -28,6 +28,8 @@ import { AudioManager } from '../audio/AudioManager';
 import directivesData from '../../assets/data/directives.json';
 import { CodeChallengeMiniGame } from './CodeChallengeMiniGame';
 
+const SHUTDOWN_SECONDS = 20;
+
 interface DirectiveData {
   title: string;
   options: string[];
@@ -556,6 +558,7 @@ export function HackingOverlay() {
   const unlockZone2Door = useGameState((state) => state.unlockZone2Door);
   const completeLevel = useGameState((state) => state.completeLevel);
   const playHostLine = useGameState((state) => state.playHostLine);
+  const setTerminalCooldown = useGameState((state) => state.setTerminalCooldown);
 
   // Extract values for easier use
   const { isOpen, terminalId, mode, hackMode, miniGamePhase, miniGameResult, attemptsRemaining, selectedAction } = hackingOverlay;
@@ -644,6 +647,11 @@ export function HackingOverlay() {
         console.warn('HackingOverlay: Error playing success feedback:', error);
       }
     } else {
+      // Failure: Set terminal cooldown instead of resetting game
+      if (terminalId) {
+        setTerminalCooldown(terminalId, SHUTDOWN_SECONDS);
+      }
+      
       // Failure SFX
       try {
         AudioManager.playSFX('hackingFail');
@@ -651,7 +659,7 @@ export function HackingOverlay() {
         console.warn('HackingOverlay: Error playing failure SFX:', error);
       }
     }
-  }, [isOpen, miniGamePhase, miniGameResult, terminalId, markTerminalHacked, setTerminalState, unlockZone2Door, completeLevel, playHostLine]);
+  }, [isOpen, miniGamePhase, miniGameResult, terminalId, markTerminalHacked, setTerminalState, unlockZone2Door, completeLevel, playHostLine, setTerminalCooldown]);
 
   // Auto-close after result is shown (optional)
   useEffect(() => {

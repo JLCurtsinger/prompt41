@@ -74,7 +74,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   }, []);
   
   const { camera } = useThree();
-  const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding, setBatonSfxRef, setPlayerPosition, recentlyHit } = useGameState();
+  const { isSwinging, setIsSwinging, isDead, resetPlayer, isEnding, setBatonSfxRef, setPlayerPosition, recentlyHit, hasWon } = useGameState();
   
   // Touch mode and touch inputs
   const touchMode = useGameState((state) => state.touchMode);
@@ -389,6 +389,11 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     
     // Freeze all controls when ending sequence has begun
     if (isEnding) {
+      return;
+    }
+    
+    // Freeze all controls when game is won
+    if (hasWon) {
       return;
     }
     

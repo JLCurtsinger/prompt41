@@ -41,6 +41,8 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   const openHackingOverlay = useGameState((state) => state.openHackingOverlay);
   const closeHackingOverlay = useGameState((state) => state.closeHackingOverlay);
   const hackingOverlay = useGameState((state) => state.hackingOverlay);
+  const canHackTerminal = useGameState((state) => state.canHackTerminal);
+  const getTerminalCooldownRemaining = useGameState((state) => state.getTerminalCooldownRemaining);
   // Use playerPosition from gameState (set by Player.tsx using getWorldPosition)
   const playerPosition = useGameState((state) => state.playerPosition);
   
@@ -72,13 +74,15 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
     // Update interaction prompt based on range and state
     // ================================================================
     // EXACT CONDITION FOR SHOWING "Press E to hack" PROMPT:
-    // const canHack = isPlayerNear && isLocked && !isDisabledBySentinel;
+    // const canHack = isPlayerNear && isLocked && !isDisabledBySentinel && !isOnCooldown;
     // Where:
     //   - isPlayerNear: distance <= 2.5 units (INTERACTION_RANGE)
     //   - isLocked: terminalState === 'locked' (from gameState.terminalStates[id])
     //   - isDisabledBySentinel: disabledUntilSentinelDefeated && !sentinelDefeated && terminalState === 'locked'
+    //   - isOnCooldown: !canHackTerminal(id) (terminal is in shutdown/reboot state)
     // ================================================================
-    const canHack = nowInRange && terminalState === 'locked' && !isLockedBySentinel;
+    const isOnCooldown = !canHackTerminal(id);
+    const canHack = nowInRange && terminalState === 'locked' && !isLockedBySentinel && !isOnCooldown;
     
     if (nowInRange && !wasInRange) {
       // Just entered range
@@ -93,6 +97,15 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
         // Don't show prompt if locked by Sentinel
         clearInteractionPrompt(id);
         promptShownRef.current = false;
+      } else if (isOnCooldown) {
+        // Show shutdown message if on cooldown
+        const remaining = Math.ceil(getTerminalCooldownRemaining(id));
+        showInteractionPrompt({
+          message: `Shutdown in progress. Reboot in ${remaining}s.`,
+          actionKey: null,
+          sourceId: id,
+        });
+        promptShownRef.current = true;
       } else {
         // Already hacked - no prompt
         clearInteractionPrompt(id);
@@ -119,6 +132,25 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
         } else {
           promptShownRef.current = true;
         }
+      } else if (isOnCooldown) {
+        // Update cooldown message with remaining time
+        const remaining = Math.ceil(getTerminalCooldownRemaining(id));
+        const currentPrompt = useGameState.getState().interactionPrompt;
+        if (currentPrompt.sourceId !== id || !currentPrompt.message || !currentPrompt.message.includes('Shutdown')) {
+          showInteractionPrompt({
+            message: `Shutdown in progress. Reboot in ${remaining}s.`,
+            actionKey: null,
+            sourceId: id,
+          });
+          promptShownRef.current = true;
+        } else {
+          // Update message with new remaining time
+          showInteractionPrompt({
+            message: `Shutdown in progress. Reboot in ${remaining}s.`,
+            actionKey: null,
+            sourceId: id,
+          });
+        }
       } else {
         // Clear prompt if we're in range but can't hack (hacked or locked by Sentinel)
         clearInteractionPrompt(id);
@@ -139,6 +171,14 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
           if (terminalState === 'locked') {
             // Check if terminal is locked by Sentinel
             if (isLockedBySentinel) {
+              return;
+            }
+            
+            // Check if terminal is on cooldown
+            if (!canHackTerminal(id)) {
+              const remaining = Math.ceil(getTerminalCooldownRemaining(id));
+              console.log(`Terminal ${id} rebooting, ${remaining}s remaining`);
+              // Optionally show a message to the player (could use a toast/HUD message system)
               return;
             }
             
@@ -188,7 +228,7 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isInRange, terminalState, hackingOverlay.isOpen, isLockedBySentinel, id, clearInteractionPrompt, sentinelDefeated, playHostLine, openHackingOverlay, closeHackingOverlay]);
+  }, [isInRange, terminalState, hackingOverlay.isOpen, isLockedBySentinel, id, clearInteractionPrompt, sentinelDefeated, playHostLine, openHackingOverlay, closeHackingOverlay, canHackTerminal, getTerminalCooldownRemaining, hackMode]);
   
   
   const isHacked = terminalState === 'hacked';
