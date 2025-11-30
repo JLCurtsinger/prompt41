@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { Box3, Group } from 'three';
+import { Group } from 'three';
 import * as THREE from 'three';
 
 interface ShamblerModelProps {
@@ -9,13 +9,14 @@ interface ShamblerModelProps {
   rotation?: [number, number, number];
 }
 
+const MODEL_Y_OFFSET = -0.6; // Visual offset to align Shambler feet with floor
+
 export function ShamblerModel(props: ShamblerModelProps) {
   const { scene } = useGLTF('/models/Shambler.glb');
   const groupRef = useRef<Group>(null);
-  const innerGroupRef = useRef<Group>(null);
 
   useLayoutEffect(() => {
-    if (!groupRef.current || !innerGroupRef.current) return;
+    if (!groupRef.current) return;
 
     // Enable shadows on all meshes in the model
     groupRef.current.traverse((child) => {
@@ -25,19 +26,11 @@ export function ShamblerModel(props: ShamblerModelProps) {
         child.frustumCulled = true;
       }
     });
-
-    // Calculate the bounding box of the model to determine ground offset
-    const box = new Box3().setFromObject(innerGroupRef.current);
-    const minY = box.min.y;
-    
-    // Apply local Y offset to bring feet to ground level
-    // The inner group's position is relative to the outer group
-    innerGroupRef.current.position.y = -minY;
   }, []);
 
   return (
     <group ref={groupRef} {...props} dispose={null} frustumCulled={true}>
-      <group ref={innerGroupRef}>
+      <group position={[0, MODEL_Y_OFFSET, 0]}>
         <primitive object={scene} />
       </group>
     </group>
