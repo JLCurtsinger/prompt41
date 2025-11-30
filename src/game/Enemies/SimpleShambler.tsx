@@ -18,6 +18,8 @@ import { EnemyDeathFragments } from "../Effects/EnemyDeathFragments";
 
 import { AudioManager } from "../audio/AudioManager";
 
+import { ShamblerModel } from "../models/ShamblerModel";
+
 // Attack constants - ensure melee range is tight and reasonable
 const SHAMBLER_MELEE_ATTACK_RANGE = 2.5; // Tight melee range - must be very close
 const SHAMBLER_ATTACK_WARMUP_MS = 2000;
@@ -291,15 +293,7 @@ export function SimpleShambler({
   return (
     <>
       <group ref={enemyRef}>
-
-        <mesh castShadow receiveShadow>
-
-          <capsuleGeometry args={[0.6, 1.6, 8, 16]} />
-
-          <meshStandardMaterial color={color} />
-
-        </mesh>
-
+        <ShamblerModel scale={[1, 1, 1]} />
       </group>
       
       {/* Death fragment effect */}
