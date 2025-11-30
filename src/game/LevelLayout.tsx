@@ -11,8 +11,6 @@ import hostLinesData from '../assets/data/hostLines.json';
 import { FloorModel } from './models/FloorModel';
 import { registerWallColliderFromObject } from './colliders/wallColliders';
 
-const DEBUG_COLLIDERS = false;
-
 function WallColliderWrapper({
   children,
   debugId,
