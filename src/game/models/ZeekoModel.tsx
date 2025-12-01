@@ -90,7 +90,7 @@ export function ZeekoModel(props: ZeekoModelProps) {
       newAction.clampWhenFinished = false;
     } else {
       // Idle, walk, and run loop forever
-      newAction.setLoop(2, Infinity);
+      newAction.setLoop(THREE.LoopRepeat, Infinity);
     }
 
     currentAnimationRef.current = targetAnimation;
@@ -98,7 +98,7 @@ export function ZeekoModel(props: ZeekoModelProps) {
   }, [actions, isMoving, isSprinting, isSwinging]);
 
   // Update animation mixer each frame
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (mixer) {
       mixer.update(delta);
     }

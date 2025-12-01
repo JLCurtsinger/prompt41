@@ -604,21 +604,17 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     
     // Determine target speed
     let targetSpeed = 0;
-    const isCurrentlyMoving = direction.current.length() > 0.1;
-    const isCurrentlySprinting = keys.current.shift && isCurrentlyMoving;
+    const isMovingRaw = direction.current.length() > 0.1;
+    const isSprintingRaw = keys.current.shift && isMovingRaw;
     
-    // Update animation state for ZeekoModel
-    setIsMoving(isCurrentlyMoving);
-    setIsSprinting(isCurrentlySprinting);
-    
-    if (isCurrentlyMoving) {
-      targetSpeed = isCurrentlySprinting ? SPRINT_SPEED : WALK_SPEED;
+    if (isMovingRaw) {
+      targetSpeed = isSprintingRaw ? SPRINT_SPEED : WALK_SPEED;
     }
     
     // Update sprint state tracking
-    if (isCurrentlyMoving) {
-      if (isCurrentlySprinting !== prevSprintState.current) {
-        prevSprintState.current = isCurrentlySprinting;
+    if (isMovingRaw) {
+      if (isSprintingRaw !== prevSprintState.current) {
+        prevSprintState.current = isSprintingRaw;
       }
     } else {
       // Reset sprint state when not moving
@@ -660,9 +656,13 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       pos.z *= scale;
     }
     
-    // Looping footsteps sound - start/stop based on movement state and sprinting
-    const isCurrentlyMoving = isMoving && isGrounded.current;
-    const isCurrentlySprinting = isSprinting && isCurrentlyMoving;
+    // Shared movement state for animations and footstep audio (player is moving and grounded)
+    const isCurrentlyMoving = isMovingRaw && isGrounded.current;
+    const isCurrentlySprinting = isSprintingRaw && isCurrentlyMoving;
+    
+    // Update animation state for ZeekoModel
+    setIsMoving(isCurrentlyMoving);
+    setIsSprinting(isCurrentlySprinting);
     
     // Footstep audio state machine - only one footstep loop plays at a time
     if (isCurrentlySprinting) {
