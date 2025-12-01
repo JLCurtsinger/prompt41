@@ -68,6 +68,10 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const [activeSparks, setActiveSparks] = useState<ActiveSpark[]>([]);
   const sparkIdCounter = useRef(0);
   
+  // Animation state for ZeekoModel
+  const [isMoving, setIsMoving] = useState(false);
+  const [isSprinting, setIsSprinting] = useState(false);
+  
   // Callback to remove a spark when it completes
   const removeSpark = useCallback((id: number) => {
     setActiveSparks(prev => prev.filter(spark => spark.id !== id));
@@ -600,17 +604,21 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     
     // Determine target speed
     let targetSpeed = 0;
-    const isMoving = direction.current.length() > 0.1;
-    const isSprinting = keys.current.shift && isMoving;
+    const isCurrentlyMoving = direction.current.length() > 0.1;
+    const isCurrentlySprinting = keys.current.shift && isCurrentlyMoving;
     
-    if (isMoving) {
-      targetSpeed = isSprinting ? SPRINT_SPEED : WALK_SPEED;
+    // Update animation state for ZeekoModel
+    setIsMoving(isCurrentlyMoving);
+    setIsSprinting(isCurrentlySprinting);
+    
+    if (isCurrentlyMoving) {
+      targetSpeed = isCurrentlySprinting ? SPRINT_SPEED : WALK_SPEED;
     }
     
     // Update sprint state tracking
-    if (isMoving) {
-      if (isSprinting !== prevSprintState.current) {
-        prevSprintState.current = isSprinting;
+    if (isCurrentlyMoving) {
+      if (isCurrentlySprinting !== prevSprintState.current) {
+        prevSprintState.current = isCurrentlySprinting;
       }
     } else {
       // Reset sprint state when not moving
@@ -1115,6 +1123,9 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
           scale={0.8}
           position={[0, 0, 0]}
           rotation={[0, 0, 0]}
+          isMoving={isMoving}
+          isSprinting={isSprinting}
+          isSwinging={isSwinging}
         />
         
         {/* Shock Baton - wrapped in group for animation */}
