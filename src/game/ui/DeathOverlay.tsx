@@ -44,7 +44,7 @@ export function DeathOverlay() {
           textShadow: '2px 2px 4px rgba(0,0,0,0.9)',
         }}
       >
-        SYSTEM FAILURE
+      THE AGENTS HAVE CONQUERED
       </div>
       <div
         style={{

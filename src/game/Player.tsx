@@ -981,39 +981,36 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         }
       }
       
-      if (!target) {
-        // No valid enemy to hit; do not consume the swing
-        return;
-      }
-      
-      const enemyPos = target.getPosition();
-      
-      // Get enemy info before applying damage
-      const enemyName = target.getEnemyName ? target.getEnemyName() : 
-                       (target.id.includes('crawler') ? 'Crawler' : 
-                        target.id.includes('shambler') ? 'Shambler' : 'Enemy');
-      const maxHealth = target.getMaxHealth ? target.getMaxHealth() : 100;
-      
-      // Apply damage
-      target.takeDamage(BATON_DAMAGE);
-      hasHitThisSwing.current = true; // Consume the swing only after successful hit
-      
-      // Verify enemy is still alive after damage (might have died)
-      const isStillAlive = !target.isDead();
-      
-      if (isStillAlive) {
-        // Spawn impact spark at enemy position
-        const sparkId = sparkIdCounter.current++;
-        const sparkPos: [number, number, number] = [enemyPos.x, enemyPos.y + 1, enemyPos.z];
-        setActiveSparks(prev => [...prev, { id: sparkId, position: sparkPos }]);
+      if (target) {
+        const enemyPos = target.getPosition();
         
-        // Play impact audio
-        const sfx = batonSfxRef.current;
-        sfx?.playImpact();
+        // Get enemy info before applying damage
+        const enemyName = target.getEnemyName ? target.getEnemyName() : 
+                         (target.id.includes('crawler') ? 'Crawler' : 
+                          target.id.includes('shambler') ? 'Shambler' : 'Enemy');
+        const maxHealth = target.getMaxHealth ? target.getMaxHealth() : 100;
         
-        // Update target enemy for HUD (get health after damage)
-        const currentHealth = target.getHealth ? target.getHealth() : (maxHealth - BATON_DAMAGE);
-        setCurrentTargetEnemy(target.id, enemyName, currentHealth, maxHealth);
+        // Apply damage
+        target.takeDamage(BATON_DAMAGE);
+        hasHitThisSwing.current = true; // Consume the swing only after successful hit
+        
+        // Verify enemy is still alive after damage (might have died)
+        const isStillAlive = !target.isDead();
+        
+        if (isStillAlive) {
+          // Spawn impact spark at enemy position
+          const sparkId = sparkIdCounter.current++;
+          const sparkPos: [number, number, number] = [enemyPos.x, enemyPos.y + 1, enemyPos.z];
+          setActiveSparks(prev => [...prev, { id: sparkId, position: sparkPos }]);
+          
+          // Play impact audio
+          const sfx = batonSfxRef.current;
+          sfx?.playImpact();
+          
+          // Update target enemy for HUD (get health after damage)
+          const currentHealth = target.getHealth ? target.getHealth() : (maxHealth - BATON_DAMAGE);
+          setCurrentTargetEnemy(target.id, enemyName, currentHealth, maxHealth);
+        }
       }
     }
 
@@ -1115,12 +1112,12 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         <ZeekoModel
           scale={0.8}
           position={[0, 0, 0]}
-          rotation={[0, 0, 0]}
+          rotation={[0, Math.PI / 2, 0]}
         />
         
         {/* Shock Baton - wrapped in group for animation */}
         <BatonSFX ref={batonSfxRef}>
-          <group ref={batonRef} position={[0.3, 0.85, 0.35]} rotation={[0, 0, -0.3]}>
+          <group ref={batonRef} position={[0.3, 0.8, 0.05]} rotation={[0, 0, -0.3]}>
             {/* Baton blade - simple narrow box */}
             <mesh position={[0, 0.1, 0]} castShadow>
               <boxGeometry args={[0.08, 0.5, 0.08]} />
