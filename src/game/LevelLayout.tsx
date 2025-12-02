@@ -283,8 +283,8 @@ function CoreAccessChamberZone() {
       />
       
       {/* Sentinel containment cylinder */}
-      <mesh position={[45, 2.5, 0]}>
-        <cylinderGeometry args={[3, 3, 5, 32]} />
+      <mesh position={[45, 3.75, 0]}>
+        <cylinderGeometry args={[4.5, 4.5, 7.5, 32]} />
         <meshPhysicalMaterial
           color="#2b6cff"
           transparent
@@ -298,7 +298,7 @@ function CoreAccessChamberZone() {
       <SentinelMiniBoss
         position={[45, 0, 0]}
         rotation={[0, Math.PI, 0]}
-        scale={1}
+        scale={1.5}
       />
     </group>
   );
