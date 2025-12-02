@@ -2,7 +2,7 @@
 // 1. Initial State:
 //    - doorStates['zone1-zone2-main'] should be 'closed'
 //    - terminalStates['terminal-zone2-main'] should be 'locked'
-//    - terminalStates['terminal-zone4-final'] should be 'locked'
+//    - terminalStates['final_terminal'] should be 'locked'
 //    - sentinelDefeated should be false
 //    - isShuttingDown should be false
 // 2. Terminal State Change:
@@ -366,8 +366,7 @@ export const useGameState = create<GameState>((set, get) => {
   terminalStates: {
     'terminal-zone2-main': 'locked',
     'terminal-zone3': 'locked',
-    'terminal-zone4': 'locked',
-    'terminal-zone4-final': 'locked'
+    'final_terminal': 'locked'
   },
   
   // Extended door state initial state
@@ -540,8 +539,7 @@ export const useGameState = create<GameState>((set, get) => {
       terminalStates: {
         'terminal-zone2-main': 'locked',
         'terminal-zone3': 'locked',
-        'terminal-zone4': 'locked',
-        'terminal-zone4-final': 'locked'
+        'final_terminal': 'locked'
       },
       // Reset extended door state
       doors: {},

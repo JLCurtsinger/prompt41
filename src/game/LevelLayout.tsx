@@ -275,13 +275,6 @@ function CoreAccessChamberZone() {
         position={[45, 0, 0]} // center of the room
       />
       
-      {/* Zone 4 terminal (awards Source Code) - moved to new center */}
-      <HackingTerminal
-        id="terminal-zone4"
-        position={[45, 0, 5]}
-        mode="code"
-      />
-      
       {/* Sentinel containment cylinder */}
       <mesh position={[45, 3.75, 0]}>
         <cylinderGeometry args={[4.5, 4.5, 7.5, 32]} />

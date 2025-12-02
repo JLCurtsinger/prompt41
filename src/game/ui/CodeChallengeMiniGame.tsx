@@ -63,30 +63,6 @@ const CODE_QUESTIONS_BY_TERMINAL: Record<string, Question[]> = {
       correctIndex: 2,
     },
   ],
-  // Terminal 3: Zone 4 terminal - More advanced concepts
-  'terminal-zone4': [
-    {
-      id: 'js-boolean',
-      prompt: 'What is the boolean value for "not true" in JavaScript?',
-      code: 'const result = !true;',
-      options: ['true', 'false', 'undefined'],
-      correctIndex: 1,
-    },
-    {
-      id: 'js-map',
-      prompt: 'Fill in the blank: const result = [1,2,3]._____()',
-      code: 'const result = [1,2,3].map(x => x * 2);',
-      options: ['filter', 'map', 'reduce'],
-      correctIndex: 1,
-    },
-    {
-      id: 'js-object',
-      prompt: 'What is the value of obj.count?',
-      code: 'const obj = { count: 5 };\nobj.count = obj.count + 2;',
-      options: ['5', '7', 'undefined'],
-      correctIndex: 1,
-    },
-  ],
   // Final Terminal: Most challenging questions
   'final_terminal': [
     {
