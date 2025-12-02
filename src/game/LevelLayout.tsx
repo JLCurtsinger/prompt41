@@ -445,10 +445,10 @@ export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
         isActivated={isSentinelActivated}
       /> */}
       
-      {/* Final Terminal in Zone 4 (locked until Sentinel is defeated) - moved to new center */}
+      {/* Final Terminal in Zone 4 (locked until Sentinel is defeated) - on the right side of Sentinel */}
       <HackingTerminal
         id="final_terminal"
-        position={[45, 0, -5]}
+        position={[45, 0, 5]}
         disabledUntilSentinelDefeated={true}
       />
     </group>
