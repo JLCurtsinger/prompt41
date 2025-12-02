@@ -60,9 +60,12 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const isGrounded = useRef(true);
   const wasGroundedRef = useRef(true);
   const verticalVelocity = useRef(0);
-  // Player heading (Y rotation) - initialized to spawn orientation
-  const SPAWN_HEADING = Math.PI; // Original spawn rotation from commit c758f574
-  const heading = useRef(SPAWN_HEADING);
+  // Player heading (Y rotation) - starts at 0, will be updated by movement
+  const heading = useRef(0);
+  
+  // Visual model rotation offset - only affects how Zeeko looks, not movement
+  // Adjust this constant to change spawn facing direction without affecting movement
+  const PLAYER_MODEL_Y_OFFSET = Math.PI; // Rotate model to face correct direction on spawn
   
   // Impact spark state
   const [activeSparks, setActiveSparks] = useState<ActiveSpark[]>([]);
@@ -379,8 +382,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       resetPlayer();
       // Reset player position to spawn
       playerRef.current.position.set(...PLAYER_SPAWN_POSITION);
-      // Reset heading to spawn orientation
-      heading.current = SPAWN_HEADING;
+      // Reset heading to 0 (movement will update it naturally)
+      heading.current = 0;
       // Reset camera to default position
       camera.position.set(0, 2, 5);
       camera.rotation.set(0, 0, 0);
@@ -1122,7 +1125,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         <ZeekoModel
           scale={0.8}
           position={[0, 0, 0]}
-          rotation={[0, -Math.PI / 2, 0]}
+          rotation={[0, -Math.PI / 2 + PLAYER_MODEL_Y_OFFSET, 0]}
           isMoving={isMoving}
           isSprinting={isSprinting}
           isSwinging={isSwinging}
