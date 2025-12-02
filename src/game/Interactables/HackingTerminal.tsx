@@ -244,7 +244,17 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   return (
     <>
       <group ref={terminalRef} position={position}>
-        <HackingStationModel />
+        {/* Visual fallback base so the terminal is never "invisible" */}
+        <mesh position={[0, 0.5, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.4, 1, 0.4]} />
+          <meshStandardMaterial color="#111111" />
+        </mesh>
+        {/* GLB model, scaled and slightly lifted */}
+        <HackingStationModel
+          // small offset so it sits nicely above the base
+          position={[0, 0.9, 0]}
+          scale={1.5}
+        />
       </group>
     </>
   );

@@ -3,13 +3,7 @@ import { useGLTF } from '@react-three/drei';
 import { Group } from 'three';
 import * as THREE from 'three';
 
-interface HackingStationModelProps {
-  scale?: number | [number, number, number];
-  position?: [number, number, number];
-  rotation?: [number, number, number];
-}
-
-export function HackingStationModel(props: HackingStationModelProps) {
+export function HackingStationModel(props: JSX.IntrinsicElements['group']) {
   const { scene } = useGLTF('/models/Hacking-Station.glb');
   const groupRef = useRef<Group>(null);
 
@@ -27,7 +21,12 @@ export function HackingStationModel(props: HackingStationModelProps) {
   }, []);
 
   return (
-    <group ref={groupRef} {...props} dispose={null}>
+    <group
+      ref={groupRef}
+      {...props}
+      dispose={null}
+      rotation={[0, Math.PI, 0]}
+    >
       <primitive object={scene} />
     </group>
   );
