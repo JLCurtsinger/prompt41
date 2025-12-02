@@ -16,6 +16,7 @@ import { useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGameState, getTerminalState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
+import { HackingStationModel } from '../models/HackingStationModel';
 import * as THREE from 'three';
 
 type HackingMode = 'timing' | 'code';
@@ -245,31 +246,7 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   return (
     <>
       <group ref={terminalRef} position={position}>
-        {/* Terminal base/stand */}
-        <mesh position={[0, 0.5, 0]} castShadow>
-          <boxGeometry args={[0.4, 1, 0.4]} />
-          <meshStandardMaterial color="#1a1a1a" />
-        </mesh>
-        
-        {/* Terminal screen */}
-        <mesh position={[0, 1.2, 0.21]} castShadow>
-          <boxGeometry args={[0.6, 0.4, 0.05]} />
-          <meshStandardMaterial 
-            color={isHacked ? "#00ff00" : "#001100"} 
-            emissive={isHacked ? "#00ff00" : "#003300"} 
-            emissiveIntensity={isHacked ? 0.8 : 0.3}
-          />
-        </mesh>
-        
-        {/* Terminal panel */}
-        <mesh position={[0, 1, 0]} castShadow>
-          <boxGeometry args={[0.8, 0.6, 0.2]} />
-          <meshStandardMaterial 
-            color="#2a2a2a" 
-            metalness={0.7}
-            roughness={0.3}
-          />
-        </mesh>
+        <HackingStationModel />
       </group>
     </>
   );
