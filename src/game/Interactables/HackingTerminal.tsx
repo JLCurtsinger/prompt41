@@ -77,6 +77,22 @@ export function HackingTerminal({ id, position, rotation, mode, terminalMode = '
   useFrame(() => {
     if (!terminalRef.current) return;
     
+    // CRITICAL: If hacking overlay is open for this terminal, skip all prompt management
+    // The overlay should only close on minigame completion/cancel, not based on canHack/distance
+    const currentOverlay = useGameState.getState().hackingOverlay;
+    if (currentOverlay.isOpen && currentOverlay.terminalId === id) {
+      // Overlay is open - do NOT manage prompts or check canHack
+      // Just update range tracking for when overlay closes
+      const playerPos = new THREE.Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
+      const terminalWorldPos = new THREE.Vector3();
+      terminalRef.current.getWorldPosition(terminalWorldPos);
+      const distance = playerPos.distanceTo(terminalWorldPos);
+      const nowInRange = distance <= INTERACTION_RANGE;
+      wasInRangeRef.current = nowInRange;
+      setIsInRange(nowInRange);
+      return; // Exit early - don't touch prompts or canHack logic
+    }
+    
     // Get player world position from gameState (set by Player.tsx using getWorldPosition)
     const playerPos = new THREE.Vector3(playerPosition.x, playerPosition.y, playerPosition.z);
     
@@ -122,11 +138,13 @@ export function HackingTerminal({ id, position, rotation, mode, terminalMode = '
       }
     } else if (!nowInRange && wasInRange) {
       // Just left range
+      // NOTE: Do NOT close overlay here - overlay should only close on minigame completion/cancel
       clearInteractionPrompt(id);
       promptShownRef.current = false;
     } else if (nowInRange) {
       // Continuously ensure prompt is shown/hidden based on current state
       // This fixes the issue where prompt might be cleared by another terminal
+      // NOTE: Do NOT close overlay here - overlay should only close on minigame completion/cancel
       if (canHack) {
         // Re-show prompt if we should be showing it but it's not currently shown
         // Check current state to see if our prompt is active
@@ -157,6 +175,7 @@ export function HackingTerminal({ id, position, rotation, mode, terminalMode = '
         }
       } else {
         // Clear prompt if we're in range but can't hack (already hacked)
+        // NOTE: Do NOT close overlay here - overlay should only close on minigame completion/cancel
         clearInteractionPrompt(id);
         promptShownRef.current = false;
       }
