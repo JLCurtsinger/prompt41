@@ -66,7 +66,7 @@ export function WinOverlay() {
         fontFamily: 'system-ui, sans-serif',
         zIndex: 9999,
       }}
-    >
+    >1`1`
       <div
         style={{
           fontSize: '2.8rem',
@@ -75,10 +75,10 @@ export function WinOverlay() {
           marginBottom: '1rem',
         }}
       >
-        Transmission Complete
+        Prompt 41 Terminated
       </div>
       <div style={{ fontSize: '1.1rem', opacity: 0.9, marginBottom: '2rem' }}>
-        All 3 SourceCodes secured. Neural rogue contained.
+        Source Codes secured. Rouge agents neutralized.
       </div>
       <div style={{ fontSize: '0.95rem', opacity: 0.8 }}>
         Press <span style={{ fontWeight: 700 }}>R</span> to restart.
