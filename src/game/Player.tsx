@@ -62,7 +62,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const verticalVelocity = useRef(0);
   // How Zeeko is facing when he first spawns (in radians).
   // I will tweak this value myself to adjust his spawn-facing direction.
-  const SPAWN_HEADING = 0; // <--- SINGLE VARIABLE I WILL EDIT
+  const SPAWN_HEADING = 90; // <--- SINGLE VARIABLE to edit spawn direction
   // Player heading (Y rotation) - controls both movement direction and visual facing
   const heading = useRef(SPAWN_HEADING);
   
