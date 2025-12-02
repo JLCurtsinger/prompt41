@@ -110,15 +110,3 @@ export function unregisterWallCollider(debugId: string) {
     dynamicWallColliders.splice(index, 1);
   }
 }
-
-// Dev-only function to get collider debug info
-export function getColliderDebugInfo(): { manual: number; dynamic: number; total: number } {
-  if (!import.meta.env.DEV) {
-    return { manual: 0, dynamic: 0, total: 0 };
-  }
-  return {
-    manual: manualWallColliders.length,
-    dynamic: dynamicWallColliders.length,
-    total: manualWallColliders.length + dynamicWallColliders.length,
-  };
-}

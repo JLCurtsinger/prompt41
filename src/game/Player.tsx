@@ -1122,7 +1122,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
         <ZeekoModel
           scale={0.8}
           position={[0, 0, 0]}
-          rotation={[0, 0, 0]}
+          rotation={[0, -Math.PI / 2, 0]}
           isMoving={isMoving}
           isSprinting={isSprinting}
           isSwinging={isSwinging}
