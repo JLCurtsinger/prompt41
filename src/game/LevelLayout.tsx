@@ -449,6 +449,7 @@ export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
       <HackingTerminal
         id="final_terminal"
         position={[45, 0, 5]}
+        rotation={[0, Math.PI, 0]}
         disabledUntilSentinelDefeated={true}
       />
     </group>

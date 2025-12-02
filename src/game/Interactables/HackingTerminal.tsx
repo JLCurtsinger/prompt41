@@ -24,6 +24,7 @@ type HackingMode = 'timing' | 'code';
 interface HackingTerminalProps {
   id: string;
   position: [number, number, number];
+  rotation?: [number, number, number]; // Optional rotation for the terminal
   disabledUntilSentinelDefeated?: boolean;
   mode?: HackingMode; // Optional, defaults to 'timing'
   terminalMode?: 'sourcecode' | 'door'; // Optional, defaults to 'sourcecode'
@@ -31,7 +32,7 @@ interface HackingTerminalProps {
 }
 
 
-export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = false, mode, terminalMode = 'sourcecode', doorId }: HackingTerminalProps) {
+export function HackingTerminal({ id, position, rotation, disabledUntilSentinelDefeated = false, mode, terminalMode = 'sourcecode', doorId }: HackingTerminalProps) {
   const hackMode: HackingMode = mode ?? 'timing';
   
   // Validate door mode
@@ -244,7 +245,7 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   
   return (
     <>
-      <group ref={terminalRef} position={position}>
+      <group ref={terminalRef} position={position} rotation={rotation}>
         {/* Visual fallback base so the terminal is never "invisible" */}
         <mesh position={[0, 0.5, 0]} castShadow receiveShadow>
           <boxGeometry args={[0.4, 1, 0.4]} />
