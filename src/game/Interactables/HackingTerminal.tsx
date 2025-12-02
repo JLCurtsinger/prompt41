@@ -56,7 +56,8 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   
   const INTERACTION_RANGE = 2.5;
   
-  // Check if this terminal is locked by Sentinel
+  // Check if this terminal is locked by Sentinel (calculated from reactive state)
+  // This will automatically update when sentinelDefeated or terminalState changes
   const isLockedBySentinel = disabledUntilSentinelDefeated && !sentinelDefeated && terminalState === 'locked';
   
   // Track previous in-range state with a ref to avoid stale closure issues
