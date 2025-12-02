@@ -326,6 +326,12 @@ export function GameScene() {
   
   // Callback to handle enemy spawns from EnemyRespawnController
   const handleSpawnEnemies = (newEnemies: Array<{ id: string; type: 'crawler' | 'drone' | 'shambler'; zoneId: string; position: [number, number, number] }>) => {
+    console.log(`[GameScene] handleSpawnEnemies called with ${newEnemies.length} enemies:`, newEnemies.map(e => `${e.type}-${e.id}`));
+    const droneEnemies = newEnemies.filter(e => e.type === 'drone');
+    if (droneEnemies.length > 0) {
+      console.log(`[GameScene] WARNING: Spawning ${droneEnemies.length} drone(s):`, droneEnemies.map(e => e.id));
+      console.trace('[GameScene] Stack trace for drone spawn:');
+    }
     setSpawnedEnemies((prev) => [...prev, ...newEnemies]);
   };
   
@@ -513,6 +519,7 @@ export function GameScene() {
           color="cyan"
           enemyName="Drone"
           zoneId="zone2"
+          key="drone-zone2-0-hardcoded"
         />
         
         {/* SimpleShambler prototype in Zone 3 */}
@@ -565,6 +572,17 @@ export function GameScene() {
               />
             );
           } else if (enemy.type === 'drone') {
+            // Guard: Don't spawn a drone if the hardcoded one (drone-zone2-0) is still alive
+            // This prevents duplicate spawns when the hardcoded drone is still active
+            if (enemy.zoneId === 'zone2' && enemy.id !== 'drone-zone2-0') {
+              const allEnemies = getAllEnemies();
+              const hardcodedDroneExists = allEnemies.some(e => e.id === 'drone-zone2-0' && !e.isDead());
+              if (hardcodedDroneExists) {
+                console.warn(`[GameScene] Blocked duplicate drone spawn ${enemy.id} - hardcoded drone-zone2-0 is still alive`);
+                return null;
+              }
+            }
+            
             return (
               <SimpleDrone
                 key={enemy.id}

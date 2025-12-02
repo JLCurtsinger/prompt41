@@ -18,11 +18,21 @@ export interface EnemyInstance {
 const enemies = new Map<string, EnemyInstance>();
 
 export function registerEnemy(id: string, instance: EnemyInstance) {
+  if (enemies.has(id)) {
+    console.warn(`[enemyRegistry] WARNING: Enemy ${id} is already registered! This will overwrite the previous registration. Stack:`, new Error().stack);
+  }
+  console.log(`[enemyRegistry] Registering enemy ${id}. Total enemies: ${enemies.size + (enemies.has(id) ? 0 : 1)}`);
   enemies.set(id, instance);
 }
 
 export function unregisterEnemy(id: string) {
+  const existed = enemies.has(id);
   enemies.delete(id);
+  if (existed) {
+    console.log(`[enemyRegistry] Unregistered enemy ${id}. Remaining enemies: ${enemies.size}`);
+  } else {
+    console.warn(`[enemyRegistry] WARNING: Attempted to unregister enemy ${id} that was not registered.`);
+  }
 }
 
 export function getEnemiesInRange(
@@ -73,5 +83,15 @@ export function getAllEnemies(): EnemyInstance[] {
     if (e.isActive && !e.isActive()) return false; // Filter out inactive enemies
     return true;
   });
+}
+
+// Debug function to get all registered enemy IDs (including dead ones)
+export function getAllEnemyIds(): string[] {
+  return Array.from(enemies.keys());
+}
+
+// Check if an enemy with a given ID exists (for debugging)
+export function hasEnemy(id: string): boolean {
+  return enemies.has(id);
 }
 

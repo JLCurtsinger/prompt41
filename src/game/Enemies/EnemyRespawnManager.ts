@@ -105,26 +105,43 @@ class EnemyRespawnManager {
 
   // Register an enemy as active in a zone
   registerEnemy(zoneId: string, enemyId: string): void {
+    console.log(`[RespawnManager] registerEnemy called - zoneId: ${zoneId}, enemyId: ${enemyId}, stack:`, new Error().stack);
+    
     const zoneSet = this.activeEnemiesByZone.get(zoneId);
     if (zoneSet) {
+      if (zoneSet.has(enemyId)) {
+        console.warn(`[RespawnManager] WARNING: Enemy ${enemyId} is already registered in zone ${zoneId}! This may indicate a duplicate spawn.`);
+      }
       zoneSet.add(enemyId);
+      console.log(`[RespawnManager] Added ${enemyId} to zone ${zoneId}. Total in zone:`, Array.from(zoneSet));
+    } else {
+      console.warn(`[RespawnManager] WARNING: No zone set found for zoneId ${zoneId}`);
     }
   }
 
   // Unregister an enemy (called on death)
   unregisterEnemy(zoneId: string, enemyId: string): void {
+    console.log(`[RespawnManager] unregisterEnemy called - zoneId: ${zoneId}, enemyId: ${enemyId}, stack:`, new Error().stack);
+    
     const zoneSet = this.activeEnemiesByZone.get(zoneId);
     if (zoneSet) {
       zoneSet.delete(enemyId);
+      console.log(`[RespawnManager] Removed ${enemyId} from zone ${zoneId}. Remaining in zone:`, Array.from(zoneSet));
     }
 
     // Schedule respawn
     const config = this.zoneConfigs.get(zoneId);
-    if (!config) return;
+    if (!config) {
+      console.log(`[RespawnManager] No config found for zone ${zoneId}, skipping respawn`);
+      return;
+    }
 
     const activeCount = this.countActiveEnemiesInZone(zoneId);
+    console.log(`[RespawnManager] Active enemies in ${zoneId}: ${activeCount}/${config.maxEnemies}`);
+    
     if (activeCount >= config.maxEnemies) {
       // Already at max, don't schedule respawn
+      console.log(`[RespawnManager] Zone ${zoneId} already at max enemies (${activeCount}), skipping respawn`);
       return;
     }
 

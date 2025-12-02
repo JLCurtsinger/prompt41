@@ -77,6 +77,11 @@ export function SimpleDrone({
   // Generate enemy ID if not provided
   const enemyId = id || `drone-${Math.random().toString(36).slice(2, 8)}`;
   
+  // DEBUG: Log drone creation
+  useEffect(() => {
+    console.log(`[Drone] CREATED - id: ${enemyId}, orbitCenter: [${orbitCenter.join(', ')}], stack:`, new Error().stack);
+  }, []); // Only log on mount
+  
   // Determine zone from position if not provided
   const determinedZoneId = zoneId || (orbitCenter[0] < 5 ? 'zone2' : orbitCenter[0] < 35 ? 'zone3' : 'zone4') as 'zone2' | 'zone3' | 'zone4';
 
@@ -94,8 +99,20 @@ export function SimpleDrone({
     }
   }, []); // Only run once on mount
 
+  // Track if we've already registered to prevent duplicate registrations
+  const hasRegisteredRef = useRef(false);
+  
   // Register with enemyRegistry for baton hits / HUD
   useEffect(() => {
+    // Guard: Only register once per enemyId
+    if (hasRegisteredRef.current) {
+      console.warn(`[Drone] WARNING: Attempted to register ${enemyId} multiple times! This should not happen.`);
+      return;
+    }
+    
+    console.log(`[Drone] REGISTERING - id: ${enemyId}, zoneId: ${determinedZoneId}, stack:`, new Error().stack);
+    hasRegisteredRef.current = true;
+    
     const instance = {
       id: enemyId,
       getPosition: () => {
@@ -127,11 +144,15 @@ export function SimpleDrone({
     };
 
     registerEnemy(enemyId, instance);
+    console.log(`[Drone] REGISTERED - id: ${enemyId} with enemyRegistry`);
     
     // Register with respawn manager
     enemyRespawnManager.registerEnemy(determinedZoneId, enemyId);
+    console.log(`[Drone] REGISTERED - id: ${enemyId} with respawnManager for zone ${determinedZoneId}`);
 
     return () => {
+      console.log(`[Drone] UNREGISTERING - id: ${enemyId}`);
+      hasRegisteredRef.current = false; // Reset flag on unmount
       unregisterEnemy(enemyId);
       // Stop attack loop on unmount
       if (isAttackLoopPlayingRef.current) {
@@ -139,7 +160,7 @@ export function SimpleDrone({
         AudioManager.stopDroneAttackLoop();
       }
     };
-  }, [enemyId, maxHealth, enemyName]);
+  }, [enemyId, maxHealth, enemyName, determinedZoneId]);
 
   useFrame((_state, delta) => {
     const root = enemyRef.current;
