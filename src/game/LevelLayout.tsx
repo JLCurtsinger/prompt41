@@ -300,6 +300,18 @@ function CoreAccessChamberZone() {
         mode="code"
       />
       
+      {/* Big blue containment cylinder around Sentinel Mini-Boss */}
+      <mesh position={[45, 3, 0]} castShadow>
+        <cylinderGeometry args={[4, 4, 6, 32]} />
+        <meshStandardMaterial
+          color="#2b6cff"
+          transparent
+          opacity={0.35}
+          roughness={0.1}
+          metalness={0.4}
+        />
+      </mesh>
+      
       {/* Sentinel Mini-Boss - final boss encounter */}
       <SentinelMiniBoss
         position={[45, 0, 0]}
