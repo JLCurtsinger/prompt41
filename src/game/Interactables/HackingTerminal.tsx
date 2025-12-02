@@ -43,7 +43,6 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
   const [isInRange, setIsInRange] = useState(false);
   
   const terminalState = useGameState((state) => getTerminalState(state, id));
-  const sentinelDefeated = useGameState((state) => state.sentinelDefeated);
   const playHostLine = useGameState((state) => state.playHostLine);
   const showInteractionPrompt = useGameState((state) => state.showInteractionPrompt);
   const clearInteractionPrompt = useGameState((state) => state.clearInteractionPrompt);
@@ -57,20 +56,15 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
   
   const INTERACTION_RANGE = 2.5;
   
-  // Unified canHack logic - single canonical rule used throughout the component
+  // Simplified canHack logic - no Sentinel gating
   // ================================================================
   // CANONICAL canHack RULE:
-  // canHack = isPlayerInRange && isTerminalLockState && !isLockedBySentinel && !isOnCooldown
+  // canHack = isPlayerInRange && isTerminalLockState && !isOnCooldown
   // Where:
   //   - isPlayerInRange: distance <= INTERACTION_RANGE (2.5 units)
   //   - isTerminalLockState: terminalState === 'locked'
-  //   - isLockedBySentinel: disabledUntilSentinelDefeated && !sentinelDefeated
   //   - isOnCooldown: !canHackTerminal(id) (terminal is in shutdown/reboot state)
   // ================================================================
-  
-  // Check if this terminal is locked by Sentinel (calculated from reactive state)
-  // This will automatically update when sentinelDefeated or terminalState changes
-  const isLockedBySentinel = disabledUntilSentinelDefeated && !sentinelDefeated;
   
   // Check if terminal is in normal locked state (can be hacked)
   const isTerminalLockState = terminalState === 'locked';
@@ -100,9 +94,9 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
       return;
     }
     
-    // Calculate canHack using unified canonical rule
+    // Calculate canHack using simplified rule (no Sentinel gating)
     const isOnCooldown = !canHackTerminal(id);
-    const canHack = nowInRange && isTerminalLockState && !isLockedBySentinel && !isOnCooldown;
+    const canHack = nowInRange && isTerminalLockState && !isOnCooldown;
     
     if (nowInRange && !wasInRange) {
       // Just entered range
@@ -113,10 +107,6 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
           sourceId: id,
         });
         promptShownRef.current = true;
-      } else if (isLockedBySentinel) {
-        // Don't show prompt if locked by Sentinel
-        clearInteractionPrompt(id);
-        promptShownRef.current = false;
       } else if (isOnCooldown) {
         // Show shutdown message if on cooldown
         const remaining = Math.ceil(getTerminalCooldownRemaining(id));
@@ -167,7 +157,7 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
           promptShownRef.current = true;
         }
       } else {
-        // Clear prompt if we're in range but can't hack (hacked or locked by Sentinel)
+        // Clear prompt if we're in range but can't hack (already hacked)
         clearInteractionPrompt(id);
         promptShownRef.current = false;
       }
@@ -183,9 +173,9 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === 'e' && !hackingOverlay.isOpen) {
         try {
-          // Use unified canHack logic - same rule as in useFrame
+          // Use simplified canHack logic - same rule as in useFrame (no Sentinel gating)
           const isOnCooldown = !canHackTerminal(id);
-          const canHack = isInRange && isTerminalLockState && !isLockedBySentinel && !isOnCooldown;
+          const canHack = isInRange && isTerminalLockState && !isOnCooldown;
           
           // Early return if cannot hack
           if (!canHack) {
@@ -241,7 +231,7 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isInRange, terminalState, hackingOverlay.isOpen, isLockedBySentinel, isTerminalLockState, id, clearInteractionPrompt, sentinelDefeated, playHostLine, openHackingOverlay, closeHackingOverlay, canHackTerminal, getTerminalCooldownRemaining, hackMode, terminalMode, doorId]);
+  }, [isInRange, terminalState, hackingOverlay.isOpen, isTerminalLockState, id, clearInteractionPrompt, playHostLine, openHackingOverlay, closeHackingOverlay, canHackTerminal, getTerminalCooldownRemaining, hackMode, terminalMode, doorId]);
   
   
   return (
