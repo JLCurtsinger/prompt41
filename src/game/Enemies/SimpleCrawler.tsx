@@ -313,7 +313,7 @@ export function SimpleCrawler({
   return (
     <>
       <group ref={enemyRef}>
-        <CrawlerModel scale={[1, 1, 1]} />
+        <CrawlerModel scale={[1.1, 1.1, 1.1]} />
       </group>
       
       {/* Death fragment effect */}
