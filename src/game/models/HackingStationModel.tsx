@@ -7,6 +7,12 @@ export function HackingStationModel(props: any) {
   const { scene } = useGLTF('/models/Hacking-Station.glb');
   const groupRef = useRef<Group>(null);
 
+  // Allow rotation to be controlled from the outside.
+  // If none is provided, use the previous default.
+  const { rotation, ...rest } = props;
+  const defaultRotation: [number, number, number] = [0, Math.PI, 0];
+  const finalRotation = rotation ?? defaultRotation;
+
   useLayoutEffect(() => {
     if (!groupRef.current) return;
 
@@ -23,8 +29,9 @@ export function HackingStationModel(props: any) {
   return (
     <group
       ref={groupRef}
-      {...props}
+      {...rest}
       dispose={null}
+      rotation={finalRotation}
     >
       <primitive object={scene} />
     </group>

@@ -25,14 +25,13 @@ interface HackingTerminalProps {
   id: string;
   position: [number, number, number];
   rotation?: [number, number, number]; // Optional rotation for the terminal
-  disabledUntilSentinelDefeated?: boolean;
   mode?: HackingMode; // Optional, defaults to 'timing'
   terminalMode?: 'sourcecode' | 'door'; // Optional, defaults to 'sourcecode'
   doorId?: string; // Required when terminalMode is 'door'
 }
 
 
-export function HackingTerminal({ id, position, rotation, disabledUntilSentinelDefeated = false, mode, terminalMode = 'sourcecode', doorId }: HackingTerminalProps) {
+export function HackingTerminal({ id, position, rotation, mode, terminalMode = 'sourcecode', doorId }: HackingTerminalProps) {
   const hackMode: HackingMode = mode ?? 'timing';
   
   // Validate door mode
@@ -247,6 +246,7 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
           // Positioned so it sits nicely above the small pedestal
           position={[0, 0.9, 0]}
           scale={1.5}
+          rotation={rotation}
         />
       </group>
     </>
