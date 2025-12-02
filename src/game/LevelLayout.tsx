@@ -269,24 +269,6 @@ function CoreAccessChamberZone() {
         );
       })}
       
-      {/* Central server core / reactor structure - moved to new center */}
-      <mesh position={[45, 2, 0]} castShadow>
-        <cylinderGeometry args={[2, 2, 4, 16]} />
-        <meshStandardMaterial 
-          color="#1a3a5a" 
-          emissive="#1a4a7a" 
-          emissiveIntensity={0.4} 
-        />
-      </mesh>
-      <mesh position={[45, 4, 0]}>
-        <cylinderGeometry args={[2.5, 2, 0.5, 16]} />
-        <meshStandardMaterial 
-          color="#2a4a6a" 
-          emissive="#2a5a8a" 
-          emissiveIntensity={0.6} 
-        />
-      </mesh>
-      
       {/* Center feature placeholder */}
       <group
         name="core_chamber_center"
@@ -300,10 +282,10 @@ function CoreAccessChamberZone() {
         mode="code"
       />
       
-      {/* Big blue containment cylinder around Sentinel Mini-Boss */}
-      <mesh position={[45, 3, 0]} castShadow>
-        <cylinderGeometry args={[4, 4, 6, 32]} />
-        <meshStandardMaterial
+      {/* Sentinel containment cylinder */}
+      <mesh position={[45, 2.5, 0]}>
+        <cylinderGeometry args={[3, 3, 5, 32]} />
+        <meshPhysicalMaterial
           color="#2b6cff"
           transparent
           opacity={0.35}
