@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import React, { useState, useMemo } from 'react';
 import type { JSX } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import { TriggerVolume } from './Interactables/TriggerVolume';
 import { HackingTerminal } from './Interactables/HackingTerminal';
 import { Door } from './Interactables/Door';
@@ -26,6 +27,17 @@ function WallColliderWrapper({
   }, [debugId]);
 
   return <group ref={groupRef}>{children}</group>;
+}
+
+// Sentinel Mini-Boss component
+function SentinelMiniBoss(props: React.ComponentPropsWithoutRef<'group'>) {
+  const { scene } = useGLTF('/models/Sentinel-Mini-Boss.glb');
+
+  return (
+    <group {...props}>
+      <primitive object={scene} />
+    </group>
+  );
 }
 
 // TODO: Wire this layout to match Zones 1–4 from CoreGameDetails.md (perimeter → yard → conduit → core chamber)
@@ -287,6 +299,13 @@ function CoreAccessChamberZone() {
         position={[45, 0, 5]}
         mode="code"
       />
+      
+      {/* Sentinel Mini-Boss - final boss encounter */}
+      <SentinelMiniBoss
+        position={[45, 0, 0]}
+        rotation={[0, Math.PI, 0]}
+        scale={1}
+      />
     </group>
   );
 }
@@ -448,4 +467,7 @@ export function LevelLayout({ isMobile = false }: { isMobile?: boolean }) {
     </group>
   );
 }
+
+// Preload Sentinel Mini-Boss model
+useGLTF.preload('/models/Sentinel-Mini-Boss.glb');
 
