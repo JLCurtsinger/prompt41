@@ -230,6 +230,7 @@ function ConduitHallZone() {
       <HackingTerminal
         id="terminal-zone3"
         position={[25, 0, 0]}
+        rotation={[0, -Math.PI, 0]}
       />
       
       {/* TODO: Hazard area (steam vents, sparks) will be added here */}
