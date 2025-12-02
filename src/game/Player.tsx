@@ -60,8 +60,11 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const isGrounded = useRef(true);
   const wasGroundedRef = useRef(true);
   const verticalVelocity = useRef(0);
+  // How Zeeko is facing when he first spawns (in radians).
+  // I will tweak this value myself to adjust his spawn-facing direction.
+  const SPAWN_HEADING = 0; // <--- SINGLE VARIABLE I WILL EDIT
   // Player heading (Y rotation) - controls both movement direction and visual facing
-  const heading = useRef(0);
+  const heading = useRef(SPAWN_HEADING);
   
   // Impact spark state
   const [activeSparks, setActiveSparks] = useState<ActiveSpark[]>([]);
@@ -378,8 +381,8 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
       resetPlayer();
       // Reset player position to spawn
       playerRef.current.position.set(...PLAYER_SPAWN_POSITION);
-      // Reset heading to 0
-      heading.current = 0;
+      // Reset heading to spawn orientation
+      heading.current = SPAWN_HEADING;
       // Reset camera to default position
       camera.position.set(0, 2, 5);
       camera.rotation.set(0, 0, 0);
