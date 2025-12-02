@@ -297,7 +297,7 @@ function CoreAccessChamberZone() {
       {/* Sentinel Mini-Boss - final boss encounter */}
       <SentinelMiniBoss
         position={[45, 0, 0]}
-        rotation={[0, Math.PI / 2, 0]}
+        rotation={[0, -Math.PI / 2, 0]}
         scale={1.5}
       />
     </group>
