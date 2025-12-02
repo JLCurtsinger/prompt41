@@ -57,9 +57,23 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
   
   const INTERACTION_RANGE = 2.5;
   
+  // Unified canHack logic - single canonical rule used throughout the component
+  // ================================================================
+  // CANONICAL canHack RULE:
+  // canHack = isPlayerInRange && isTerminalLockState && !isLockedBySentinel && !isOnCooldown
+  // Where:
+  //   - isPlayerInRange: distance <= INTERACTION_RANGE (2.5 units)
+  //   - isTerminalLockState: terminalState === 'locked'
+  //   - isLockedBySentinel: disabledUntilSentinelDefeated && !sentinelDefeated
+  //   - isOnCooldown: !canHackTerminal(id) (terminal is in shutdown/reboot state)
+  // ================================================================
+  
   // Check if this terminal is locked by Sentinel (calculated from reactive state)
   // This will automatically update when sentinelDefeated or terminalState changes
-  const isLockedBySentinel = disabledUntilSentinelDefeated && !sentinelDefeated && terminalState === 'locked';
+  const isLockedBySentinel = disabledUntilSentinelDefeated && !sentinelDefeated;
+  
+  // Check if terminal is in normal locked state (can be hacked)
+  const isTerminalLockState = terminalState === 'locked';
   
   // Track previous in-range state with a ref to avoid stale closure issues
   const wasInRangeRef = useRef(false);
@@ -86,18 +100,9 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
       return;
     }
     
-    // Update interaction prompt based on range and state
-    // ================================================================
-    // EXACT CONDITION FOR SHOWING "Press E to hack" PROMPT:
-    // const canHack = isPlayerNear && isLocked && !isDisabledBySentinel && !isOnCooldown;
-    // Where:
-    //   - isPlayerNear: distance <= 2.5 units (INTERACTION_RANGE)
-    //   - isLocked: terminalState === 'locked' (from gameState.terminalStates[id])
-    //   - isDisabledBySentinel: disabledUntilSentinelDefeated && !sentinelDefeated && terminalState === 'locked'
-    //   - isOnCooldown: !canHackTerminal(id) (terminal is in shutdown/reboot state)
-    // ================================================================
+    // Calculate canHack using unified canonical rule
     const isOnCooldown = !canHackTerminal(id);
-    const canHack = nowInRange && terminalState === 'locked' && !isLockedBySentinel && !isOnCooldown;
+    const canHack = nowInRange && isTerminalLockState && !isLockedBySentinel && !isOnCooldown;
     
     if (nowInRange && !wasInRange) {
       // Just entered range
@@ -176,61 +181,57 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
   // Handle E key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'e' && isInRange && !hackingOverlay.isOpen) {
+      if (e.key.toLowerCase() === 'e' && !hackingOverlay.isOpen) {
         try {
-          if (terminalState === 'locked') {
-            // Check if terminal is locked by Sentinel
-            if (isLockedBySentinel) {
-              return;
+          // Use unified canHack logic - same rule as in useFrame
+          const isOnCooldown = !canHackTerminal(id);
+          const canHack = isInRange && isTerminalLockState && !isLockedBySentinel && !isOnCooldown;
+          
+          // Early return if cannot hack
+          if (!canHack) {
+            // If already hacked, show message
+            if (terminalState === 'hacked') {
+              openHackingOverlay(id, 'alreadyHacked');
+              // Auto-close already hacked message after 1 second
+              setTimeout(() => {
+                closeHackingOverlay();
+              }, 1000);
             }
+            return;
+          }
             
-            // Check if terminal is on cooldown
-            if (!canHackTerminal(id)) {
-              const remaining = Math.ceil(getTerminalCooldownRemaining(id));
-              console.log(`Terminal ${id} rebooting, ${remaining}s remaining`);
-              // Optionally show a message to the player (could use a toast/HUD message system)
-              return;
-            }
+          // Open hacking overlay with terminal mode
+          try {
+            // Determine hackMiniGameKind: doors use 'door-bars', SourceCode terminals use 'code-quiz'
+            const hackMiniGameKind = terminalMode === 'door' ? 'door-bars' : 'code-quiz';
+            openHackingOverlay(id, 'normal', hackMode, terminalMode, doorId, hackMiniGameKind);
+            AudioManager.playSFX('ActiveHacking');
+            clearInteractionPrompt(id); // Clear prompt when overlay opens
             
-            // Open hacking overlay with terminal mode
+            // Safely call playHostLine
             try {
-              // Determine hackMiniGameKind: doors use 'door-bars', SourceCode terminals use 'code-quiz'
-              const hackMiniGameKind = terminalMode === 'door' ? 'door-bars' : 'code-quiz';
-              openHackingOverlay(id, 'normal', hackMode, terminalMode, doorId, hackMiniGameKind);
-              AudioManager.playSFX('ActiveHacking');
-              clearInteractionPrompt(id); // Clear prompt when overlay opens
-              
-              // Safely call playHostLine
-              try {
-                playHostLine('hacking:start');
-              } catch (error) {
-                console.warn(`HackingTerminal ${id}: Error playing host line:`, error);
-              }
-              
-              // Safely play SFX
-              try {
-                AudioManager.playSFX('hackingStart');
-              } catch (error) {
-                console.warn(`HackingTerminal ${id}: Error playing SFX:`, error);
-              }
-              
-              // Exit pointer lock if active
-              try {
-                if (document.pointerLockElement) {
-                  document.exitPointerLock();
-                }
-              } catch (error) {
-                console.warn(`HackingTerminal ${id}: Error exiting pointer lock:`, error);
+              playHostLine('hacking:start');
+            } catch (error) {
+              console.warn(`HackingTerminal ${id}: Error playing host line:`, error);
+            }
+            
+            // Safely play SFX
+            try {
+              AudioManager.playSFX('hackingStart');
+            } catch (error) {
+              console.warn(`HackingTerminal ${id}: Error playing SFX:`, error);
+            }
+            
+            // Exit pointer lock if active
+            try {
+              if (document.pointerLockElement) {
+                document.exitPointerLock();
               }
             } catch (error) {
-              console.error(`HackingTerminal ${id}: Error opening overlay:`, error);
+              console.warn(`HackingTerminal ${id}: Error exiting pointer lock:`, error);
             }
-          } else if (terminalState === 'hacked') {
-            openHackingOverlay(id, 'alreadyHacked');
-            // Auto-close already hacked message after 1 second
-            setTimeout(() => {
-              closeHackingOverlay();
-            }, 1000);
+          } catch (error) {
+            console.error(`HackingTerminal ${id}: Error opening overlay:`, error);
           }
         } catch (error) {
           console.error(`HackingTerminal ${id}: Error in key handler:`, error);
@@ -240,20 +241,20 @@ export function HackingTerminal({ id, position, rotation, disabledUntilSentinelD
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isInRange, terminalState, hackingOverlay.isOpen, isLockedBySentinel, id, clearInteractionPrompt, sentinelDefeated, playHostLine, openHackingOverlay, closeHackingOverlay, canHackTerminal, getTerminalCooldownRemaining, hackMode, terminalMode, doorId]);
+  }, [isInRange, terminalState, hackingOverlay.isOpen, isLockedBySentinel, isTerminalLockState, id, clearInteractionPrompt, sentinelDefeated, playHostLine, openHackingOverlay, closeHackingOverlay, canHackTerminal, getTerminalCooldownRemaining, hackMode, terminalMode, doorId]);
   
   
   return (
     <>
       <group ref={terminalRef} position={position} rotation={rotation}>
-        {/* Visual fallback base so the terminal is never "invisible" */}
-        <mesh position={[0, 0.5, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.4, 1, 0.4]} />
+        {/* Visual fallback base - small pedestal so GLB model visually dominates */}
+        <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
+          <boxGeometry args={[0.4, 0.5, 0.4]} />
           <meshStandardMaterial color="#111111" />
         </mesh>
-        {/* GLB model, scaled and slightly lifted */}
+        {/* GLB model, scaled and positioned to dominate visually */}
         <HackingStationModel
-          // small offset so it sits nicely above the base
+          // Positioned so it sits nicely above the small pedestal
           position={[0, 0.9, 0]}
           scale={1.5}
         />

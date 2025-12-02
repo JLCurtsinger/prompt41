@@ -25,7 +25,6 @@ export function HackingStationModel(props: any) {
       ref={groupRef}
       {...props}
       dispose={null}
-      rotation={[0, Math.PI, 0]}
     >
       <primitive object={scene} />
     </group>
