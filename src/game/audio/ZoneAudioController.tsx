@@ -16,7 +16,7 @@
 
 import { useEffect } from 'react';
 import { useGameState } from '../../state/gameState';
-import { AudioManager } from './AudioManager';
+import { AudioManager, initAudioManagerStateSync } from './AudioManager';
 
 export function ZoneAudioController() {
   const currentZone = useGameState((state) => state.currentZone);
@@ -43,11 +43,16 @@ export function ZoneAudioController() {
     AudioManager.setMuted(audioMuted);
   }, [audioMuted]);
 
-  // Initialize AudioManager on mount
+  // Initialize AudioManager after first frame (defer to improve startup performance)
   useEffect(() => {
-    AudioManager.initialize();
+    // Use requestAnimationFrame to defer initialization until after first render
+    const timeoutId = setTimeout(() => {
+      AudioManager.initialize();
+      initAudioManagerStateSync();
+    }, 100); // Small delay to allow first frame to render
     
     return () => {
+      clearTimeout(timeoutId);
       AudioManager.cleanup();
     };
   }, []);

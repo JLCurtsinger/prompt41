@@ -43,8 +43,8 @@ import * as THREE from 'three';
 // Exit Portal position (at the far end of Zone 4) - adjusted for expanded zone
 const EXIT_PORTAL_POSITION: [number, number, number] = [55, 0, 0];
 
-// DEBUG: Toggle world debug helpers visibility
-const DEBUG_SHOW_WORLD_HELPERS = true;
+// DEBUG: Toggle world debug helpers visibility (dev only)
+const DEBUG_SHOW_WORLD_HELPERS = import.meta.env.DEV;
 // DEBUG: Toggle collider debug visualization (dev only)
 const DEBUG_SHOW_COLLIDERS = import.meta.env.DEV;
 

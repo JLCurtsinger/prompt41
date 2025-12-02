@@ -98,5 +98,6 @@ export function EnergyCellModel({ scale = 0.6, position }: EnergyCellModelProps)
   );
 }
 
-useGLTF.preload('/models/Energy-Cell.glb');
+// Defer preload - load on first use (Energy Cells are not immediately visible)
+// useGLTF.preload('/models/Energy-Cell.glb');
 
