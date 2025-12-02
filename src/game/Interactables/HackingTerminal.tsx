@@ -241,8 +241,6 @@ export function HackingTerminal({ id, position, disabledUntilSentinelDefeated = 
   }, [isInRange, terminalState, hackingOverlay.isOpen, isLockedBySentinel, id, clearInteractionPrompt, sentinelDefeated, playHostLine, openHackingOverlay, closeHackingOverlay, canHackTerminal, getTerminalCooldownRemaining, hackMode, terminalMode, doorId]);
   
   
-  const isHacked = terminalState === 'hacked';
-  
   return (
     <>
       <group ref={terminalRef} position={position}>

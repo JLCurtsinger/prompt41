@@ -14,6 +14,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGameState } from '../../state/gameState';
 import { registerWallColliderFromObject, unregisterWallCollider } from '../colliders/wallColliders';
+import { DoorModel } from '../models/DoorModel';
 import * as THREE from 'three';
 
 interface DoorProps {
@@ -25,7 +26,7 @@ interface DoorProps {
 
 export function Door({ doorId, position, rotation = [0, 0, 0], scale = [1, 1, 1] }: DoorProps) {
   const doorRef = useRef<THREE.Group>(null);
-  const doorPanelRef = useRef<THREE.Mesh>(null);
+  const doorPanelRef = useRef<THREE.Group>(null);
   const colliderRef = useRef<THREE.Mesh>(null);
   const { scene } = useThree();
   const isDoorOpen = useGameState((state) => state.isDoorOpen(doorId));
@@ -37,7 +38,8 @@ export function Door({ doorId, position, rotation = [0, 0, 0], scale = [1, 1, 1]
   // Ensure door is at ground level - door panel center should be at Y=2 (4 units tall)
   // Position is the base position, so we adjust the door panel to be at Y=2
   const normalizedPosition: [number, number, number] = [position[0], 0, position[2]];
-  const targetY = isDoorOpen ? normalizedPosition[1] + 4 : normalizedPosition[1];
+  // Door panel starts at Y=2 relative to door group, slides up 4 units when opening
+  const targetY = isDoorOpen ? 2 + 4 : 2;
   const INTERACTION_RANGE = 2.5;
   
   // Register/unregister collision based on door state
@@ -129,33 +131,10 @@ export function Door({ doorId, position, rotation = [0, 0, 0], scale = [1, 1, 1]
   
   return (
     <group ref={doorRef} position={normalizedPosition} rotation={rotation} scale={scale}>
-      {/* Door frame (left side) */}
-      <mesh position={[-1, 2, 0]} castShadow>
-        <boxGeometry args={[0.2, 4, 0.5]} />
-        <meshStandardMaterial color="#2a2a2a" />
-      </mesh>
-      
-      {/* Door frame (right side) */}
-      <mesh position={[1, 2, 0]} castShadow>
-        <boxGeometry args={[0.2, 4, 0.5]} />
-        <meshStandardMaterial color="#2a2a2a" />
-      </mesh>
-      
-      {/* Door frame (top) */}
-      <mesh position={[0, 4, 0]} castShadow>
-        <boxGeometry args={[2.2, 0.2, 0.5]} />
-        <meshStandardMaterial color="#2a2a2a" />
-      </mesh>
-      
-      {/* Main door panel - slides up when opening */}
-      <mesh ref={doorPanelRef} position={[0, 2, 0]} castShadow visible={!isDoorOpen || (doorPanelRef.current?.position.y ?? 0) < normalizedPosition[1] + 3.5}>
-        <boxGeometry args={[2, 4, 0.3]} />
-        <meshStandardMaterial 
-          color={isDoorOpen ? "#1a1a1a" : "#3a3a3a"}
-          metalness={0.6}
-          roughness={0.4}
-        />
-      </mesh>
+      {/* Door model - slides up when opening */}
+      <group ref={doorPanelRef} position={[0, 2, 0]}>
+        <DoorModel />
+      </group>
       
       {/* Door lock indicator (red light when closed) */}
       {!isDoorOpen && (
