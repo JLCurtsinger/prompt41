@@ -306,6 +306,7 @@ interface GameState {
   
   // Objective actions
   setHasWon: (won: boolean) => void;
+  checkWinConditionAfterHack: () => void;
   
   // Terminal cooldown actions
   setTerminalCooldown: (terminalId: string, seconds: number) => void;
@@ -932,6 +933,10 @@ export const useGameState = create<GameState>((set, get) => {
     if (shouldWin) {
       console.log('[Win] All 3 SourceCodes secured! Transmission complete.');
     }
+    
+    // Check win condition after awarding source code
+    // This will trigger completeLevel() if all 3 source codes are now collected
+    get().checkWinConditionAfterHack();
   },
   
   resetInventory: () => {
@@ -1177,6 +1182,18 @@ export const useGameState = create<GameState>((set, get) => {
   setHasWon: (won) => {
     set({ hasWon: won });
     console.log(`[Objective] Player has won: ${won}`);
+  },
+  
+  // Check win condition after hack: if all 3 source codes collected, trigger victory
+  checkWinConditionAfterHack: () => {
+    const state = get();
+    const hasAllSourceCodes = state.sourceCodeCount >= SOURCE_CODE_GOAL;
+    
+    if (hasAllSourceCodes && !state.hasCompletedLevel) {
+      // Trigger victory overlay (System override complete - process suspended)
+      get().completeLevel();
+      console.log('[Win] All 3 SourceCodes collected - triggering victory');
+    }
   },
   
   // Terminal cooldown actions
