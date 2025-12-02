@@ -1,10 +1,9 @@
 import { useLayoutEffect, useRef } from 'react';
 import { useGLTF } from '@react-three/drei';
-import { GroupProps } from '@react-three/fiber';
 import { Group } from 'three';
 import * as THREE from 'three';
 
-export function HackingStationModel(props: GroupProps) {
+export function HackingStationModel(props: any) {
   const { scene } = useGLTF('/models/Hacking-Station.glb');
   const groupRef = useRef<Group>(null);
 
