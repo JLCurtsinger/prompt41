@@ -576,19 +576,19 @@ export function HackingOverlay() {
   }, [miniGamePhase]);
 
   // Auto-start mini-game based on hackMiniGameKind
-  useEffect(() => {
-    if (!isOpen || miniGamePhase !== 'chooseAction') return;
+  // useEffect(() => {
+  //   if (!isOpen || miniGamePhase !== 'chooseAction') return;
     
-    if (hackMiniGameKind === 'code-quiz') {
-      // For code quiz, skip chooseAction and go directly to playing phase
-      startHackingAction('disableSentries'); // This will set miniGamePhase to 'playing'
-    } else if (hackMiniGameKind === 'door-bars') {
-      // For door bars, skip chooseAction and go directly to playing phase with a random action
-      const actions: HackingActionType[] = ['disableSentries', 'overrideGate', 'convertWatcher'];
-      const randomAction = actions[Math.floor(Math.random() * actions.length)];
-      startHackingAction(randomAction);
-    }
-  }, [isOpen, hackMiniGameKind, miniGamePhase, startHackingAction]);
+  //   if (hackMiniGameKind === 'code-quiz') {
+  //     // For code quiz, skip chooseAction and go directly to playing phase
+  //     startHackingAction('disableSentries'); // This will set miniGamePhase to 'playing'
+  //   } else if (hackMiniGameKind === 'door-bars') {
+  //     // For door bars, skip chooseAction and go directly to playing phase with a random action
+  //     const actions: HackingActionType[] = ['disableSentries', 'overrideGate', 'convertWatcher'];
+  //     const randomAction = actions[Math.floor(Math.random() * actions.length)];
+  //     startHackingAction(randomAction);
+  //   }
+  // }, [isOpen, hackMiniGameKind, miniGamePhase, startHackingAction]);
 
   // Start/stop hacking loop based on mini-game phase (only for door-bars)
   useEffect(() => {
