@@ -202,6 +202,13 @@ export function HackingTerminal({ id, position, rotation, mode, terminalMode = '
               openHackingOverlay(id, 'alreadyHacked');
               // Auto-close already hacked message after 1 second
               setTimeout(() => {
+                const state = useGameState.getState();
+                console.log('[HACK-INTERRUPT] closing overlay from HackingTerminal.tsx:alreadyHacked', {
+                  hackMiniGameKind: state.hackingOverlay.hackMiniGameKind,
+                  miniGamePhase: state.hackingOverlay.miniGamePhase,
+                  miniGameResult: state.hackingOverlay.miniGameResult,
+                  isOpen: state.hackingOverlay.isOpen,
+                });
                 closeHackingOverlay();
               }, 1000);
             }

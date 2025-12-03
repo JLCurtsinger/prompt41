@@ -633,8 +633,8 @@ export function HackingOverlay() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        closeHackingOverlay();
-        resetHackingState();
+        closeHackingOverlay(true); // Internal call - allow interrupt
+        resetHackingState(true); // Internal call - allow interrupt
       }
     };
 
@@ -722,8 +722,8 @@ export function HackingOverlay() {
     if (!isOpen || miniGamePhase !== 'result') return;
 
     const timer = window.setTimeout(() => {
-      closeHackingOverlay();
-      resetHackingState();
+      closeHackingOverlay(true); // Internal call - allow interrupt
+      resetHackingState(true); // Internal call - allow interrupt
     }, 2500);
 
     return () => window.clearTimeout(timer);
@@ -787,8 +787,8 @@ export function HackingOverlay() {
 
   // Handle manual close from result screen
   const handleClose = useCallback(() => {
-    closeHackingOverlay();
-    resetHackingState();
+    closeHackingOverlay(true); // Internal call - allow interrupt
+    resetHackingState(true); // Internal call - allow interrupt
   }, [closeHackingOverlay, resetHackingState]);
 
   // NOW AFTER ALL HOOKS, do conditional rendering

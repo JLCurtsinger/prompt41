@@ -279,12 +279,14 @@ interface GameState {
   // Hacking overlay actions
   openHackingOverlay: (terminalId: string, mode?: 'normal' | 'locked' | 'alreadyHacked' | 'success', hackMode?: 'timing' | 'code', terminalMode?: 'sourcecode' | 'door', doorId?: string, hackMiniGameKind?: 'door-bars' | 'code-quiz') => void;
   setHackingOverlayMode: (mode: 'normal' | 'locked' | 'alreadyHacked' | 'success') => void;
-  closeHackingOverlay: () => void;
+  closeHackingOverlay: (allowInterrupt?: boolean) => void;
   // Mini-game actions
   startHackingAction: (action: 'disableSentries' | 'overrideGate' | 'convertWatcher') => void;
   setMiniGameResult: (result: 'success' | 'failure') => void;
   decrementAttempts: () => number;
-  resetHackingState: () => void;
+  resetHackingState: (allowInterrupt?: boolean) => void;
+  // Helper to check if code-quiz is in progress
+  isCodeQuizInProgress: () => boolean;
   
   // Zone 2 door unlock action
   unlockZone2Door: () => void;
@@ -1083,8 +1085,33 @@ export const useGameState = create<GameState>((set, get) => {
     return newAttempts;
   },
 
+  // Helper: check if code-quiz is actively in progress
+  isCodeQuizInProgress: () => {
+    const state = get();
+    return (
+      state.hackingOverlay.isOpen &&
+      state.hackingOverlay.hackMiniGameKind === 'code-quiz' &&
+      state.hackingOverlay.miniGamePhase === 'playing'
+    );
+  },
+
   // Mini-game: reset hacking state fully
-  resetHackingState: () => {
+  resetHackingState: (allowInterrupt: boolean = false) => {
+    const state = get();
+    
+    // Guard: prevent external interruptions when code-quiz is actively playing
+    if (!allowInterrupt && state.hackingOverlay.isOpen &&
+        state.hackingOverlay.hackMiniGameKind === 'code-quiz' &&
+        state.hackingOverlay.miniGamePhase === 'playing') {
+      console.log('[HACK-INTERRUPT] Blocked resetHackingState - code-quiz in progress', {
+        hackMiniGameKind: state.hackingOverlay.hackMiniGameKind,
+        miniGamePhase: state.hackingOverlay.miniGamePhase,
+        miniGameResult: state.hackingOverlay.miniGameResult,
+        isOpen: state.hackingOverlay.isOpen,
+      });
+      return;
+    }
+    
     set({
       hackingOverlay: {
         isOpen: false,
@@ -1103,7 +1130,22 @@ export const useGameState = create<GameState>((set, get) => {
     });
   },
   
-  closeHackingOverlay: () => {
+  closeHackingOverlay: (allowInterrupt: boolean = false) => {
+    const state = get();
+    
+    // Guard: prevent external interruptions when code-quiz is actively playing
+    if (!allowInterrupt && state.hackingOverlay.isOpen &&
+        state.hackingOverlay.hackMiniGameKind === 'code-quiz' &&
+        state.hackingOverlay.miniGamePhase === 'playing') {
+      console.log('[HACK-INTERRUPT] Blocked closeHackingOverlay - code-quiz in progress', {
+        hackMiniGameKind: state.hackingOverlay.hackMiniGameKind,
+        miniGamePhase: state.hackingOverlay.miniGamePhase,
+        miniGameResult: state.hackingOverlay.miniGameResult,
+        isOpen: state.hackingOverlay.isOpen,
+      });
+      return;
+    }
+    
     set({
       hackingOverlay: {
         isOpen: false,
