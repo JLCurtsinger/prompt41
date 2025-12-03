@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 
 interface CodeChallengeMiniGameProps {
   onSuccess: () => void;
@@ -119,11 +119,23 @@ export function CodeChallengeMiniGame({ onSuccess, terminalId }: CodeChallengeMi
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [showError, setShowError] = useState(false);
+  const hasCalledSuccessRef = useRef(false);
+
+  // Reset success ref when question changes (terminalId changes)
+  useEffect(() => {
+    hasCalledSuccessRef.current = false;
+  }, [question]);
 
   const handleAnswerClick = (index: number) => {
+    // Guard: prevent multiple success calls
+    if (hasCalledSuccessRef.current) {
+      return;
+    }
+    
     setSelectedIndex(index);
     
     if (index === question.correctIndex) {
+      hasCalledSuccessRef.current = true;
       onSuccess();
     } else {
       // Show error and allow retry (don't call onFailure to avoid decrementing attempts)

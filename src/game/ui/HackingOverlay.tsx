@@ -766,16 +766,24 @@ export function HackingOverlay() {
 
   // Handle mini-game success
   const handleMiniGameSuccess = useCallback(() => {
+    // Guard: only allow success if we're in playing phase and no result is set yet
+    if (miniGamePhase !== 'playing' || miniGameResult !== null) {
+      return;
+    }
     setMiniGameResult('success');
-  }, [setMiniGameResult]);
+  }, [setMiniGameResult, miniGamePhase, miniGameResult]);
 
   // Handle mini-game miss
   const handleMiniGameMiss = useCallback(() => {
+    // Guard: only allow failure if we're in playing phase and no result is set yet
+    if (miniGamePhase !== 'playing' || miniGameResult !== null) {
+      return;
+    }
     const remainingAfterDecrement = decrementAttempts();
     if (remainingAfterDecrement <= 0) {
       setMiniGameResult('failure');
     }
-  }, [decrementAttempts, setMiniGameResult]);
+  }, [decrementAttempts, setMiniGameResult, miniGamePhase, miniGameResult]);
 
   // Handle manual close from result screen
   const handleClose = useCallback(() => {
