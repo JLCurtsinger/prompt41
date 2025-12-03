@@ -122,6 +122,12 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const prevIsMovingRef = useRef(false);
   const prevIsSprintingRef = useRef(false);
   
+  // Performance optimization: track last player position to avoid unnecessary state updates
+  const lastPlayerPosRef = useRef<THREE.Vector3 | null>(null);
+  
+  // Performance optimization: reuse raycaster instead of creating new one each frame
+  const raycasterRef = useRef<THREE.Raycaster | null>(null);
+  
   // Movement constants
   const WALK_SPEED = 4;
   const SPRINT_SPEED = 8;
@@ -799,15 +805,27 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     prevIsMovingRef.current = isCurrentlyMoving;
     prevIsSprintingRef.current = isCurrentlySprinting;
     
-    // Write player world position to state
+    // Write player world position to state (only when position actually changes)
     if (playerRef.current) {
       const worldPos = new THREE.Vector3();
       playerRef.current.getWorldPosition(worldPos);
-      setPlayerPosition({
-        x: worldPos.x,
-        y: worldPos.y,
-        z: worldPos.z,
-      });
+      
+      // Only update state if position changed meaningfully (threshold: 0.001)
+      const shouldUpdate = !lastPlayerPosRef.current || 
+        worldPos.distanceTo(lastPlayerPosRef.current) > 0.001;
+      
+      if (shouldUpdate) {
+        setPlayerPosition({
+          x: worldPos.x,
+          y: worldPos.y,
+          z: worldPos.z,
+        });
+        // Update ref to track last position
+        if (!lastPlayerPosRef.current) {
+          lastPlayerPosRef.current = new THREE.Vector3();
+        }
+        lastPlayerPosRef.current.copy(worldPos);
+      }
     }
     
     // Rotate player to face movement direction
@@ -915,7 +933,11 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
     const targetCameraPosition = player.position.clone().add(baseOffset);
     
     // Simple collision avoidance: raycast from player to camera target
-    const raycaster = new THREE.Raycaster();
+    // Reuse raycaster instead of creating new one each frame
+    if (!raycasterRef.current) {
+      raycasterRef.current = new THREE.Raycaster();
+    }
+    const raycaster = raycasterRef.current;
     raycaster.set(player.position, targetCameraPosition.clone().sub(player.position).normalize());
     const distanceToTarget = player.position.distanceTo(targetCameraPosition);
     

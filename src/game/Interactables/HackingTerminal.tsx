@@ -40,6 +40,8 @@ export function HackingTerminal({ id, position, rotation, mode, terminalMode = '
   }
   const terminalRef = useRef<THREE.Group>(null);
   const [isInRange, setIsInRange] = useState(false);
+  // Performance optimization: track last isInRange value to avoid unnecessary state updates
+  const isInRangeRef = useRef(false);
   
   const terminalState = useGameState((state) => getTerminalState(state, id));
   const playHostLine = useGameState((state) => state.playHostLine);
@@ -89,7 +91,11 @@ export function HackingTerminal({ id, position, rotation, mode, terminalMode = '
       const distance = playerPos.distanceTo(terminalWorldPos);
       const nowInRange = distance <= INTERACTION_RANGE;
       wasInRangeRef.current = nowInRange;
-      setIsInRange(nowInRange);
+      // Only update state when value actually changes
+      if (nowInRange !== isInRangeRef.current) {
+        setIsInRange(nowInRange);
+        isInRangeRef.current = nowInRange;
+      }
       return; // Exit early - don't touch prompts or canHack logic
     }
     
@@ -181,9 +187,12 @@ export function HackingTerminal({ id, position, rotation, mode, terminalMode = '
       }
     }
     
-    // Update refs and state
+    // Update refs and state (only when value actually changes)
     wasInRangeRef.current = nowInRange;
-    setIsInRange(nowInRange);
+    if (nowInRange !== isInRangeRef.current) {
+      setIsInRange(nowInRange);
+      isInRangeRef.current = nowInRange;
+    }
   });
   
   // Handle E key press

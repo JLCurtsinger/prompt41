@@ -35,6 +35,8 @@ export function LootCrate({ id, position }: LootCrateProps) {
   const lidRef = useRef<THREE.Group>(null);
   const { scene } = useThree();
   const [isInRange, setIsInRange] = useState(false);
+  // Performance optimization: track last isInRange value to avoid unnecessary state updates
+  const isInRangeRef = useRef(false);
   const [isOpened, setIsOpened] = useState(false);
   const [lidRotation, setLidRotation] = useState(0);
   const [showEmptyMessage, setShowEmptyMessage] = useState(false);
@@ -76,9 +78,13 @@ export function LootCrate({ id, position }: LootCrateProps) {
     const playerPos = playerPosition as THREE.Vector3;
     const cratePos = new THREE.Vector3(...position);
     const distance = playerPos.distanceTo(cratePos);
-    const wasInRange = isInRange;
     const nowInRange = distance <= INTERACTION_RANGE;
-    setIsInRange(nowInRange);
+    const wasInRange = isInRangeRef.current;
+    // Only update state when value actually changes
+    if (nowInRange !== isInRangeRef.current) {
+      setIsInRange(nowInRange);
+      isInRangeRef.current = nowInRange;
+    }
     
     // Update interaction prompt based on range and state
     // Priority: Terminal > Door > Crate, so only show if no higher priority prompt exists

@@ -33,7 +33,10 @@ export function Door({ doorId, position, rotation = [0, 0, 0], scale = [1, 1, 1]
   const showInteractionPrompt = useGameState((state) => state.showInteractionPrompt);
   const clearInteractionPrompt = useGameState((state) => state.clearInteractionPrompt);
   const interactionPrompt = useGameState((state) => state.interactionPrompt);
+  // @ts-expect-error - isInRange state kept for React state management, but we use isInRangeRef for comparisons to avoid unnecessary re-renders
   const [isInRange, setIsInRange] = useState(false);
+  // Performance optimization: track last isInRange value to avoid unnecessary state updates
+  const isInRangeRef = useRef(false);
   
   // Ensure door is at ground level - door panel center should be at Y=2 (4 units tall)
   // Position is the base position, so we adjust the door panel to be at Y=2
@@ -95,16 +98,24 @@ export function Door({ doorId, position, rotation = [0, 0, 0], scale = [1, 1, 1]
     });
     
     if (!playerPosition) {
-      setIsInRange(false);
+      // Only update state when value actually changes
+      if (isInRangeRef.current !== false) {
+        setIsInRange(false);
+        isInRangeRef.current = false;
+      }
       return;
     }
     
     const playerPos = playerPosition as THREE.Vector3;
     const doorPos = new THREE.Vector3(...normalizedPosition);
     const distance = playerPos.distanceTo(doorPos);
-    const wasInRange = isInRange;
     const nowInRange = distance <= INTERACTION_RANGE;
-    setIsInRange(nowInRange);
+    const wasInRange = isInRangeRef.current;
+    // Only update state when value actually changes
+    if (nowInRange !== isInRangeRef.current) {
+      setIsInRange(nowInRange);
+      isInRangeRef.current = nowInRange;
+    }
     
     // Update interaction prompt based on range and state
     // Priority: Terminal > Door > Crate

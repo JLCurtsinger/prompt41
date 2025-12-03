@@ -83,6 +83,8 @@ const ENEMY_TUNING = {
 function ExitPortal({ position }: { position: [number, number, number] }) {
   const groupRef = useRef<THREE.Group>(null);
   const [isInRange, setIsInRange] = useState(false);
+  // Performance optimization: track last isInRange value to avoid unnecessary state updates
+  const isInRangeRef = useRef(false);
   
   const objectiveComplete = useGameState((state) => state.objectiveComplete);
   const setHasWon = useGameState((state) => state.setHasWon);
@@ -128,9 +130,13 @@ function ExitPortal({ position }: { position: [number, number, number] }) {
     const portalPos = new THREE.Vector3(position[0], position[1], position[2]);
     const distance = playerPos.distanceTo(portalPos);
     
-    const wasInRange = isInRange;
     const nowInRange = distance <= INTERACTION_RANGE;
-    setIsInRange(nowInRange);
+    const wasInRange = isInRangeRef.current;
+    // Only update state when value actually changes
+    if (nowInRange !== isInRangeRef.current) {
+      setIsInRange(nowInRange);
+      isInRangeRef.current = nowInRange;
+    }
     
     // Update interaction prompt
     if (nowInRange && !wasInRange && objectiveComplete) {
