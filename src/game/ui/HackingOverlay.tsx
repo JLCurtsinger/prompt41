@@ -56,6 +56,7 @@ function TimingBarMiniGame({
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
   const isRunningRef = useRef(true);
+  const clickedRef = useRef(false);
 
   // Disable sentries uses a slow speed, wide zone (easy)
   const speed = 0.6;
@@ -72,6 +73,7 @@ function TimingBarMiniGame({
     directionRef.current = 1;
     lastTimeRef.current = null;
     isRunningRef.current = true;
+    clickedRef.current = false;
   }, [attemptsRemaining]);
 
   // Animation loop - update ref directly for accurate click detection
@@ -116,6 +118,9 @@ function TimingBarMiniGame({
 
   // Simple, deterministic click handler
   const handleClick = useCallback(() => {
+    if (clickedRef.current) return;
+    clickedRef.current = true;
+
     if (attemptsRemaining <= 0 || !isRunningRef.current) {
       return;
     }
@@ -224,6 +229,7 @@ function OverrideGateMiniGame({
   const direction2Ref = useRef(1);
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  const clickedRef = useRef(false);
 
   // Two bars with different speeds so they drift relative to each other
   const speed1 = 1.0;
@@ -240,6 +246,7 @@ function OverrideGateMiniGame({
     direction1Ref.current = 1;
     direction2Ref.current = 1;
     lastTimeRef.current = null;
+    clickedRef.current = false;
   }, [attemptsRemaining]);
 
   // Animation loop
@@ -299,6 +306,9 @@ function OverrideGateMiniGame({
   cursorPos2Ref.current = cursorPos2;
   
   const handleClick = useCallback(() => {
+    if (clickedRef.current) return;
+    clickedRef.current = true;
+
     const currentPos1 = cursorPos1Ref.current;
     const currentPos2 = cursorPos2Ref.current;
     const cursor1InZone = currentPos1 >= zone1.start && currentPos1 <= zone1.end;
@@ -459,8 +469,18 @@ function ConvertWatcherMiniGame({
     return { targetCode, tiles, correctIndex };
   });
 
+  const clickedRef = useRef(false);
+
+  // Reset clickedRef when attempts change (new minigame session)
+  useEffect(() => {
+    clickedRef.current = false;
+  }, [attemptsRemaining]);
+
   // Handle tile click
   const handleTileClick = useCallback((index: number) => {
+    if (clickedRef.current) return;
+    clickedRef.current = true;
+
     if (puzzle.tiles[index] === puzzle.targetCode) {
       onSuccess();
     } else {
