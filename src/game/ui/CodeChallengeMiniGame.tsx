@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react';
 interface CodeChallengeMiniGameProps {
   onSuccess: () => void;
   terminalId?: string | null; // Terminal ID to look up questions
+  onUserInteraction?: () => void; // Callback when user interacts with the minigame
 }
 
 interface Question {
@@ -108,7 +109,7 @@ const FALLBACK_QUESTIONS: Question[] = [
   },
 ];
 
-export function CodeChallengeMiniGame({ onSuccess, terminalId }: CodeChallengeMiniGameProps) {
+export function CodeChallengeMiniGame({ onSuccess, terminalId, onUserInteraction }: CodeChallengeMiniGameProps) {
   // Select a random question from the terminal's question bank, or fallback
   const question = useMemo(() => {
     const questions = terminalId && CODE_QUESTIONS_BY_TERMINAL[terminalId]
@@ -121,6 +122,9 @@ export function CodeChallengeMiniGame({ onSuccess, terminalId }: CodeChallengeMi
   const [showError, setShowError] = useState(false);
 
   const handleAnswerClick = (index: number) => {
+    // Mark that user has interacted
+    onUserInteraction?.();
+    
     setSelectedIndex(index);
     
     if (index === question.correctIndex) {

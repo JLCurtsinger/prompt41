@@ -365,6 +365,7 @@ export const useGameState = create<GameState>((set, get) => {
     'zone1-zone2-main': 'open' // Always open - path from spawn to Crawler must be clear
   },
   terminalStates: {
+    'terminal-zone1-door': 'locked',
     'terminal-zone2-main': 'locked',
     'terminal-zone3': 'locked',
     'final_terminal': 'locked'
@@ -538,6 +539,7 @@ export const useGameState = create<GameState>((set, get) => {
         'zone1-zone2-main': 'open' // Always open - path from spawn to Crawler must be clear
       },
       terminalStates: {
+        'terminal-zone1-door': 'locked',
         'terminal-zone2-main': 'locked',
         'terminal-zone3': 'locked',
         'final_terminal': 'locked'

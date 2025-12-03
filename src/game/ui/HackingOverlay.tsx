@@ -44,11 +44,13 @@ function TimingBarMiniGame({
   attemptsRemaining,
   onSuccess,
   onFailedAttempt,
+  onUserInteraction,
 }: {
   selectedActionLabel: string;
   attemptsRemaining: number;
   onSuccess: () => void;
   onFailedAttempt: () => void;
+  onUserInteraction?: () => void;
 }) {
   const [cursorPosition, setCursorPosition] = useState(0);
   const cursorPositionRef = useRef(0);
@@ -120,6 +122,9 @@ function TimingBarMiniGame({
       return;
     }
 
+    // Mark that user has interacted
+    onUserInteraction?.();
+
     const pos = cursorPositionRef.current;
     
     if (pos == null || typeof pos !== 'number') {
@@ -133,7 +138,7 @@ function TimingBarMiniGame({
     } else {
       onFailedAttempt();
     }
-  }, [attemptsRemaining, greenStart, greenEnd, onSuccess, onFailedAttempt]);
+  }, [attemptsRemaining, greenStart, greenEnd, onSuccess, onFailedAttempt, onUserInteraction]);
 
   return (
     <div
@@ -212,11 +217,13 @@ function OverrideGateMiniGame({
   attemptsRemaining,
   onSuccess,
   onFailedAttempt,
+  onUserInteraction,
 }: {
   selectedActionLabel: string;
   attemptsRemaining: number;
   onSuccess: () => void;
   onFailedAttempt: () => void;
+  onUserInteraction?: () => void;
 }) {
   const [cursorPos1, setCursorPos1] = useState(0);
   const [cursorPos2, setCursorPos2] = useState(0.3); // Start offset for visual variety
@@ -299,6 +306,9 @@ function OverrideGateMiniGame({
   cursorPos2Ref.current = cursorPos2;
   
   const handleClick = useCallback(() => {
+    // Mark that user has interacted
+    onUserInteraction?.();
+
     const currentPos1 = cursorPos1Ref.current;
     const currentPos2 = cursorPos2Ref.current;
     const cursor1InZone = currentPos1 >= zone1.start && currentPos1 <= zone1.end;
@@ -309,7 +319,7 @@ function OverrideGateMiniGame({
     } else {
       onFailedAttempt();
     }
-  }, [onSuccess, onFailedAttempt]);
+  }, [onSuccess, onFailedAttempt, onUserInteraction]);
 
   // Shared bar style
   const barStyle: React.CSSProperties = {
@@ -417,11 +427,13 @@ function ConvertWatcherMiniGame({
   attemptsRemaining,
   onSuccess,
   onFailedAttempt,
+  onUserInteraction,
 }: {
   selectedActionLabel: string;
   attemptsRemaining: number;
   onSuccess: () => void;
   onFailedAttempt: () => void;
+  onUserInteraction?: () => void;
 }) {
   // Generate puzzle on mount (only once per hacking attempt)
   const [puzzle] = useState(() => {
@@ -461,12 +473,15 @@ function ConvertWatcherMiniGame({
 
   // Handle tile click
   const handleTileClick = useCallback((index: number) => {
+    // Mark that user has interacted
+    onUserInteraction?.();
+
     if (puzzle.tiles[index] === puzzle.targetCode) {
       onSuccess();
     } else {
       onFailedAttempt();
     }
-  }, [puzzle, onSuccess, onFailedAttempt]);
+  }, [puzzle, onSuccess, onFailedAttempt, onUserInteraction]);
 
   return (
     <div
@@ -568,12 +583,22 @@ export function HackingOverlay() {
   // Track if we've already awarded source code for this result
   const hasAwardedRef = useRef(false);
 
+  // Track if user has interacted with the minigame
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+
   // Reset award tracking when phase changes away from result
   useEffect(() => {
     if (miniGamePhase !== 'result') {
       hasAwardedRef.current = false;
     }
   }, [miniGamePhase]);
+
+  // Reset user interaction flag when overlay opens or terminalId changes
+  useEffect(() => {
+    if (isOpen) {
+      setHasUserInteracted(false);
+    }
+  }, [isOpen, terminalId]);
 
   // Auto-start mini-game based on hackMiniGameKind
   useEffect(() => {
@@ -631,6 +656,12 @@ export function HackingOverlay() {
     hasAwardedRef.current = true;
 
     if (miniGameResult === 'success') {
+      // Only mark terminal as hacked if user actually interacted with the minigame
+      if (!hasUserInteracted) {
+        // User never interacted - don't mark as hacked, just close overlay
+        return;
+      }
+
       // Handle door-bars mini-game (doors)
       if (hackMiniGameKind === 'door-bars' && doorId) {
         // Open the door
@@ -695,7 +726,7 @@ export function HackingOverlay() {
         console.warn('HackingOverlay: Error playing failure SFX:', error);
       }
     }
-  }, [isOpen, miniGamePhase, miniGameResult, terminalId, hackMiniGameKind, doorId, markTerminalHacked, setTerminalState, unlockZone2Door, playHostLine, setTerminalCooldown, openDoor, grantDoorReward, showDoorObjectiveHintIfNeeded]);
+  }, [isOpen, miniGamePhase, miniGameResult, terminalId, hackMiniGameKind, doorId, hasUserInteracted, markTerminalHacked, setTerminalState, unlockZone2Door, playHostLine, setTerminalCooldown, openDoor, grantDoorReward, showDoorObjectiveHintIfNeeded]);
 
   // Auto-close after result is shown (optional)
   useEffect(() => {
@@ -743,6 +774,13 @@ export function HackingOverlay() {
       startHackingAction(action);
     }
   }, [startHackingAction]);
+
+  // Handle user interaction in minigame
+  const handleUserInteraction = useCallback(() => {
+    if (!hasUserInteracted) {
+      setHasUserInteracted(true);
+    }
+  }, [hasUserInteracted]);
 
   // Handle mini-game success
   const handleMiniGameSuccess = useCallback(() => {
@@ -881,6 +919,7 @@ export function HackingOverlay() {
         <CodeChallengeMiniGame
           onSuccess={handleMiniGameSuccess}
           terminalId={terminalId}
+          onUserInteraction={handleUserInteraction}
         />
       );
     } else if (hackMiniGameKind === 'door-bars' && selectedAction === 'disableSentries') {
@@ -891,6 +930,7 @@ export function HackingOverlay() {
           attemptsRemaining={attemptsRemaining}
           onSuccess={handleMiniGameSuccess}
           onFailedAttempt={handleMiniGameMiss}
+          onUserInteraction={handleUserInteraction}
         />
       );
     } else if (hackMiniGameKind === 'door-bars' && selectedAction === 'overrideGate') {
@@ -901,6 +941,7 @@ export function HackingOverlay() {
           attemptsRemaining={attemptsRemaining}
           onSuccess={handleMiniGameSuccess}
           onFailedAttempt={handleMiniGameMiss}
+          onUserInteraction={handleUserInteraction}
         />
       );
     } else if (hackMiniGameKind === 'door-bars' && selectedAction === 'convertWatcher') {
@@ -911,6 +952,7 @@ export function HackingOverlay() {
           attemptsRemaining={attemptsRemaining}
           onSuccess={handleMiniGameSuccess}
           onFailedAttempt={handleMiniGameMiss}
+          onUserInteraction={handleUserInteraction}
         />
       );
     }
