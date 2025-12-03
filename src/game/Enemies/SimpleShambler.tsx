@@ -20,6 +20,9 @@ import { AudioManager } from "../audio/AudioManager";
 
 import { ShamblerModel } from "../models/ShamblerModel";
 
+// Adjustable Shambler base rotation (in radians)
+const SHAMBLER_BASE_ROTATION = 0; // change this to rotate the Shambler visually
+
 // Uniform visual scale for the Zone 3 Shambler
 const SHAMBLER_SCALE = 1.3;
 
@@ -300,7 +303,11 @@ export function SimpleShambler({
 
   return (
     <>
-      <group ref={enemyRef} scale={[SHAMBLER_SCALE, SHAMBLER_SCALE, SHAMBLER_SCALE]}>
+      <group
+        ref={enemyRef}
+        scale={[SHAMBLER_SCALE, SHAMBLER_SCALE, SHAMBLER_SCALE]}
+        rotation={[0, SHAMBLER_BASE_ROTATION, 0]}
+      >
         <ShamblerModel scale={[1, 1, 1]} />
       </group>
       
