@@ -32,6 +32,9 @@ import { useGameState } from '../../state/gameState';
 import { AudioManager } from '../audio/AudioManager';
 import * as THREE from 'three';
 
+// Uniform visual scale for the Shambler model
+const SHAMBLER_SCALE = 1.3;
+
 interface EnemyShamblerProps {
   initialPosition: [number, number, number];
   playerPosition: [number, number, number];
@@ -377,7 +380,7 @@ export function EnemyShambler({ initialPosition, playerPosition, isActivated }: 
 
 
   return (
-    <group ref={enemyRef}>
+    <group ref={enemyRef} scale={[SHAMBLER_SCALE, SHAMBLER_SCALE, SHAMBLER_SCALE]}>
       {/* Health bar above enemy */}
       <EnemyHealthBar health={health} maxHealth={maxHealth} getHealth={getHealth} />
       

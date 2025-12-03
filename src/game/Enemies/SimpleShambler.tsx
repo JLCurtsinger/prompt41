@@ -20,6 +20,9 @@ import { AudioManager } from "../audio/AudioManager";
 
 import { ShamblerModel } from "../models/ShamblerModel";
 
+// Uniform visual scale for the Zone 3 Shambler
+const SHAMBLER_SCALE = 1.3;
+
 // Attack constants - ensure melee range is tight and reasonable
 const SHAMBLER_MELEE_ATTACK_RANGE = 2.5; // Tight melee range - must be very close
 const SHAMBLER_ATTACK_WARMUP_MS = 2000;
@@ -116,6 +119,11 @@ export function SimpleShambler({
     if (!root) return;
 
     root.position.set(startVec.current.x, startVec.current.y, startVec.current.z);
+    
+    // Debug: confirm scale is applied
+    if (import.meta.env.DEV) {
+      console.log('[Debug] Shambler world scale:', root.scale);
+    }
 
     if (import.meta.env.DEV && DEBUG_SHAMBLER_LOGS) {
       console.log("[SimpleShambler] initial position", {
@@ -292,7 +300,7 @@ export function SimpleShambler({
 
   return (
     <>
-      <group ref={enemyRef}>
+      <group ref={enemyRef} scale={[SHAMBLER_SCALE, SHAMBLER_SCALE, SHAMBLER_SCALE]}>
         <ShamblerModel scale={[1, 1, 1]} />
       </group>
       
