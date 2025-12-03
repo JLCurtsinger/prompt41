@@ -20,6 +20,9 @@ import { AudioManager } from "../audio/AudioManager";
 
 import { CrawlerModel } from "../models/CrawlerModel";
 
+// Adjustable crawler rotation (in radians)
+const CRAWLER_BASE_ROTATION = 0; // change this to rotate the crawler
+
 // Attack constants - ensure melee range is tight and reasonable
 const CRAWLER_MELEE_RANGE = 1.25; // Tighter melee range - must be very close for melee hit
 const CRAWLER_ATTACK_COOLDOWN = 1.0; // seconds between attacks
@@ -312,7 +315,10 @@ export function SimpleCrawler({
 
   return (
     <>
-      <group ref={enemyRef}>
+      <group
+        ref={enemyRef}
+        rotation={[0, CRAWLER_BASE_ROTATION, 0]}
+      >
         <CrawlerModel scale={[1.1, 1.1, 1.1]} />
       </group>
       

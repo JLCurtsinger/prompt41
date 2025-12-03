@@ -542,8 +542,8 @@ export function GameScene() {
             - end=[27, 1.4, 0] patrols along corridor center */}
         <SimpleShambler
           id="shambler-zone3-0"
-          start={[23, 1.4, 0]}
-          end={[27, 1.4, 0]}
+          start={[23, 1.3, 0]}
+          end={[27, 1.3, 0]}
           zoneId="zone3"
         />
         
