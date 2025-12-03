@@ -11,13 +11,14 @@ interface ZeekoModelProps {
   isMoving?: boolean;
   isSprinting?: boolean;
   isSwinging?: boolean;
+  onSceneReady?: (scene: THREE.Group) => void;
 }
 
 export function ZeekoModel(props: ZeekoModelProps) {
   const { scene, animations } = useGLTF('/models/Zeeko.glb');
   const groupRef = useRef<Group>(null);
   const { actions, mixer } = useAnimations(animations, groupRef);
-  const { isMoving = false, isSprinting = false, isSwinging = false } = props;
+  const { isMoving = false, isSprinting = false, isSwinging = false, onSceneReady } = props;
   
   // Track current animation state
   const currentAnimationRef = useRef<string | null>(null);
@@ -35,7 +36,12 @@ export function ZeekoModel(props: ZeekoModelProps) {
     // box.min.y is the lowest point in world space; shift by -minY.
     const minY = box.min.y;
     groupRef.current.position.y -= minY;
-  }, []);
+    
+    // Notify parent that scene is ready (for bone access)
+    if (onSceneReady && groupRef.current) {
+      onSceneReady(groupRef.current);
+    }
+  }, [onSceneReady]);
 
   // Configure death animation as one-shot (but don't play it yet)
   useEffect(() => {

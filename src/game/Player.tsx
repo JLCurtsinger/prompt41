@@ -55,6 +55,7 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   const playerRef = useRef<THREE.Group>(null);
   const batonRef = useRef<THREE.Group>(null);
   const batonSfxRef = useRef<BatonSFXHandle | null>(null);
+  const rightHandBoneRef = useRef<THREE.Bone | null>(null);
   const velocity = useRef(new THREE.Vector3());
   const direction = useRef(new THREE.Vector3());
   const isGrounded = useRef(true);
@@ -195,6 +196,36 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
   useEffect(() => {
     setBatonSfxRef(batonSfxRef);
   }, [setBatonSfxRef]);
+  
+  // Find right hand bone from Zeeko model and attach baton to it
+  const handleZeekoSceneReady = useCallback((zeekoGroup: THREE.Group) => {
+    // Search for right hand bone - try common naming conventions
+    const boneNames = ['RightHand', 'rightHand', 'mixamorigRightHand', 'Hand_R', 'hand_r', 'RightHandIndex1'];
+    let foundBone: THREE.Bone | null = null;
+    
+    zeekoGroup.traverse((object) => {
+      if (object instanceof THREE.Bone) {
+        const name = object.name.toLowerCase();
+        for (const searchName of boneNames) {
+          if (name.includes(searchName.toLowerCase()) || name.includes('righthand') || name.includes('hand_r')) {
+            foundBone = object;
+            break;
+          }
+        }
+      }
+    });
+    
+    if (foundBone && batonRef.current) {
+      rightHandBoneRef.current = foundBone;
+      // Reparent baton to hand bone
+      const handBone = foundBone as THREE.Bone;
+      handBone.add(batonRef.current);
+      // Position baton in hand - small offset to sit naturally in grip
+      // These values may need fine-tuning based on the actual hand bone position
+      batonRef.current.position.set(0.02, 0, 0.05);
+      batonRef.current.rotation.set(0, 0, -0.3);
+    }
+  }, []);
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1128,9 +1159,11 @@ export function Player({ initialPosition = [0, 0, 0] }: PlayerProps) {
           isMoving={isMoving}
           isSprinting={isSprinting}
           isSwinging={isSwinging}
+          onSceneReady={handleZeekoSceneReady}
         />
         
         {/* Shock Baton - wrapped in group for animation */}
+        {/* Note: Baton will be reparented to hand bone if found, otherwise stays here */}
         <BatonSFX ref={batonSfxRef}>
           <group ref={batonRef} position={[0.3, 0.85, 0.35]} rotation={[0, 0, -0.3]}>
             {/* Baton blade - simple narrow box */}
