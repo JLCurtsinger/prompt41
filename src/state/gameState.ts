@@ -1037,6 +1037,11 @@ export const useGameState = create<GameState>((set, get) => {
       },
       isPaused: true,
     });
+    console.log('[HACK] openHackingOverlay', {
+      terminalId,
+      hackMiniGameKind: kind,
+      miniGamePhase: 'chooseAction',
+    });
   },
   
   setHackingOverlayMode: (mode) => {
@@ -1059,10 +1064,24 @@ export const useGameState = create<GameState>((set, get) => {
         attemptsRemaining: 3,
       },
     }));
+    const state = get();
+    console.log('[HACK] startHackingAction', {
+      terminalId: state.hackingOverlay.terminalId,
+      action,
+      miniGamePhase: 'playing',
+      attemptsRemaining: 3,
+    });
   },
 
   // Mini-game: set the result (success or failure)
   setMiniGameResult: (result) => {
+    const state = get();
+    console.log('[HACK] setMiniGameResult', {
+      terminalId: state.hackingOverlay.terminalId,
+      result,
+      prevPhase: state.hackingOverlay.miniGamePhase,
+      nextPhase: 'result',
+    });
     set((state) => ({
       hackingOverlay: {
         ...state.hackingOverlay,

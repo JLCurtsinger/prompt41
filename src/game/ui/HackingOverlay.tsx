@@ -651,6 +651,13 @@ export function HackingOverlay() {
   useEffect(() => {
     if (!isOpen || miniGamePhase !== 'result' || !miniGameResult || !terminalId) return;
     
+    console.log('[HACK] result handler', {
+      terminalId,
+      miniGamePhase,
+      miniGameResult,
+      hasUserInteracted,
+    });
+    
     // Only process once per result
     if (hasAwardedRef.current) return;
     hasAwardedRef.current = true;
@@ -732,7 +739,17 @@ export function HackingOverlay() {
   useEffect(() => {
     if (!isOpen || miniGamePhase !== 'result') return;
 
+    console.log('[HACK] auto-close timer start', {
+      terminalId,
+      miniGamePhase,
+      miniGameResult,
+      hasUserInteracted,
+    });
+
     const timer = window.setTimeout(() => {
+      console.log('[HACK] auto-close timer fired', {
+        terminalId,
+      });
       closeHackingOverlay();
       resetHackingState();
     }, 2500);
@@ -777,15 +794,25 @@ export function HackingOverlay() {
 
   // Handle user interaction in minigame
   const handleUserInteraction = useCallback(() => {
+    console.log('[HACK] user interaction detected', {
+      terminalId,
+      previousHasUserInteracted: hasUserInteracted,
+    });
     if (!hasUserInteracted) {
       setHasUserInteracted(true);
     }
-  }, [hasUserInteracted]);
+  }, [hasUserInteracted, terminalId]);
 
   // Handle mini-game success
   const handleMiniGameSuccess = useCallback(() => {
+    console.log('[HACK] handleMiniGameSuccess', {
+      terminalId,
+      hasUserInteracted,
+      miniGamePhase,
+      miniGameResult,
+    });
     setMiniGameResult('success');
-  }, [setMiniGameResult]);
+  }, [setMiniGameResult, terminalId, hasUserInteracted, miniGamePhase, miniGameResult]);
 
   // Handle mini-game miss
   const handleMiniGameMiss = useCallback(() => {

@@ -122,6 +122,11 @@ export function CodeChallengeMiniGame({ onSuccess, terminalId, onUserInteraction
   const [showError, setShowError] = useState(false);
 
   const handleAnswerClick = (index: number) => {
+    console.log('[HACK] answer clicked', {
+      terminalId,
+      answerIndex: index,
+      correctIndex: question.correctIndex,
+    });
     // Mark that user has interacted
     onUserInteraction?.();
     
