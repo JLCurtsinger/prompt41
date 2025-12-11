@@ -312,14 +312,15 @@ export function GameScene() {
   const setTotalEnemiesForLevelStart = useGameState((state) => state.setTotalEnemiesForLevelStart);
   const resetPlayer = useGameState((state) => state.resetPlayer);
   
-  // Initialize player state on game start
+  // Initialize player state on game start (only once on mount)
   useEffect(() => {
     resetPlayer();
     // Reset respawn manager
     enemyRespawnManager.reset();
     // Clear spawned enemies
     setSpawnedEnemies([]);
-  }, [resetPlayer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps: only run once on mount, not when resetPlayer reference changes
   
   // Callback to handle enemy spawns from EnemyRespawnController
   const handleSpawnEnemies = (newEnemies: Array<{ id: string; type: 'crawler' | 'drone' | 'shambler'; zoneId: string; position: [number, number, number] }>) => {

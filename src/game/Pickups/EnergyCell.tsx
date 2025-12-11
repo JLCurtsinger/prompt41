@@ -33,6 +33,7 @@ export function EnergyCell({ position }: EnergyCellProps) {
   const bobOffsetRef = useRef(0);
   
   const healPlayer = useGameState((state) => state.healPlayer);
+  const addEnergyCell = useGameState((state) => state.addEnergyCell);
   const playHostLine = useGameState((state) => state.playHostLine);
   
   const PICKUP_RANGE = 1.5;
@@ -70,6 +71,8 @@ export function EnergyCell({ position }: EnergyCellProps) {
     if (distanceSq <= PICKUP_RANGE_SQ) {
       // Pick up the cell
       setIsCollected(true);
+      // Add energy cell to inventory
+      addEnergyCell(1);
       // Heal the player by 5 HP, clamped to max health
       healPlayer(5);
       // Optional host line is fine to keep
